@@ -332,3 +332,66 @@ th.sortable.desc::after {
     padding: 1px 7px;
     font-weight: normal;
 }
+
+/* ============================================================
+   Treeview styles
+   ============================================================ */
+
+.aj-hidden { display: none; }
+
+.aj-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0;
+    margin-right: 6px;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.aj-toggle:hover { color: var(--accent); }
+
+.aj-leaf {
+    display: inline-block;
+    width: 16px;
+    margin-right: 6px;
+}
+
+.aj-section-cell {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.aj-detail-cell { padding: 0 !important; }
+
+.aj-detail-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding: 8px 16px;
+    background: var(--accent-subtle);
+    border-bottom: 1px solid var(--accent-border);
+}
+
+.aj-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.aj-detail-key {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.aj-detail-val {
+    font-size: 13px;
+    font-weight: 500;
+}

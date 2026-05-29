@@ -4,6 +4,7 @@
 export async function fetchData(jsonUrl, tsvUrl) {
     const jsonRes = await fetch(jsonUrl);
     if (jsonRes.ok) return jsonRes.json();
+    if (!tsvUrl) throw new Error(`Failed to load data from ${jsonUrl}`);
     const tsvRes = await fetch(tsvUrl);
     if (!tsvRes.ok) throw new Error(`Failed to load data from ${jsonUrl} and ${tsvUrl}`);
     return parseTsv(await tsvRes.text());
