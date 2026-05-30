@@ -3,7 +3,8 @@ import {
     buildToolbar, buildFooter, buildNoResults, updateFooter,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
-    updateFilterCounts, filterOptionRows, downloadCsv
+    updateFilterCounts, filterOptionRows, downloadCsv,
+    positionBelow
 } from './view.js';
 
 export function initTable(data, config) {
@@ -112,15 +113,7 @@ export function initTable(data, config) {
     }
 
     function openDropdown(dd, btn) {
-        const rect = btn.parentElement.getBoundingClientRect();
-        dd.style.top  = `${rect.bottom + 4}px`;
-        dd.style.left = `${rect.left}px`;
-        dd.classList.add('show');
-        const r = dd.getBoundingClientRect();
-        if (r.right > window.innerWidth - 8) {
-            dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
-        }
-        if (r.left < 8) dd.style.left = '8px';
+        positionBelow(dd, btn.parentElement);
         dd.querySelector('.filter-search').focus();
     }
 

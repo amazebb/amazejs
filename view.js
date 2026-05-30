@@ -1,5 +1,74 @@
 // DOM rendering functions — no business logic or mutable state.
 
+let _arrayDdCount = 0;
+let _arrayDdListenerAdded = false;
+
+function closeArrayDds() {
+    document.querySelectorAll('[data-array-dd].show').forEach(el => el.classList.remove('show'));
+}
+
+function ensureArrayDdListener() {
+    if (_arrayDdListenerAdded) return;
+    _arrayDdListenerAdded = true;
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.aj-array-badge, [data-array-dd]')) closeArrayDds();
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArrayDds(); });
+    document.addEventListener('scroll', closeArrayDds, true);
+}
+
+// Positions dd below anchor, clamped to the viewport edges.
+export function positionBelow(dd, anchor) {
+    const rect = anchor.getBoundingClientRect();
+    dd.style.top  = `${rect.bottom + 4}px`;
+    dd.style.left = `${rect.left}px`;
+    dd.classList.add('show');
+    const r = dd.getBoundingClientRect();
+    if (r.right > window.innerWidth - 8) dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
+    if (r.left < 8) dd.style.left = '8px';
+}
+
+// Renders an array-valued cell: first value inline + "+N" badge that opens a dropdown list.
+export function renderArrayCell(td, values) {
+    if (!values.length) return;
+    if (values.length === 1) { td.textContent = String(values[0]); return; }
+
+    ensureArrayDdListener();
+
+    const id = `ajdd_${++_arrayDdCount}`;
+    td.appendChild(document.createTextNode(String(values[0])));
+
+    const badge = document.createElement('button');
+    badge.className   = 'aj-array-badge';
+    badge.textContent = `+${values.length - 1}`;
+    td.appendChild(badge);
+
+    const dd = document.createElement('div');
+    dd.className = 'filter-dropdown';
+    dd.id = id;
+    dd.dataset.arrayDd = '';
+
+    const header = document.createElement('div');
+    header.className = 'aj-array-header';
+    header.textContent = 'Values';
+    dd.appendChild(header);
+
+    values.forEach(v => {
+        const item = document.createElement('div');
+        item.className = 'aj-array-item';
+        item.textContent = String(v);
+        dd.appendChild(item);
+    });
+    document.body.appendChild(dd);
+
+    badge.addEventListener('click', e => {
+        e.stopPropagation();
+        const isOpen = dd.classList.contains('show');
+        document.querySelectorAll('[data-array-dd].show').forEach(el => el.classList.remove('show'));
+        if (!isOpen) positionBelow(dd, badge);
+    });
+}
+
 // Returns a render function that builds <a> (optionally wrapped in another element).
 // textKey: data field for link text; hrefKey: data field for href; wrap: tag name e.g. 'code'
 export function linkCell(textKey, hrefKey, { wrap } = {}) {
@@ -181,10 +250,13 @@ export function buildRows(tbody, data, columns, { rowNumbers = false } = {}) {
         }
         columns.forEach(col => {
             const td = document.createElement('td');
+            const value = item[col.key];
             if (col.render) {
                 td.appendChild(col.render(item));
+            } else if (Array.isArray(value)) {
+                renderArrayCell(td, value);
             } else {
-                td.textContent = item[col.key] || '';
+                td.textContent = value || '';
             }
             tr.appendChild(td);
         });

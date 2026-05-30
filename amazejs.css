@@ -395,3 +395,45 @@ th.sortable.desc::after {
     font-size: 13px;
     font-weight: 500;
 }
+
+/* Array cell indicator */
+.aj-array-badge {
+    margin-left: 8px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border: 1px solid var(--accent-border);
+    border-radius: 10px;
+    cursor: pointer;
+    vertical-align: middle;
+    line-height: 1.6;
+}
+
+.aj-array-badge:hover {
+    background: var(--accent);
+    color: var(--bg);
+}
+
+/* Header row inside the array dropdown */
+.aj-array-header {
+    padding: 6px 14px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    color: var(--accent);
+    background: var(--accent-subtle);
+    border-bottom: 1px solid var(--accent-border);
+    border-radius: 8px 8px 0 0;
+}
+
+/* Items inside the shared filter-dropdown when used for array lists */
+.aj-array-item {
+    padding: 6px 16px;
+    font-size: 13px;
+}
+
+.aj-array-item:hover { background: var(--row-hover); }
