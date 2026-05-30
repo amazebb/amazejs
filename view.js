@@ -85,9 +85,9 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (search input + optional export button) before the table wrapper.
-// Returns { searchInput, exportBtn } for controller wiring.
-export function buildToolbar(tableWrap, placeholder, hasExport) {
+// Builds and inserts a toolbar (search input + optional export button + optional extra buttons) before the table wrapper.
+// Returns { searchInput, exportBtn, extraBtns } for controller wiring.
+export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -105,8 +105,16 @@ export function buildToolbar(tableWrap, placeholder, hasExport) {
         toolbar.appendChild(exportBtn);
     }
 
+    const extraBtns = buttons.map(cfg => {
+        const btn           = document.createElement('button');
+        btn.className       = 'atv-export-btn';
+        btn.textContent     = cfg.label;
+        toolbar.appendChild(btn);
+        return btn;
+    });
+
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, exportBtn };
+    return { searchInput, exportBtn, extraBtns };
 }
 
 // Builds and inserts a footer showing visible/total counts after the table wrapper.

@@ -17,7 +17,8 @@ export function initTable(data, config) {
         striped    = false,
         rowNumbers = false,
         bordered   = false,
-        title      = ''
+        title      = '',
+        buttons    = []
     } = config;
 
     const table     = document.getElementById(tableId);
@@ -35,7 +36,7 @@ export function initTable(data, config) {
     const columns = inferColumns(data, colsWithAttrs);
 
     // --- View: build chrome around the table ---
-    const { searchInput, exportBtn } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename);
+    const { searchInput, exportBtn, extraBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
     // Insert order matters: afterend pushes each new element right after tableWrap,
     // so noResults ends up after footer: tableWrap → footer → noResults
     const footer    = buildFooter(tableWrap);
@@ -102,6 +103,13 @@ export function initTable(data, config) {
             downloadCsv(columns, visible, exportFilename);
         });
     }
+
+    extraBtns.forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+            const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
+            buttons[i].onClick(visible, btn);
+        });
+    });
 
     // --- Dropdown management ---
     const allDropdowns = [...filterDefs, ...textDefs].map(def => ({
