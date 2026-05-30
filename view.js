@@ -85,8 +85,9 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (search input + optional export button + optional extra buttons) before the table wrapper.
-// Returns { searchInput, exportBtn, extraBtns } for controller wiring.
+// Builds and inserts a toolbar (search input + optional export split button + optional extra buttons) before the table wrapper.
+// Returns { searchInput, exportBtns, extraBtns } for controller wiring.
+// exportBtns: { csv, json, dd, wrap } — the two clickable items, dropdown el, and wrapper for click-outside detection.
 export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
@@ -97,12 +98,47 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     searchInput.placeholder = placeholder || 'Search...';
     toolbar.appendChild(searchInput);
 
-    let exportBtn = null;
+    let exportBtns = null;
     if (hasExport) {
-        exportBtn             = document.createElement('button');
-        exportBtn.className   = 'atv-export-btn';
-        exportBtn.textContent = 'Export CSV';
-        toolbar.appendChild(exportBtn);
+        const group = document.createElement('div');
+        group.className = 'atv-split-btn';
+
+        const main        = document.createElement('button');
+        main.className    = 'atv-export-btn';
+        main.textContent  = 'Export';
+
+        const arrow       = document.createElement('button');
+        arrow.className   = 'atv-split-arrow';
+        arrow.textContent = '▾';
+
+        group.appendChild(main);
+        group.appendChild(arrow);
+        toolbar.appendChild(group);
+
+        const dd = document.createElement('div');
+        dd.className = 'filter-dropdown atv-export-dd';
+        document.body.appendChild(dd);
+
+        const csv  = document.createElement('div');
+        csv.className   = 'aj-array-item';
+        csv.textContent = 'CSV';
+
+        const json = document.createElement('div');
+        json.className   = 'aj-array-item';
+        json.textContent = 'JSON';
+
+        dd.appendChild(csv);
+        dd.appendChild(json);
+
+        const toggle = () => {
+            const isOpen = dd.classList.contains('show');
+            dd.classList.remove('show');
+            if (!isOpen) positionBelow(dd, group);
+        };
+        main.addEventListener('click', toggle);
+        arrow.addEventListener('click', toggle);
+
+        exportBtns = { csv, json, dd, wrap: group };
     }
 
     const extraBtns = buttons.map(cfg => {
@@ -114,7 +150,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     });
 
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, exportBtn, extraBtns };
+    return { searchInput, exportBtns, extraBtns };
 }
 
 // Builds and inserts a footer showing visible/total counts after the table wrapper.
@@ -376,6 +412,17 @@ export function downloadCsv(columns, items, filename) {
     const a    = document.createElement('a');
     a.href     = URL.createObjectURL(blob);
     a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Generates a JSON file from visible items, stripping internal DOM references, and triggers a download.
+export function downloadJson(items, filename) {
+    const clean = items.map(({ tr, ...rest }) => rest);
+    const blob  = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+    const a     = document.createElement('a');
+    a.href      = URL.createObjectURL(blob);
+    a.download  = filename;
     a.click();
     URL.revokeObjectURL(a.href);
 }

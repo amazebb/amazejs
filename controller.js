@@ -3,7 +3,7 @@ import {
     buildToolbar, buildFooter, buildNoResults, updateFooter,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
-    updateFilterCounts, filterOptionRows, downloadCsv,
+    updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
     positionBelow
 } from './view.js';
 
@@ -36,7 +36,7 @@ export function initTable(data, config) {
     const columns = inferColumns(data, colsWithAttrs);
 
     // --- View: build chrome around the table ---
-    const { searchInput, exportBtn, extraBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
+    const { searchInput, exportBtns, extraBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
     // Insert order matters: afterend pushes each new element right after tableWrap,
     // so noResults ends up after footer: tableWrap → footer → noResults
     const footer    = buildFooter(tableWrap);
@@ -97,10 +97,17 @@ export function initTable(data, config) {
 
     searchInput.addEventListener('input', refresh);
 
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
+    if (exportBtns) {
+        const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
+        exportBtns.csv.addEventListener('click', () => {
             const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
             downloadCsv(columns, visible, exportFilename);
+            exportBtns.dd.classList.remove('show');
+        });
+        exportBtns.json.addEventListener('click', () => {
+            const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
+            downloadJson(visible, jsonFilename);
+            exportBtns.dd.classList.remove('show');
         });
     }
 
@@ -116,6 +123,7 @@ export function initTable(data, config) {
         dd:   document.getElementById(def.id),
         wrap: document.getElementById(def.btnId).parentElement
     }));
+    if (exportBtns) allDropdowns.push({ dd: exportBtns.dd, wrap: exportBtns.wrap });
 
     function closeAll() {
         allDropdowns.forEach(({ dd }) => dd.classList.remove('show'));

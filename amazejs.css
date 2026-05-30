@@ -54,6 +54,39 @@
     border-color: var(--border-muted);
 }
 
+/* Export split button dropdown — narrower than the default filter dropdown */
+.atv-export-dd {
+    min-width: 0;
+    width: auto;
+}
+
+/* Export split button */
+.atv-split-btn {
+    display: flex;
+}
+
+.atv-split-btn .atv-export-btn {
+    border-radius: var(--radius) 0 0 var(--radius);
+    border-right: none;
+}
+
+.atv-split-arrow {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    border-left: 1px solid var(--border-muted);
+    font-size: 11px;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.atv-split-arrow:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-muted);
+    color: var(--text);
+}
+
 /* Footer — visible/total row count, inserted after the table wrapper */
 .atv-footer {
     margin-top: 10px;
