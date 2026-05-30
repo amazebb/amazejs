@@ -16,7 +16,8 @@ export function initTable(data, config) {
         exportFilename,
         striped    = false,
         rowNumbers = false,
-        bordered   = false
+        bordered   = false,
+        title      = ''
     } = config;
 
     const table     = document.getElementById(tableId);
@@ -41,7 +42,7 @@ export function initTable(data, config) {
     const noResults = buildNoResults(tableWrap);
 
     // --- View: build table content ---
-    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers });
+    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers, title });
     buildRows(tbody, data, columns, { rowNumbers });
 
     // --- State ---

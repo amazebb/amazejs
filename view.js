@@ -138,7 +138,18 @@ export function updateFooter(footerEl, visible, total) {
 // 'text' columns get a button + dropdown with just a search input.
 // Others are plain sortable ths.
 // Returns { filterDefs, textDefs } — both arrays have shape [{ id, btnId, key, col }].
-export function buildHeader(thead, columns, tableId, { rowNumbers = false } = {}) {
+export function buildHeader(thead, columns, tableId, { rowNumbers = false, title = '' } = {}) {
+    if (title) {
+        const colSpan = columns.length + (rowNumbers ? 1 : 0);
+        const titleTr = document.createElement('tr');
+        const titleTh = document.createElement('th');
+        titleTh.colSpan   = colSpan;
+        titleTh.className = 'aj-title-cell';
+        titleTh.textContent = title;
+        titleTr.appendChild(titleTh);
+        thead.appendChild(titleTr);
+    }
+
     const tr         = document.createElement('tr');
     const filterDefs = [];
     const textDefs   = [];

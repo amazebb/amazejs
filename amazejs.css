@@ -148,6 +148,26 @@ tbody tr:not(.hidden) .atv-row-num::before {
     user-select: none;
 }
 
+/* Table title banner — first row in thead, spans all columns */
+.aj-title-cell {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px 16px;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-bottom: 1px solid var(--accent-border);
+    letter-spacing: 0.02em;
+}
+
+@media (prefers-color-scheme: light) {
+    .aj-title-cell {
+        background: var(--bg-hover);
+        color: var(--text);
+        border-bottom-color: var(--border);
+    }
+}
+
 /* Sortable column headers */
 th.sortable {
     cursor: pointer;
