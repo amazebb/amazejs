@@ -1,6 +1,6 @@
 import { inferColumns, getVisible, computeCounts, sortItems } from './model.js';
 import {
-    buildToolbar, buildFooter, buildNoResults, updateFooter,
+    buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
@@ -36,14 +36,11 @@ export function initTable(data, config) {
     const columns = inferColumns(data, colsWithAttrs);
 
     // --- View: build chrome around the table ---
-    const { searchInput, exportBtns, extraBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
-    // Insert order matters: afterend pushes each new element right after tableWrap,
-    // so noResults ends up after footer: tableWrap → footer → noResults
-    const footer    = buildFooter(tableWrap);
+    const { searchInput, exportBtns, extraBtns, settingsBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
     const noResults = buildNoResults(tableWrap);
 
     // --- View: build table content ---
-    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers, title });
+    const { filterDefs, textDefs, titleBadge } = buildHeader(thead, columns, tableId, { rowNumbers, title });
     buildRows(tbody, data, columns, { rowNumbers });
 
     // --- State ---
@@ -83,7 +80,7 @@ export function initTable(data, config) {
         visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet);
-        updateFooter(footer, visibleSet.size, data.length);
+        if (titleBadge) titleBadge.textContent = `${visibleSet.size} / ${data.length}`;
         noResults.classList.toggle('show', visibleSet.size === 0);
 
         const counts = computeCounts(data, filterState, textFilterState, query, searchKeys);
@@ -114,12 +111,25 @@ export function initTable(data, config) {
         btn.addEventListener('click', () => buttons[i].onClick([...visibleSet], btn));
     });
 
+    // --- Settings toggles ---
+    settingsBtns.rowNums.checked  = rowNumbers;
+    settingsBtns.borders.checked  = bordered;
+
+    settingsBtns.rowNums.addEventListener('change', () => {
+        table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
+    });
+
+    settingsBtns.borders.addEventListener('change', () => {
+        table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
+    });
+
     // --- Dropdown management ---
     const allDropdowns = [...filterDefs, ...textDefs].map(def => ({
         dd:   document.getElementById(def.id),
         wrap: document.getElementById(def.btnId).parentElement
     }));
     if (exportBtns) allDropdowns.push({ dd: exportBtns.dd, wrap: exportBtns.wrap });
+    allDropdowns.push({ dd: settingsBtns.dd, wrap: settingsBtns.wrap });
 
     function closeAll() {
         allDropdowns.forEach(({ dd }) => dd.classList.remove('show'));

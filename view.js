@@ -149,8 +149,50 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
         return btn;
     });
 
+    // Settings button — always far right via margin-left: auto
+    const settingsBtn       = document.createElement('button');
+    settingsBtn.className   = 'atv-settings-btn';
+    settingsBtn.textContent = '⚙';
+    toolbar.appendChild(settingsBtn);
+
+    const settingsDd = document.createElement('div');
+    settingsDd.className = 'filter-dropdown';
+    document.body.appendChild(settingsDd);
+
+    const settingsHdr       = document.createElement('div');
+    settingsHdr.className   = 'aj-array-header';
+    settingsHdr.textContent = 'Settings';
+    settingsDd.appendChild(settingsHdr);
+
+    const settingsOpts = document.createElement('div');
+    settingsOpts.className = 'filter-options';
+    settingsDd.appendChild(settingsOpts);
+
+    const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
+    const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
+
+    settingsBtn.addEventListener('click', () => {
+        const isOpen = settingsDd.classList.contains('show');
+        settingsDd.classList.remove('show');
+        if (!isOpen) positionBelow(settingsDd, settingsBtn);
+    });
+
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, exportBtns, extraBtns };
+    return { searchInput, exportBtns, extraBtns, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, dd: settingsDd, wrap: settingsBtn } };
+}
+
+function makeSettingsRow(container, label) {
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+
+    const lbl = document.createElement('label');
+    const cb  = document.createElement('input');
+    cb.type   = 'checkbox';
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(label));
+    row.appendChild(lbl);
+    container.appendChild(row);
+    return cb;
 }
 
 // Builds and inserts a footer showing visible/total counts after the table wrapper.
@@ -181,15 +223,22 @@ export function updateFooter(footerEl, visible, total) {
 // 'category' columns get a button + dropdown with checkboxes.
 // 'text' columns get a button + dropdown with just a search input.
 // Others are plain sortable ths.
-// Returns { filterDefs, textDefs } — both arrays have shape [{ id, btnId, key, col }].
+// Returns { filterDefs, textDefs, titleBadge } — titleBadge is the count span in the title row, or null.
 export function buildHeader(thead, columns, tableId, { rowNumbers = false, title = '' } = {}) {
+    let titleBadge = null;
+
     if (title) {
         const colSpan = columns.length + (rowNumbers ? 1 : 0);
         const titleTr = document.createElement('tr');
         const titleTh = document.createElement('th');
         titleTh.colSpan   = colSpan;
         titleTh.className = 'aj-title-cell';
-        titleTh.textContent = title;
+        titleTh.appendChild(document.createTextNode(title + '  '));
+
+        titleBadge           = document.createElement('span');
+        titleBadge.className = 'filter-badge';
+        titleTh.appendChild(titleBadge);
+
         titleTr.appendChild(titleTh);
         thead.appendChild(titleTr);
     }
@@ -239,7 +288,7 @@ export function buildHeader(thead, columns, tableId, { rowNumbers = false, title
     });
 
     thead.appendChild(tr);
-    return { filterDefs, textDefs };
+    return { filterDefs, textDefs, titleBadge };
 }
 
 function buildDropdown(id) {
