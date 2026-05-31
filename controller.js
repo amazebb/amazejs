@@ -50,8 +50,9 @@ export function initTable(data, config) {
     const filterState     = {};
     const textFilterState = {};
     const filterUI        = {};
-    let sortedData    = [...data];
-    const sortState   = { key: null, dir: 1 };
+    let sortedData = [...data];
+    let visibleSet = new Set(data);
+    const sortState = { key: null, dir: 1 };
 
     filterDefs.forEach(def => {
         const values = [...new Set(data.map(d => d[def.key]))].filter(Boolean).sort();
@@ -78,8 +79,8 @@ export function initTable(data, config) {
 
     // --- Refresh: apply filters, update all UI ---
     function refresh() {
-        const query      = searchInput.value;
-        const visibleSet = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
+        const query = searchInput.value;
+        visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet);
         updateFooter(footer, visibleSet.size, data.length);
@@ -100,22 +101,17 @@ export function initTable(data, config) {
     if (exportBtns) {
         const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
         exportBtns.csv.addEventListener('click', () => {
-            const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
-            downloadCsv(columns, visible, exportFilename);
+            downloadCsv(columns, [...visibleSet], exportFilename);
             exportBtns.dd.classList.remove('show');
         });
         exportBtns.json.addEventListener('click', () => {
-            const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
-            downloadJson(visible, jsonFilename);
+            downloadJson([...visibleSet], jsonFilename);
             exportBtns.dd.classList.remove('show');
         });
     }
 
     extraBtns.forEach((btn, i) => {
-        btn.addEventListener('click', () => {
-            const visible = sortedData.filter(item => !item.tr.classList.contains('hidden'));
-            buttons[i].onClick(visible, btn);
-        });
+        btn.addEventListener('click', () => buttons[i].onClick([...visibleSet], btn));
     });
 
     // --- Dropdown management ---
