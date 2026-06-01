@@ -104,11 +104,11 @@ export async function initTable(config) {
         const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
         exportBtns.csv.addEventListener('click', () => {
             downloadCsv(columns, [...visibleSet], exportFilename);
-            exportBtns.dd.classList.remove('show');
+            exportBtns.dd.hidePopover();
         });
         exportBtns.json.addEventListener('click', () => {
             downloadJson([...visibleSet], jsonFilename);
-            exportBtns.dd.classList.remove('show');
+            exportBtns.dd.hidePopover();
         });
     }
 
@@ -129,17 +129,6 @@ export async function initTable(config) {
     });
 
     // --- Dropdown management ---
-    const allDropdowns = [...filterDefs, ...textDefs].map(def => ({
-        dd:   document.getElementById(def.id),
-        wrap: document.getElementById(def.btnId).parentElement
-    }));
-    if (exportBtns) allDropdowns.push({ dd: exportBtns.dd, wrap: exportBtns.wrap });
-    allDropdowns.push({ dd: settingsBtns.dd, wrap: settingsBtns.wrap });
-
-    function closeAll() {
-        allDropdowns.forEach(({ dd }) => dd.classList.remove('show'));
-    }
-
     function openDropdown(dd, btn) {
         positionBelow(dd, btn.parentElement);
         dd.querySelector('.filter-search').focus();
@@ -149,11 +138,11 @@ export async function initTable(config) {
         const btn = document.getElementById(def.btnId);
         const dd  = document.getElementById(def.id);
 
+        let wasOpen = false;
+        btn.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
         btn.addEventListener('click', e => {
             e.preventDefault();
-            const open = dd.classList.contains('show');
-            closeAll();
-            if (!open) {
+            if (!wasOpen) {
                 openDropdown(dd, btn);
                 const search = dd.querySelector('.filter-search');
                 search.value = '';
@@ -185,11 +174,11 @@ export async function initTable(config) {
         const dd    = document.getElementById(def.id);
         const input = dd.querySelector('.filter-search');
 
+        let wasOpen = false;
+        btn.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
         btn.addEventListener('click', e => {
             e.preventDefault();
-            const open = dd.classList.contains('show');
-            closeAll();
-            if (!open) openDropdown(dd, btn);
+            if (!wasOpen) openDropdown(dd, btn);
         });
 
         input.addEventListener('input', () => {
@@ -197,16 +186,6 @@ export async function initTable(config) {
             refresh();
         });
     });
-
-    document.addEventListener('click', e => {
-        allDropdowns.forEach(({ dd, wrap }) => {
-            if (!wrap.contains(e.target) && !dd.contains(e.target)) {
-                dd.classList.remove('show');
-            }
-        });
-    });
-
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
 
     // --- Sorting ---
     function sortByCol(colIndex) {

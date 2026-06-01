@@ -6,28 +6,13 @@ _link.href = new URL('./amazejs.css', import.meta.url).href;
 document.head.appendChild(_link);
 
 let _arrayDdCount = 0;
-let _arrayDdListenerAdded = false;
-
-function closeArrayDds() {
-    document.querySelectorAll('[data-array-dd].show').forEach(el => el.classList.remove('show'));
-}
-
-function ensureArrayDdListener() {
-    if (_arrayDdListenerAdded) return;
-    _arrayDdListenerAdded = true;
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.aj-array-badge, [data-array-dd]')) closeArrayDds();
-    });
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeArrayDds(); });
-    document.addEventListener('scroll', closeArrayDds, true);
-}
 
 // Positions dd below anchor, clamped to the viewport edges.
 export function positionBelow(dd, anchor) {
     const rect = anchor.getBoundingClientRect();
     dd.style.top  = `${rect.bottom + 4}px`;
     dd.style.left = `${rect.left}px`;
-    dd.classList.add('show');
+    dd.showPopover();
     const r = dd.getBoundingClientRect();
     if (r.right > window.innerWidth - 8) dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
     if (r.left < 8) dd.style.left = '8px';
@@ -37,8 +22,6 @@ export function positionBelow(dd, anchor) {
 export function renderArrayCell(td, values) {
     if (!values.length) return;
     if (values.length === 1) { td.textContent = String(values[0]); return; }
-
-    ensureArrayDdListener();
 
     const id = `ajdd_${++_arrayDdCount}`;
     td.appendChild(document.createTextNode(String(values[0])));
@@ -51,7 +34,7 @@ export function renderArrayCell(td, values) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
     dd.id = id;
-    dd.dataset.arrayDd = '';
+    dd.popover = 'auto';
 
     const header = document.createElement('div');
     header.className = 'aj-array-header';
@@ -66,12 +49,9 @@ export function renderArrayCell(td, values) {
     });
     document.body.appendChild(dd);
 
-    badge.addEventListener('click', e => {
-        e.stopPropagation();
-        const isOpen = dd.classList.contains('show');
-        document.querySelectorAll('[data-array-dd].show').forEach(el => el.classList.remove('show'));
-        if (!isOpen) positionBelow(dd, badge);
-    });
+    let wasOpen = false;
+    badge.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
+    badge.addEventListener('click', () => { if (!wasOpen) positionBelow(dd, badge); });
 }
 
 // Returns a render function that builds <a> (optionally wrapped in another element).
@@ -122,6 +102,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
 
         const dd = document.createElement('div');
         dd.className = 'filter-dropdown atv-export-dd';
+        dd.popover   = 'auto';
         document.body.appendChild(dd);
 
         const csv  = document.createElement('div');
@@ -135,13 +116,13 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
         dd.appendChild(csv);
         dd.appendChild(json);
 
-        const toggle = () => {
-            const isOpen = dd.classList.contains('show');
-            dd.classList.remove('show');
-            if (!isOpen) positionBelow(dd, group);
-        };
-        main.addEventListener('click', toggle);
-        arrow.addEventListener('click', toggle);
+        let exportWasOpen = false;
+        const captureOpen = () => { exportWasOpen = dd.matches(':popover-open'); };
+        const openExport  = () => { if (!exportWasOpen) positionBelow(dd, group); };
+        main.addEventListener('pointerdown', captureOpen);
+        main.addEventListener('click', openExport);
+        arrow.addEventListener('pointerdown', captureOpen);
+        arrow.addEventListener('click', openExport);
 
         exportBtns = { csv, json, dd, wrap: group };
     }
@@ -162,6 +143,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
 
     const settingsDd = document.createElement('div');
     settingsDd.className = 'filter-dropdown';
+    settingsDd.popover   = 'auto';
     document.body.appendChild(settingsDd);
 
     const settingsHdr       = document.createElement('div');
@@ -176,11 +158,9 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
 
-    settingsBtn.addEventListener('click', () => {
-        const isOpen = settingsDd.classList.contains('show');
-        settingsDd.classList.remove('show');
-        if (!isOpen) positionBelow(settingsDd, settingsBtn);
-    });
+    let settingsWasOpen = false;
+    settingsBtn.addEventListener('pointerdown', () => { settingsWasOpen = settingsDd.matches(':popover-open'); });
+    settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
     return { searchInput, exportBtns, extraBtns, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, dd: settingsDd, wrap: settingsBtn } };
@@ -300,6 +280,7 @@ function buildDropdown(id) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
     dd.id        = id;
+    dd.popover   = 'auto';
 
     const fsearch         = document.createElement('input');
     fsearch.className     = 'filter-search';
@@ -336,6 +317,7 @@ function buildTextDropdown(id) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
     dd.id        = id;
+    dd.popover   = 'auto';
 
     const input       = document.createElement('input');
     input.className   = 'filter-search';

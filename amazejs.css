@@ -283,19 +283,16 @@ th.sortable.desc::after {
 
 /* Filter dropdown — portalled to <body>, positioned via JS */
 .filter-dropdown {
-    display: none;
     position: fixed;
+    inset: auto;
+    margin: 0;
+    padding: 0;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     box-shadow: var(--dropdown-shadow);
     min-width: 240px;
     max-height: 360px;
-    z-index: 20;
-}
-
-.filter-dropdown.show {
-    display: block;
 }
 
 .filter-search {
