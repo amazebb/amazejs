@@ -1,5 +1,10 @@
 // DOM rendering functions — no business logic or mutable state.
 
+const _link = document.createElement('link');
+_link.rel = 'stylesheet';
+_link.href = new URL('./amazejs.css', import.meta.url).href;
+document.head.appendChild(_link);
+
 let _arrayDdCount = 0;
 let _arrayDdListenerAdded = false;
 
