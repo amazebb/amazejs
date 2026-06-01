@@ -40,6 +40,11 @@ export async function initTable(config) {
     table.parentNode.insertBefore(tableWrap, table);
     tableWrap.appendChild(table);
 
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'atv-table-container';
+    tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
+    tableContainer.appendChild(tableWrap);
+
     // --- Model: resolve columns ---
     const colsWithAttrs = (config.columns || []).map(col => ({
         ...readColAttr(table, col.key),
