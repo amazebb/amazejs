@@ -77,11 +77,20 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
+    const searchWrap       = document.createElement('div');
+    searchWrap.className   = 'atv-search-wrap';
+
     const searchInput       = document.createElement('input');
     searchInput.type        = 'text';
     searchInput.className   = 'atv-search';
     searchInput.placeholder = placeholder || 'Search...';
-    toolbar.appendChild(searchInput);
+
+    const countBadge       = document.createElement('span');
+    countBadge.className   = 'atv-count-badge';
+
+    searchWrap.appendChild(searchInput);
+    searchWrap.appendChild(countBadge);
+    toolbar.appendChild(searchWrap);
 
     let exportBtns = null;
     if (hasExport) {
@@ -157,13 +166,14 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
 
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
+    const stickyCb  = makeSettingsRow(settingsOpts, 'Sticky Headers');
 
     let settingsWasOpen = false;
     settingsBtn.addEventListener('pointerdown', () => { settingsWasOpen = settingsDd.matches(':popover-open'); });
     settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, exportBtns, extraBtns, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, dd: settingsDd, wrap: settingsBtn } };
+    return { searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, dd: settingsDd, wrap: settingsBtn } };
 }
 
 function makeSettingsRow(container, label) {
@@ -208,26 +218,7 @@ export function updateFooter(footerEl, visible, total) {
 // 'category' columns get a button + dropdown with checkboxes.
 // 'text' columns get a button + dropdown with just a search input.
 // Others are plain sortable ths.
-// Returns { filterDefs, textDefs, titleBadge } — titleBadge is the count span in the title row, or null.
-export function buildHeader(thead, columns, tableId, { rowNumbers = false, title = '' } = {}) {
-    let titleBadge = null;
-
-    if (title) {
-        const colSpan = columns.length + (rowNumbers ? 1 : 0);
-        const titleTr = document.createElement('tr');
-        const titleTh = document.createElement('th');
-        titleTh.colSpan   = colSpan;
-        titleTh.className = 'aj-title-cell';
-        titleTh.appendChild(document.createTextNode(title + '  '));
-
-        titleBadge           = document.createElement('span');
-        titleBadge.className = 'filter-badge';
-        titleTh.appendChild(titleBadge);
-
-        titleTr.appendChild(titleTh);
-        thead.appendChild(titleTr);
-    }
-
+export function buildHeader(thead, columns, tableId, { rowNumbers = false } = {}) {
     const tr         = document.createElement('tr');
     const filterDefs = [];
     const textDefs   = [];
@@ -273,7 +264,7 @@ export function buildHeader(thead, columns, tableId, { rowNumbers = false, title
     });
 
     thead.appendChild(tr);
-    return { filterDefs, textDefs, titleBadge };
+    return { filterDefs, textDefs };
 }
 
 function buildDropdown(id) {

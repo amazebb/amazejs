@@ -22,17 +22,23 @@ export async function initTable(config) {
         striped           = false,
         rowNumbers        = false,
         bordered          = false,
-        title             = '',
         buttons           = [],
-        searchDebounce    = true
+        searchDebounce    = true,
+        stickyHeaders     = true
     } = config;
 
-    const table     = document.getElementById(tableId);
-    if (striped)   table.classList.add('atv-striped');
-    if (bordered)  table.classList.add('atv-bordered');
-    const tbody     = table.querySelector('tbody');
-    const thead     = table.querySelector('thead');
-    const tableWrap = table.closest('.table-wrap') || table.parentElement;
+    const table = document.getElementById(tableId);
+    if (striped)  table.classList.add('atv-striped');
+    if (bordered) table.classList.add('atv-bordered');
+
+    const thead = document.createElement('thead');
+    const tbody = document.createElement('tbody');
+    table.append(thead, tbody);
+
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'table-wrap';
+    table.parentNode.insertBefore(tableWrap, table);
+    tableWrap.appendChild(table);
 
     // --- Model: resolve columns ---
     const colsWithAttrs = (config.columns || []).map(col => ({
@@ -42,11 +48,12 @@ export async function initTable(config) {
     const columns = inferColumns(data, colsWithAttrs);
 
     // --- View: build chrome around the table ---
-    const { searchInput, exportBtns, extraBtns, settingsBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
+    const { searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
+
     const noResults = buildNoResults(tableWrap);
 
     // --- View: build table content ---
-    const { filterDefs, textDefs, titleBadge } = buildHeader(thead, columns, tableId, { rowNumbers, title });
+    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers });
     const rowMap = buildRows(tbody, data, columns, { rowNumbers });
 
     // --- State ---
@@ -86,7 +93,7 @@ export async function initTable(config) {
         visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
-        if (titleBadge) titleBadge.textContent = `${visibleSet.size} / ${data.length}`;
+        countBadge.textContent = `${visibleSet.size} / ${data.length}`;
         noResults.classList.toggle('show', visibleSet.size === 0);
 
         const counts = computeCounts(data, filterState, textFilterState, query, searchKeys);
@@ -120,8 +127,14 @@ export async function initTable(config) {
     });
 
     // --- Settings toggles ---
+    function applySticky(on) {
+        toolbar.classList.toggle('atv-sticky', on);
+    }
+
     settingsBtns.rowNums.checked  = rowNumbers;
     settingsBtns.borders.checked  = bordered;
+    settingsBtns.sticky.checked   = stickyHeaders;
+    applySticky(stickyHeaders);
 
     settingsBtns.rowNums.addEventListener('change', () => {
         table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
@@ -129,6 +142,10 @@ export async function initTable(config) {
 
     settingsBtns.borders.addEventListener('change', () => {
         table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
+    });
+
+    settingsBtns.sticky.addEventListener('change', () => {
+        applySticky(settingsBtns.sticky.checked);
     });
 
     // --- Dropdown management ---

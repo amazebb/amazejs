@@ -18,19 +18,47 @@
     display: flex;
     gap: 8px;
     align-items: center;
-    margin-bottom: 16px;
+    padding-bottom: 16px;
+}
+
+.atv-toolbar.atv-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg);
+}
+
+.atv-search-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
 }
 
 .atv-search {
     width: 100%;
-    max-width: 400px;
     padding: 8px 12px;
+    padding-right: 72px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 14px;
     outline: none;
     background: var(--bg);
     color: var(--text);
+}
+
+.atv-count-badge {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 7px;
+    pointer-events: none;
+    white-space: nowrap;
 }
 
 .atv-search:focus,
@@ -151,12 +179,10 @@ td {
 
 th {
     background: var(--header-bg);
-    position: sticky;
-    top: 0;
-    z-index: 2;
     white-space: nowrap;
     font-weight: 600;
 }
+
 
 tr:last-child td {
     border-bottom: none;
@@ -199,26 +225,6 @@ tbody tr:not(.hidden) .atv-row-num::before {
     color: var(--text-muted);
     font-size: 12px;
     user-select: none;
-}
-
-/* Table title banner — first row in thead, spans all columns */
-.aj-title-cell {
-    text-align: center;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 12px 16px;
-    background: var(--accent-subtle);
-    color: var(--accent);
-    border-bottom: 1px solid var(--accent-border);
-    letter-spacing: 0.02em;
-}
-
-@media (prefers-color-scheme: light) {
-    .aj-title-cell {
-        background: var(--bg-hover);
-        color: var(--text);
-        border-bottom-color: var(--border);
-    }
 }
 
 /* Sortable column headers */
