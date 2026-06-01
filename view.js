@@ -447,10 +447,12 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
     const btn             = document.getElementById(filterDef.btnId);
     const badgeEl         = document.querySelector(`#${filterDef.id} .filter-actions-badge`);
     btn.classList.toggle('active', isFiltered);
+    badgeEl.textContent = '';
     if (isFiltered || badgeAlwaysShow) {
-        badgeEl.innerHTML = `<span class="filter-badge">${visibleSelected}/${visibleTotal}</span>`;
-    } else {
-        badgeEl.innerHTML = '';
+        const badge = document.createElement('span');
+        badge.className = 'filter-badge';
+        badge.textContent = `${visibleSelected}/${visibleTotal}`;
+        badgeEl.appendChild(badge);
     }
 }
 
