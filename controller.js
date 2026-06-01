@@ -7,7 +7,13 @@ import {
     positionBelow
 } from './view.js';
 
-export function initTable(data, config) {
+export async function initTable(config) {
+    let data = config.data;
+    if (Array.isArray(data) && typeof data[0] === 'string') {
+        const { fetchData } = await import('./model.js');
+        data = await fetchData(...data);
+    }
+
     const {
         tableId,
         searchKeys,

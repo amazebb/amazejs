@@ -413,6 +413,17 @@ th.sortable.desc::after {
 
 .aj-hidden { display: none; }
 
+/* Nested child table container */
+.aj-children-cell {
+    padding: 0 !important;
+    border-left: 3px solid var(--accent-border);
+}
+
+.aj-children-cell thead th {
+    background: var(--bg-subtle);
+    font-size: 12px;
+}
+
 .aj-toggle {
     background: none;
     border: none;
