@@ -1,4 +1,5 @@
 import { fetchData } from './model.js';
+import { initTable } from './controller.js';
 
 const btnMeta = new WeakMap();
 
@@ -12,28 +13,14 @@ export async function initTreeTable(config) {
     if (!rootItems?.length) return;
 
     const levelDefs = detectLevels(rootItems[0], config.levels || []);
+    const rootCols  = getColumns(rootItems, levelDefs, 0);
 
+    // Root table uses full initTable — toolbar, search, sort, export, etc.
+    await initTable({ ...config, data: rootItems, columns: rootCols });
+
+    // Delegated click listener scoped to the container — catches toggles from all nested levels.
     const table = document.getElementById(config.tableId);
-    const thead = document.createElement('thead');
-    const tbody = document.createElement('tbody');
-    table.append(thead, tbody);
-
-    const tableWrap = document.createElement('div');
-    tableWrap.className = 'table-wrap';
-    table.parentNode.insertBefore(tableWrap, table);
-    tableWrap.appendChild(table);
-
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'atv-table-container';
-    tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
-    tableContainer.appendChild(tableWrap);
-
-    const rootCols = getColumns(rootItems, levelDefs[0]?.nameKey);
-    buildHeader(thead, rootCols);
-    buildRows(tbody, rootItems, rootCols, levelDefs, 0);
-
-    // Single delegated listener — clicks from all nested tables bubble up naturally.
-    tableContainer.addEventListener('click', e => {
+    table.closest('.atv-table-container').addEventListener('click', e => {
         const btn = e.target.closest('.aj-toggle');
         if (!btn) return;
         handleToggle(btn);
@@ -72,76 +59,61 @@ function detectLevels(sample, configLevels) {
     return defs;
 }
 
-// Returns column defs from non-array keys, nameKey sorted first, labels uppercased.
-function getColumns(items, nameKey) {
-    const sample = items[0] || {};
+// Returns column defs with nameKey first, labels uppercased, filters disabled.
+// The first column gets a render function that injects an expand toggle or leaf spacer,
+// reusing the existing col.render hook in buildRows (view.js).
+function getColumns(items, levelDefs, depth) {
+    const sample   = items[0] || {};
+    const levelDef = levelDefs[depth] || {};
+    const nameKey  = levelDef.nameKey || 'name';
+    const childKey = levelDef.childrenKey;
+
     const keys = Object.keys(sample).filter(k => !Array.isArray(sample[k]));
     if (nameKey && keys.includes(nameKey)) {
         keys.splice(keys.indexOf(nameKey), 1);
         keys.unshift(nameKey);
     }
-    return keys.map(k => ({ key: k, label: k.toUpperCase() }));
+
+    const colCount = keys.length;
+    return keys.map((k, i) => {
+        const col = { key: k, label: k.toUpperCase(), filter: false };
+        if (i === 0) {
+            col.render = item => {
+                const children    = childKey ? (item[childKey] || []) : [];
+                const hasChildren = children.length > 0;
+                const frag        = document.createDocumentFragment();
+                if (hasChildren) {
+                    const btn = document.createElement('button');
+                    btn.className   = 'aj-toggle';
+                    btn.textContent = '▶';
+                    btn.setAttribute('aria-label', 'Expand');
+                    btnMeta.set(btn, { children, levelDefs, depth: depth + 1, colCount });
+                    frag.appendChild(btn);
+                } else {
+                    const leaf = document.createElement('span');
+                    leaf.className = 'aj-leaf';
+                    frag.appendChild(leaf);
+                }
+                frag.appendChild(document.createTextNode(item[k] ?? ''));
+                return frag;
+            };
+        }
+        return col;
+    });
 }
 
 function buildSectionHeader(thead, childrenKey, count, colSpan) {
-    const tr  = document.createElement('tr');
-    const th  = document.createElement('th');
+    const tr = document.createElement('tr');
+    const th = document.createElement('th');
     th.colSpan   = colSpan;
     th.className = 'aj-section-header';
     th.appendChild(document.createTextNode((childrenKey || '').toUpperCase() + ' '));
-    const badge = document.createElement('span');
+    const badge       = document.createElement('span');
     badge.className   = 'filter-badge';
     badge.textContent = count;
     th.appendChild(badge);
     tr.appendChild(th);
-    thead.appendChild(tr);
-}
-
-function buildHeader(thead, columns) {
-    const tr = document.createElement('tr');
-    columns.forEach(col => {
-        const th = document.createElement('th');
-        th.textContent = col.label;
-        tr.appendChild(th);
-    });
-    thead.appendChild(tr);
-}
-
-function buildRows(tbody, items, columns, levelDefs, depth) {
-    const childKey = levelDefs[depth]?.childrenKey;
-    const frag = document.createDocumentFragment();
-
-    items.forEach(item => {
-        const children    = childKey ? (item[childKey] || []) : [];
-        const hasChildren = children.length > 0;
-        const tr          = document.createElement('tr');
-
-        columns.forEach((col, i) => {
-            const td = document.createElement('td');
-
-            if (i === 0) {
-                if (hasChildren) {
-                    const btn = document.createElement('button');
-                    btn.className = 'aj-toggle';
-                    btn.textContent = '▶';
-                    btn.setAttribute('aria-label', 'Expand');
-                    btnMeta.set(btn, { children, levelDefs, depth: depth + 1, colCount: columns.length });
-                    td.appendChild(btn);
-                } else {
-                    const leaf = document.createElement('span');
-                    leaf.className = 'aj-leaf';
-                    td.appendChild(leaf);
-                }
-            }
-
-            td.appendChild(document.createTextNode(item[col.key] ?? ''));
-            tr.appendChild(td);
-        });
-
-        frag.appendChild(tr);
-    });
-
-    tbody.appendChild(frag);
+    thead.insertBefore(tr, thead.firstChild);
 }
 
 function handleToggle(btn) {
@@ -151,7 +123,7 @@ function handleToggle(btn) {
     btn.textContent = isOpen ? '▶' : '▼';
     btn.setAttribute('aria-label', isOpen ? 'Expand' : 'Collapse');
 
-    // If child row already built, just show/hide it.
+    // Already built — just show/hide.
     const nextTr = parentTr.nextElementSibling;
     if (nextTr?.classList.contains('aj-children-row')) {
         nextTr.classList.toggle('aj-hidden', isOpen);
@@ -162,25 +134,26 @@ function handleToggle(btn) {
 
     // Lazy build on first expand.
     const { children, levelDefs, depth, colCount } = btnMeta.get(btn);
-    const childCols = getColumns(children, levelDefs[depth]?.nameKey);
+    const childCols = getColumns(children, levelDefs, depth);
 
     const childTr = document.createElement('tr');
     childTr.className = 'aj-children-row';
-
     const childTd = document.createElement('td');
-    childTd.colSpan = colCount;
+    childTd.colSpan   = colCount;
     childTd.className = 'aj-children-cell';
-
     const childTable  = document.createElement('table');
-    const childThead  = document.createElement('thead');
-    const childTbody  = document.createElement('tbody');
-    childTable.append(childThead, childTbody);
-
-    buildSectionHeader(childThead, levelDefs[depth - 1]?.childrenKey, children.length, childCols.length);
-    buildHeader(childThead, childCols);
-    buildRows(childTbody, children, childCols, levelDefs, depth);
-
     childTd.appendChild(childTable);
     childTr.appendChild(childTd);
+
+    // Insert into DOM before initTable so getElementById can resolve filter button IDs.
     parentTr.insertAdjacentElement('afterend', childTr);
+
+    initTable({ table: childTable, data: children, columns: childCols, nested: true });
+
+    buildSectionHeader(
+        childTable.querySelector('thead'),
+        levelDefs[depth - 1]?.childrenKey,
+        children.length,
+        childCols.length
+    );
 }

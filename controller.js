@@ -7,6 +7,8 @@ import {
     positionBelow
 } from './view.js';
 
+let _tableCount = 0;
+
 export async function initTable(config) {
     let data = config.data;
     if (Array.isArray(data) && typeof data[0] === 'string') {
@@ -14,20 +16,22 @@ export async function initTable(config) {
     }
 
     const {
-        tableId,
-        searchKeys,
+        nested         = false,
+        searchKeys     = [],
         searchPlaceholder,
-        badgeAlwaysShow   = false,
+        badgeAlwaysShow = false,
         exportFilename,
-        striped           = false,
-        rowNumbers        = false,
-        bordered          = false,
-        buttons           = [],
-        searchDebounce    = true,
-        stickyHeaders     = true
+        striped        = false,
+        rowNumbers     = false,
+        bordered       = false,
+        buttons        = [],
+        searchDebounce = true,
+        stickyHeaders  = true
     } = config;
 
-    const table = document.getElementById(tableId);
+    const tableId = config.tableId || `atv_t${++_tableCount}`;
+    const table   = config.table  || document.getElementById(tableId);
+
     if (striped)  table.classList.add('atv-striped');
     if (bordered) table.classList.add('atv-bordered');
 
@@ -35,27 +39,31 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    const tableWrap = document.createElement('div');
-    tableWrap.className = 'table-wrap';
-    table.parentNode.insertBefore(tableWrap, table);
-    tableWrap.appendChild(table);
+    let searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns, noResults, tableWrap;
 
-    const tableContainer = document.createElement('div');
-    tableContainer.className = 'atv-table-container';
-    tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
-    tableContainer.appendChild(tableWrap);
+    if (!nested) {
+        tableWrap = document.createElement('div');
+        tableWrap.className = 'table-wrap';
+        table.parentNode.insertBefore(tableWrap, table);
+        tableWrap.appendChild(table);
+
+        const tableContainer = document.createElement('div');
+        tableContainer.className = 'atv-table-container';
+        tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
+        tableContainer.appendChild(tableWrap);
+
+        ({ searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns } =
+            buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons));
+
+        noResults = buildNoResults(tableWrap);
+    }
 
     // --- Model: resolve columns ---
     const colsWithAttrs = (config.columns || []).map(col => ({
         ...readColAttr(table, col.key),
-        ...col  // explicit config overrides data-col-* attributes
+        ...col
     }));
     const columns = inferColumns(data, colsWithAttrs);
-
-    // --- View: build chrome around the table ---
-    const { searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns } = buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons);
-
-    const noResults = buildNoResults(tableWrap);
 
     // --- View: build table content ---
     const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers });
@@ -94,12 +102,12 @@ export async function initTable(config) {
 
     // --- Refresh: apply filters, update all UI ---
     function refresh() {
-        const query = searchInput.value;
+        const query = searchInput ? searchInput.value : '';
         visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
-        countBadge.textContent = `${visibleSet.size} / ${data.length}`;
-        noResults.classList.toggle('show', visibleSet.size === 0);
+        if (countBadge) countBadge.textContent = `${visibleSet.size} / ${data.length}`;
+        if (noResults)  noResults.classList.toggle('show', visibleSet.size === 0);
 
         const counts = computeCounts(data, filterState, textFilterState, query, searchKeys);
         filterDefs.forEach(def => {
@@ -111,9 +119,11 @@ export async function initTable(config) {
         });
     }
 
-    const onSearch = searchDebounce === false ? refresh
-        : debounce(refresh, typeof searchDebounce === 'number' ? searchDebounce : 150);
-    searchInput.addEventListener('input', onSearch);
+    if (searchInput) {
+        const onSearch = searchDebounce === false ? refresh
+            : debounce(refresh, typeof searchDebounce === 'number' ? searchDebounce : 150);
+        searchInput.addEventListener('input', onSearch);
+    }
 
     if (exportBtns) {
         const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
@@ -127,31 +137,29 @@ export async function initTable(config) {
         });
     }
 
-    extraBtns.forEach((btn, i) => {
-        btn.addEventListener('click', () => buttons[i].onClick([...visibleSet], btn));
-    });
-
-    // --- Settings toggles ---
-    function applySticky(on) {
-        toolbar.classList.toggle('atv-sticky', on);
+    if (extraBtns) {
+        extraBtns.forEach((btn, i) => {
+            btn.addEventListener('click', () => buttons[i].onClick([...visibleSet], btn));
+        });
     }
 
-    settingsBtns.rowNums.checked  = rowNumbers;
-    settingsBtns.borders.checked  = bordered;
-    settingsBtns.sticky.checked   = stickyHeaders;
-    applySticky(stickyHeaders);
+    // --- Settings toggles (non-nested only) ---
+    if (settingsBtns) {
+        function applySticky(on) { toolbar.classList.toggle('atv-sticky', on); }
 
-    settingsBtns.rowNums.addEventListener('change', () => {
-        table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
-    });
+        settingsBtns.rowNums.checked = rowNumbers;
+        settingsBtns.borders.checked = bordered;
+        settingsBtns.sticky.checked  = stickyHeaders;
+        applySticky(stickyHeaders);
 
-    settingsBtns.borders.addEventListener('change', () => {
-        table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
-    });
-
-    settingsBtns.sticky.addEventListener('change', () => {
-        applySticky(settingsBtns.sticky.checked);
-    });
+        settingsBtns.rowNums.addEventListener('change', () => {
+            table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
+        });
+        settingsBtns.borders.addEventListener('change', () => {
+            table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
+        });
+        settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
+    }
 
     // --- Dropdown management ---
     function openDropdown(dd, btn) {
@@ -217,21 +225,15 @@ export async function initTable(config) {
         const col = columns.find(c => c._i === colIndex);
         if (!col) return;
 
-        if (sortState.key === col.key) {
-            sortState.dir *= -1;
-        } else {
-            sortState.key = col.key;
-            sortState.dir = 1;
-        }
+        sortState.dir = sortState.key === col.key ? sortState.dir * -1 : 1;
+        sortState.key = col.key;
 
         const dirClass = sortState.dir === 1 ? 'asc' : 'desc';
         table.querySelectorAll('th.sortable').forEach(th => th.classList.remove('asc', 'desc'));
-        const activeTh = table.querySelector(`th[data-col="${colIndex}"]`);
-        if (activeTh) activeTh.classList.add(dirClass);
+        table.querySelector(`th[data-col="${colIndex}"]`)?.classList.add(dirClass);
         [...filterDefs, ...textDefs].forEach(def => {
-            if (def.col === colIndex) {
+            if (def.col === colIndex)
                 document.getElementById(def.btnId).parentElement.parentElement.classList.add(dirClass);
-            }
         });
 
         sortedData = sortItems(data, col.key, sortState.dir, col.numeric);
@@ -257,8 +259,6 @@ function debounce(fn, ms) {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-// Reads data-col-{key} from the table element and returns { label?, filter? }.
-// Format: "Label" or "Label,true|false"
 function readColAttr(table, key) {
     const attr = table.dataset[`col${key[0].toUpperCase()}${key.slice(1)}`];
     if (!attr) return {};
