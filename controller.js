@@ -17,13 +17,14 @@ export async function initTable(config) {
         tableId,
         searchKeys,
         searchPlaceholder,
-        badgeAlwaysShow = false,
+        badgeAlwaysShow   = false,
         exportFilename,
-        striped    = false,
-        rowNumbers = false,
-        bordered   = false,
-        title      = '',
-        buttons    = []
+        striped           = false,
+        rowNumbers        = false,
+        bordered          = false,
+        title             = '',
+        buttons           = [],
+        searchDebounce    = true
     } = config;
 
     const table     = document.getElementById(tableId);
@@ -98,7 +99,9 @@ export async function initTable(config) {
         });
     }
 
-    searchInput.addEventListener('input', refresh);
+    const onSearch = searchDebounce === false ? refresh
+        : debounce(refresh, typeof searchDebounce === 'number' ? searchDebounce : 150);
+    searchInput.addEventListener('input', onSearch);
 
     if (exportBtns) {
         const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
@@ -225,6 +228,11 @@ export async function initTable(config) {
     });
 
     refresh();
+}
+
+function debounce(fn, ms) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
 // Reads data-col-{key} from the table element and returns { label?, filter? }.
