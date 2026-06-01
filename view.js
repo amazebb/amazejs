@@ -394,8 +394,17 @@ export function syncCheckboxes(checkboxes, selected) {
 }
 
 // Shows/hides rows based on the visible set returned by model.getVisible.
+// Also hides any expanded child table row so nested content collapses with the parent.
 export function setRowVisibility(data, visibleSet, rowMap) {
-    data.forEach(item => rowMap.get(item).classList.toggle('hidden', !visibleSet.has(item)));
+    data.forEach(item => {
+        const tr      = rowMap.get(item);
+        const visible = visibleSet.has(item);
+        tr.classList.toggle('hidden', !visible);
+        const next = tr.nextElementSibling;
+        if (next?.classList.contains('aj-children-row')) {
+            next.classList.toggle('hidden', !visible);
+        }
+    });
 }
 
 // Updates count labels, hides zero-count options, and refreshes the badge.
