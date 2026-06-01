@@ -1,4 +1,4 @@
-import { inferColumns, getVisible, computeCounts, sortItems } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -10,7 +10,6 @@ import {
 export async function initTable(config) {
     let data = config.data;
     if (Array.isArray(data) && typeof data[0] === 'string') {
-        const { fetchData } = await import('./model.js');
         data = await fetchData(...data);
     }
 
