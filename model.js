@@ -28,7 +28,7 @@ export function inferColumns(data, configCols) {
     const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));
     return base.map((col, i) => {
         const isNumeric = data.every(item => !item[col.key] || !isNaN(Number(item[col.key])));
-        return { filter: isNumeric ? false : 'text', label: capitalize(col.key), ...col, _i: i };
+        return { filter: isNumeric ? false : 'text', numeric: isNumeric, label: capitalize(col.key), ...col, _i: i };
     });
 }
 
@@ -73,8 +73,9 @@ export function computeCounts(data, categoryState, textState, query, searchKeys)
 }
 
 // Returns a new sorted array, leaving the original untouched.
-export function sortItems(data, key, dir) {
+export function sortItems(data, key, dir, numeric = false) {
     return [...data].sort((a, b) => {
+        if (numeric) return (Number(a[key]) - Number(b[key])) * dir;
         const aVal = (a[key] || '').toLowerCase();
         const bVal = (b[key] || '').toLowerCase();
         if (aVal < bVal) return -dir;

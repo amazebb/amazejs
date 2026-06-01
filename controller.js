@@ -230,7 +230,7 @@ export async function initTable(config) {
             }
         });
 
-        sortedData = sortItems(data, col.key, sortState.dir);
+        sortedData = sortItems(data, col.key, sortState.dir, col.numeric);
         sortedData.forEach(item => tbody.appendChild(rowMap.get(item)));
         refresh();
     }
