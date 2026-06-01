@@ -47,7 +47,7 @@ export async function initTable(config) {
 
     // --- View: build table content ---
     const { filterDefs, textDefs, titleBadge } = buildHeader(thead, columns, tableId, { rowNumbers, title });
-    buildRows(tbody, data, columns, { rowNumbers });
+    const rowMap = buildRows(tbody, data, columns, { rowNumbers });
 
     // --- State ---
     const filterState     = {};
@@ -85,7 +85,7 @@ export async function initTable(config) {
         const query = searchInput.value;
         visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
-        setRowVisibility(sortedData, visibleSet);
+        setRowVisibility(sortedData, visibleSet, rowMap);
         if (titleBadge) titleBadge.textContent = `${visibleSet.size} / ${data.length}`;
         noResults.classList.toggle('show', visibleSet.size === 0);
 
@@ -232,7 +232,7 @@ export async function initTable(config) {
         });
 
         sortedData = sortItems(data, col.key, sortState.dir);
-        sortedData.forEach(item => tbody.appendChild(item.tr));
+        sortedData.forEach(item => tbody.appendChild(rowMap.get(item)));
         refresh();
     }
 

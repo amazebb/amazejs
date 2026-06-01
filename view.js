@@ -347,8 +347,9 @@ function buildTextDropdown(id) {
 }
 
 // Builds tbody rows via DocumentFragment (single reflow).
-// Attaches item.tr to each data item for later visibility toggling.
+// Returns a WeakMap<item, tr> for later visibility toggling and sorting.
 export function buildRows(tbody, data, columns, { rowNumbers = false } = {}) {
+    const rowMap = new WeakMap();
     const fragment = document.createDocumentFragment();
     data.forEach(item => {
         const tr = document.createElement('tr');
@@ -370,9 +371,10 @@ export function buildRows(tbody, data, columns, { rowNumbers = false } = {}) {
             tr.appendChild(td);
         });
         fragment.appendChild(tr);
-        item.tr = tr;
+        rowMap.set(item, tr);
     });
     tbody.appendChild(fragment);
+    return rowMap;
 }
 
 
@@ -419,8 +421,8 @@ export function syncCheckboxes(checkboxes, selected) {
 }
 
 // Shows/hides rows based on the visible set returned by model.getVisible.
-export function setRowVisibility(data, visibleSet) {
-    data.forEach(item => item.tr.classList.toggle('hidden', !visibleSet.has(item)));
+export function setRowVisibility(data, visibleSet, rowMap) {
+    data.forEach(item => rowMap.get(item).classList.toggle('hidden', !visibleSet.has(item)));
 }
 
 // Updates count labels, hides zero-count options, and refreshes the badge.
@@ -470,9 +472,9 @@ export function downloadCsv(columns, items, filename) {
     URL.revokeObjectURL(a.href);
 }
 
-// Generates a JSON file from visible items, stripping internal DOM references, and triggers a download.
+// Generates a JSON file from visible items and triggers a download.
 export function downloadJson(items, filename) {
-    const clean = items.map(({ tr, ...rest }) => rest);
+    const clean = [...items];
     const blob  = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
     const a     = document.createElement('a');
     a.href      = URL.createObjectURL(blob);
