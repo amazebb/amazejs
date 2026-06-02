@@ -21,6 +21,12 @@
     padding-bottom: 16px;
 }
 
+.atv-toolbar-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .atv-toolbar.atv-sticky {
     position: sticky;
     top: 0;
@@ -426,6 +432,13 @@ th.sortable.desc::after {
     font-size: 12px;
 }
 
+.aj-section-search {
+    width: 160px;
+    margin-left: 12px;
+    padding-right: 12px;
+    vertical-align: middle;
+}
+
 .aj-section-header {
     background: var(--accent-subtle);
     color: var(--accent);
@@ -435,6 +448,7 @@ th.sortable.desc::after {
     padding: 5px 16px;
     border-bottom: 1px solid var(--accent-border);
 }
+
 
 .aj-toggle {
     background: none;

@@ -77,6 +77,10 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
+    const controls       = document.createElement('div');
+    controls.className   = 'atv-toolbar-controls';
+    toolbar.appendChild(controls);
+
     const searchWrap       = document.createElement('div');
     searchWrap.className   = 'atv-search-wrap';
 
@@ -90,7 +94,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
 
     searchWrap.appendChild(searchInput);
     searchWrap.appendChild(countBadge);
-    toolbar.appendChild(searchWrap);
+    controls.appendChild(searchWrap);
 
     let exportBtns = null;
     if (hasExport) {
@@ -107,7 +111,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
 
         group.appendChild(main);
         group.appendChild(arrow);
-        toolbar.appendChild(group);
+        controls.appendChild(group);
 
         const dd = document.createElement('div');
         dd.className = 'filter-dropdown atv-export-dd';
@@ -140,7 +144,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
         const btn           = document.createElement('button');
         btn.className       = 'atv-export-btn';
         btn.textContent     = cfg.label;
-        toolbar.appendChild(btn);
+        controls.appendChild(btn);
         return btn;
     });
 
@@ -164,16 +168,17 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     settingsOpts.className = 'filter-options';
     settingsDd.appendChild(settingsOpts);
 
-    const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
-    const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
-    const stickyCb  = makeSettingsRow(settingsOpts, 'Sticky Headers');
+    const rowNumsCb    = makeSettingsRow(settingsOpts, 'Row Numbers');
+    const bordersCb    = makeSettingsRow(settingsOpts, 'Column Separators');
+    const stickyCb     = makeSettingsRow(settingsOpts, 'Freeze Filter Row');
+    const filterRowCb  = makeSettingsRow(settingsOpts, 'Filter Row');
 
     let settingsWasOpen = false;
     settingsBtn.addEventListener('pointerdown', () => { settingsWasOpen = settingsDd.matches(':popover-open'); });
     settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, dd: settingsDd, wrap: settingsBtn } };
+    return { searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb, dd: settingsDd, wrap: settingsBtn } };
 }
 
 function makeSettingsRow(container, label) {

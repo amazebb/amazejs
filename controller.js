@@ -26,7 +26,8 @@ export async function initTable(config) {
         bordered       = false,
         buttons        = [],
         searchDebounce = true,
-        stickyHeaders  = true
+        stickyHeaders  = true,
+        showFilterRow  = true
     } = config;
 
     const tableId = config.tableId || `atv_t${++_tableCount}`;
@@ -39,7 +40,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns, noResults, tableWrap;
+    let searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, noResults, tableWrap;
 
     if (!nested) {
         tableWrap = document.createElement('div');
@@ -52,11 +53,13 @@ export async function initTable(config) {
         tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
         tableContainer.appendChild(tableWrap);
 
-        ({ searchInput, countBadge, exportBtns, extraBtns, toolbar, settingsBtns } =
+        ({ searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
             buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons));
 
         noResults = buildNoResults(tableWrap);
     }
+
+    const effectiveSearchInput = nested ? (config.searchInputEl || null) : searchInput;
 
     // --- Model: resolve columns ---
     const colsWithAttrs = (config.columns || []).map(col => ({
@@ -102,7 +105,7 @@ export async function initTable(config) {
 
     // --- Refresh: apply filters, update all UI ---
     function refresh() {
-        const query = searchInput ? searchInput.value : '';
+        const query = effectiveSearchInput ? effectiveSearchInput.value : '';
         visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
@@ -119,10 +122,10 @@ export async function initTable(config) {
         });
     }
 
-    if (searchInput) {
+    if (effectiveSearchInput) {
         const onSearch = searchDebounce === false ? refresh
             : debounce(refresh, typeof searchDebounce === 'number' ? searchDebounce : 150);
-        searchInput.addEventListener('input', onSearch);
+        effectiveSearchInput.addEventListener('input', onSearch);
     }
 
     if (exportBtns) {
@@ -147,10 +150,13 @@ export async function initTable(config) {
     if (settingsBtns) {
         function applySticky(on) { toolbar.classList.toggle('atv-sticky', on); }
 
-        settingsBtns.rowNums.checked = rowNumbers;
-        settingsBtns.borders.checked = bordered;
-        settingsBtns.sticky.checked  = stickyHeaders;
+        settingsBtns.rowNums.checked   = rowNumbers;
+        settingsBtns.borders.checked   = bordered;
+        settingsBtns.sticky.checked    = stickyHeaders;
+        settingsBtns.filterRow.checked = showFilterRow;
         applySticky(stickyHeaders);
+        const applyFilterRow = on => { controls.style.display = on ? '' : 'none'; };
+        applyFilterRow(showFilterRow);
 
         settingsBtns.rowNums.addEventListener('change', () => {
             table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
@@ -159,6 +165,7 @@ export async function initTable(config) {
             table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
         });
         settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
+        settingsBtns.filterRow.addEventListener('change', () => applyFilterRow(settingsBtns.filterRow.checked));
     }
 
     // --- Dropdown management ---
