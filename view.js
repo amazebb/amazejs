@@ -73,7 +73,7 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 // Builds and inserts a toolbar (search input + optional export split button + optional extra buttons) before the table wrapper.
 // Returns { searchInput, exportBtns, extraBtns } for controller wiring.
 // exportBtns: { csv, json, dd, wrap } — the two clickable items, dropdown el, and wrapper for click-outside detection.
-export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
+export function buildToolbar(tableWrap, hasExport, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -81,20 +81,20 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     controls.className   = 'atv-toolbar-controls';
     toolbar.appendChild(controls);
 
-    const searchWrap       = document.createElement('div');
-    searchWrap.className   = 'atv-search-wrap';
+    const titleWrap       = document.createElement('div');
+    titleWrap.className   = 'atv-title-wrap';
+    controls.appendChild(titleWrap);
 
-    const searchInput       = document.createElement('input');
-    searchInput.type        = 'text';
-    searchInput.className   = 'atv-search';
-    searchInput.placeholder = placeholder || 'Search...';
+    if (title) {
+        const titleEl       = document.createElement('span');
+        titleEl.className   = 'atv-title';
+        titleEl.textContent = title;
+        titleWrap.appendChild(titleEl);
+    }
 
     const countBadge       = document.createElement('span');
     countBadge.className   = 'atv-count-badge';
-
-    searchWrap.appendChild(searchInput);
-    searchWrap.appendChild(countBadge);
-    controls.appendChild(searchWrap);
+    titleWrap.appendChild(countBadge);
 
     let exportBtns = null;
     if (hasExport) {
@@ -178,7 +178,7 @@ export function buildToolbar(tableWrap, placeholder, hasExport, buttons = []) {
     settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
     tableWrap.insertAdjacentElement('beforebegin', toolbar);
-    return { searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb, dd: settingsDd, wrap: settingsBtn } };
+    return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb, dd: settingsDd, wrap: settingsBtn } };
 }
 
 function makeSettingsRow(container, label) {

@@ -34,36 +34,40 @@
     background: var(--bg);
 }
 
-.atv-search-wrap {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
-}
-
 .atv-search {
-    width: 100%;
-    padding: 8px 12px;
-    padding-right: 72px;
+    padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     background: var(--bg);
     color: var(--text);
 }
 
-.atv-count-badge {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 11px;
-    color: var(--text-muted);
-    background: var(--bg-subtle);
+.atv-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px 4px 14px;
     border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-subtle);
+}
+
+.atv-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    margin-right: 4px;
+}
+
+.atv-count-badge {
+    font-size: 11px;
+    color: var(--bg);
+    background: var(--accent);
     border-radius: 10px;
     padding: 1px 7px;
-    pointer-events: none;
     white-space: nowrap;
 }
 

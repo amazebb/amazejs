@@ -18,7 +18,7 @@ export async function initTable(config) {
     const {
         nested         = false,
         searchKeys     = [],
-        searchPlaceholder,
+        title          = '',
         badgeAlwaysShow = false,
         exportFilename,
         striped        = false,
@@ -40,7 +40,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, noResults, tableWrap;
+    let countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, noResults, tableWrap;
 
     if (!nested) {
         tableWrap = document.createElement('div');
@@ -53,13 +53,13 @@ export async function initTable(config) {
         tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
         tableContainer.appendChild(tableWrap);
 
-        ({ searchInput, countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
-            buildToolbar(tableWrap, searchPlaceholder, !!exportFilename, buttons));
+        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
+            buildToolbar(tableWrap, !!exportFilename, buttons, title));
 
         noResults = buildNoResults(tableWrap);
     }
 
-    const effectiveSearchInput = nested ? (config.searchInputEl || null) : searchInput;
+    const effectiveSearchInput = config.searchInputEl || null;
 
     // --- Model: resolve columns ---
     const colsWithAttrs = (config.columns || []).map(col => ({
