@@ -3,7 +3,7 @@ import { initTable } from './controller.js';
 
 const btnMeta = new WeakMap();
 
-export async function initTreeTable(config) {
+export async function initTree(config) {
     let rawData = config.data;
     if (Array.isArray(rawData) && typeof rawData[0] === 'string') {
         rawData = await fetchData(...rawData);
@@ -15,8 +15,16 @@ export async function initTreeTable(config) {
     const levelDefs = detectLevels(rootItems[0], config.levels || []);
     const rootCols  = getColumns(rootItems, levelDefs, 0);
 
-    // Root table uses full initTable — toolbar, search, sort, export, etc.
-    await initTable({ ...config, data: rootItems, columns: rootCols });
+    let rootTitle = config.title;
+    if (!rootTitle && !Array.isArray(rawData)) {
+        const key = Object.keys(rawData).find(k => Array.isArray(rawData[k]));
+        rootTitle = key ? key.toUpperCase() : '';
+    }
+    if (!rootTitle && Array.isArray(config.data) && typeof config.data[0] === 'string') {
+        rootTitle = config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
+    }
+
+    await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle || '' });
 
     // Delegated click listener scoped to the container — catches toggles from all nested levels.
     const table = document.getElementById(config.tableId);

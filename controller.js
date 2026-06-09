@@ -18,7 +18,6 @@ export async function initTable(config) {
     const {
         nested         = false,
         searchKeys     = [],
-        title          = '',
         badgeAlwaysShow = false,
         exportFilename,
         striped        = false,
@@ -29,6 +28,11 @@ export async function initTable(config) {
         stickyHeaders  = true,
         showFilterRow  = true
     } = config;
+
+    const title = config.title ||
+        (Array.isArray(config.data) && typeof config.data[0] === 'string'
+            ? config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase()
+            : '');
 
     const tableId = config.tableId || `atv_t${++_tableCount}`;
     const table   = config.table  || document.getElementById(tableId);
