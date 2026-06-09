@@ -220,11 +220,11 @@ table {
     counter-reset: row-num;
 }
 
-tbody tr:not(.hidden) {
+tbody > tr:not(.hidden):not(.aj-children-row) {
     counter-increment: row-num;
 }
 
-tbody tr:not(.hidden) .atv-row-num::before {
+tbody > tr:not(.hidden) > td.atv-row-num::before {
     content: counter(row-num);
 }
 
@@ -303,6 +303,7 @@ th.sortable.desc::after {
     inset: auto;
     margin: 0;
     padding: 0;
+    color: var(--text);
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -436,12 +437,6 @@ th.sortable.desc::after {
     font-size: 12px;
 }
 
-.aj-section-search {
-    width: 160px;
-    margin-left: 12px;
-    padding-right: 12px;
-    vertical-align: middle;
-}
 
 .aj-section-header {
     background: var(--accent-subtle);

@@ -34,6 +34,10 @@ export async function initTable(config) {
             ? config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase()
             : '');
 
+    const effectiveExportFilename = exportFilename === false ? null
+        : (typeof exportFilename === 'string' ? exportFilename
+        : title ? `${title.toLowerCase().replace(/\s+/g, '-')}.csv` : 'data.csv');
+
     const tableId = config.tableId || `atv_t${++_tableCount}`;
     const table   = config.table  || document.getElementById(tableId);
 
@@ -57,11 +61,13 @@ export async function initTable(config) {
         tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
         tableContainer.appendChild(tableWrap);
 
-        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
-            buildToolbar(tableWrap, !!exportFilename, buttons, title));
-
         noResults = buildNoResults(tableWrap);
     }
+
+    // Toolbar for all tables; nested uses table as anchor (no tableWrap).
+    ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
+        buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
+
 
     const effectiveSearchInput = config.searchInputEl || null;
 
@@ -73,8 +79,9 @@ export async function initTable(config) {
     const columns = inferColumns(data, colsWithAttrs);
 
     // --- View: build table content ---
-    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId, { rowNumbers });
-    const rowMap = buildRows(tbody, data, columns, { rowNumbers });
+    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId);
+    const rowMap = buildRows(tbody, data, columns);
+    if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
     // --- State ---
     const filterState     = {};
@@ -133,9 +140,9 @@ export async function initTable(config) {
     }
 
     if (exportBtns) {
-        const jsonFilename = exportFilename.replace(/\.[^.]+$/, '.json');
+        const jsonFilename = effectiveExportFilename.replace(/\.[^.]+$/, '.json');
         exportBtns.csv.addEventListener('click', () => {
-            downloadCsv(columns, [...visibleSet], exportFilename);
+            downloadCsv(columns, [...visibleSet], effectiveExportFilename);
             exportBtns.dd.hidePopover();
         });
         exportBtns.json.addEventListener('click', () => {

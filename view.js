@@ -73,7 +73,7 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 // Builds and inserts a toolbar (search input + optional export split button + optional extra buttons) before the table wrapper.
 // Returns { searchInput, exportBtns, extraBtns } for controller wiring.
 // exportBtns: { csv, json, dd, wrap } — the two clickable items, dropdown el, and wrapper for click-outside detection.
-export function buildToolbar(tableWrap, hasExport, buttons = [], title = '') {
+export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -177,7 +177,7 @@ export function buildToolbar(tableWrap, hasExport, buttons = [], title = '') {
     settingsBtn.addEventListener('pointerdown', () => { settingsWasOpen = settingsDd.matches(':popover-open'); });
     settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
-    tableWrap.insertAdjacentElement('beforebegin', toolbar);
+    anchor.insertAdjacentElement('beforebegin', toolbar);
     return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb, dd: settingsDd, wrap: settingsBtn } };
 }
 
@@ -223,17 +223,15 @@ export function updateFooter(footerEl, visible, total) {
 // 'category' columns get a button + dropdown with checkboxes.
 // 'text' columns get a button + dropdown with just a search input.
 // Others are plain sortable ths.
-export function buildHeader(thead, columns, tableId, { rowNumbers = false } = {}) {
+export function buildHeader(thead, columns, tableId) {
     const tr         = document.createElement('tr');
     const filterDefs = [];
     const textDefs   = [];
 
-    if (rowNumbers) {
-        const th       = document.createElement('th');
-        th.className   = 'atv-row-num';
-        th.textContent = '#';
-        tr.appendChild(th);
-    }
+    const th       = document.createElement('th');
+    th.className   = 'atv-row-num';
+    th.textContent = '#';
+    tr.appendChild(th);
 
     columns.forEach(col => {
         const th = document.createElement('th');
@@ -326,16 +324,14 @@ function buildTextDropdown(id) {
 
 // Builds tbody rows via DocumentFragment (single reflow).
 // Returns a WeakMap<item, tr> for later visibility toggling and sorting.
-export function buildRows(tbody, data, columns, { rowNumbers = false } = {}) {
+export function buildRows(tbody, data, columns) {
     const rowMap = new WeakMap();
     const fragment = document.createDocumentFragment();
     data.forEach(item => {
         const tr = document.createElement('tr');
-        if (rowNumbers) {
-            const td     = document.createElement('td');
-            td.className = 'atv-row-num';
-            tr.appendChild(td);
-        }
+        const td     = document.createElement('td');
+        td.className = 'atv-row-num';
+        tr.appendChild(td);
         columns.forEach(col => {
             const td = document.createElement('td');
             const value = item[col.key];
@@ -443,8 +439,29 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
     }
 }
 
-// Generates a CSV from visible items using column definitions and triggers a download.
-export function downloadCsv(columns, items, filename) {
+// Opens the native OS save dialog when available; falls back to <a> download.
+async function saveFile(blob, suggestedName, types) {
+    if ('showSaveFilePicker' in window) {
+        try {
+            const handle   = await window.showSaveFilePicker({ suggestedName, types });
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+            // fall through to legacy on unexpected errors
+        }
+    }
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = suggestedName;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+// Generates a CSV from visible items and saves it.
+export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
     const rows   = items.map(item =>
         columns.map(c => {
@@ -454,22 +471,13 @@ export function downloadCsv(columns, items, filename) {
     );
     const csv  = [header, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
-    const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    await saveFile(blob, filename, [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }]);
 }
 
-// Generates a JSON file from visible items and triggers a download.
-export function downloadJson(items, filename) {
-    const clean = [...items];
-    const blob  = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
-    const a     = document.createElement('a');
-    a.href      = URL.createObjectURL(blob);
-    a.download  = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
+// Generates a JSON file from visible items and saves it.
+export async function downloadJson(items, filename) {
+    const blob = new Blob([JSON.stringify([...items], null, 2)], { type: 'application/json' });
+    await saveFile(blob, filename, [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]);
 }
 
 // Shows/hides option rows inside an open dropdown based on the search query.

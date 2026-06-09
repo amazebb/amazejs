@@ -84,7 +84,7 @@ function getColumns(items, levelDefs, depth) {
 
     const colCount = keys.length;
     return keys.map((k, i) => {
-        const col = { key: k, label: k.toUpperCase(), filter: false };
+        const col = { key: k, label: k.toUpperCase() };
         if (i === 0) {
             col.render = item => {
                 const children    = childKey ? (item[childKey] || []) : [];
@@ -108,21 +108,6 @@ function getColumns(items, levelDefs, depth) {
         }
         return col;
     });
-}
-
-function buildSectionHeader(thead, childrenKey, count, colSpan, searchInput) {
-    const tr = document.createElement('tr');
-    const th = document.createElement('th');
-    th.colSpan   = colSpan;
-    th.className = 'aj-section-header';
-    th.appendChild(document.createTextNode((childrenKey || '').toUpperCase() + ' '));
-    const badge       = document.createElement('span');
-    badge.className   = 'filter-badge';
-    badge.textContent = count;
-    th.appendChild(badge);
-    if (searchInput) th.appendChild(searchInput);
-    tr.appendChild(th);
-    thead.insertBefore(tr, thead.firstChild);
 }
 
 function handleToggle(btn) {
@@ -157,26 +142,13 @@ function handleToggle(btn) {
     // Insert into DOM before initTable so getElementById can resolve filter button IDs.
     parentTr.insertAdjacentElement('afterend', childTr);
 
-    const nameKey    = levelDefs[depth]?.nameKey || 'name';
-    const searchEl   = document.createElement('input');
-    searchEl.type        = 'text';
-    searchEl.className   = 'atv-search aj-section-search';
-    searchEl.placeholder = 'Search...';
+    const sectionTitle = (levelDefs[depth - 1]?.childrenKey || '').toUpperCase();
 
     initTable({
-        table:         childTable,
-        data:          children,
-        columns:       childCols,
-        nested:        true,
-        searchInputEl: searchEl,
-        searchKeys:    [nameKey],
+        table:   childTable,
+        data:    children,
+        columns: childCols,
+        nested:  true,
+        title:   sectionTitle,
     });
-
-    buildSectionHeader(
-        childTable.querySelector('thead'),
-        levelDefs[depth - 1]?.childrenKey,
-        children.length,
-        childCols.length,
-        searchEl
-    );
 }
