@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -197,14 +197,15 @@ export async function initTable(config) {
     function openFileDialog() {
         const input  = document.createElement('input');
         input.type   = 'file';
-        input.accept = '.csv,.json,text/csv,application/json';
+        input.accept = '.csv,.tsv,.json,text/csv,text/tab-separated-values,application/json';
         input.addEventListener('change', async () => {
             const file = input.files[0];
             if (!file) return;
             try {
                 const text = await file.text();
-                const data = file.name.toLowerCase().endsWith('.json')
-                    ? JSON.parse(text)
+                const name = file.name.toLowerCase();
+                const data = name.endsWith('.json') ? JSON.parse(text)
+                    : name.endsWith('.tsv') ? parseTsv(text)
                     : parseCsv(text);
                 await rebuild(data, titleFromUrl(file.name));
             } catch (err) {
