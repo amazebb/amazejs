@@ -110,11 +110,19 @@ function getColumns(items, levels, depth) {
 }
 
 function handleToggle(btn) {
-    const parentTr = btn.closest('tr');
-    const isOpen   = btn.textContent === '▼';
-
+    const isOpen = btn.textContent === '▼';
     btn.textContent = isOpen ? '▶' : '▼';
     btn.setAttribute('aria-label', isOpen ? 'Expand' : 'Collapse');
+
+    const meta = btnMeta.get(btn);
+    if (meta.groups) toggleItemRow(btn, meta, isOpen);
+    else toggleGroup(btn, meta, isOpen);
+}
+
+// Toggle on an item row. A single child group expands straight into its table;
+// multiple groups expand into one expandable header line per group.
+function toggleItemRow(btn, { groups, levels, depth, colCount }, isOpen) {
+    const parentTr = btn.closest('tr');
 
     // Already built — just show/hide.
     const nextTr = parentTr.nextElementSibling;
@@ -125,9 +133,7 @@ function handleToggle(btn) {
 
     if (isOpen) return;
 
-    // Lazy build on first expand: one child table per group, stacked in a single cell.
-    const { groups, levels, depth, colCount } = btnMeta.get(btn);
-
+    // Lazy build on first expand.
     const childTr = document.createElement('tr');
     childTr.className = 'aj-children-row';
     const childTd = document.createElement('td');
@@ -135,22 +141,56 @@ function handleToggle(btn) {
     childTd.className = 'aj-children-cell';
     childTr.appendChild(childTd);
 
-    const tables = groups.map(() => {
-        const childTable = document.createElement('table');
-        childTd.appendChild(childTable);
-        return childTable;
-    });
-
     // Insert into DOM before initTable so getElementById can resolve filter button IDs.
     parentTr.insertAdjacentElement('afterend', childTr);
 
-    groups.forEach((group, i) => {
-        initTable({
-            table:   tables[i],
-            data:    group.items,
-            columns: getColumns(group.items, levels, depth),
-            nested:  true,
-            title:   group.key.toUpperCase(),
-        });
+    if (groups.length === 1) {
+        buildGroupTable(childTd, groups[0], levels, depth);
+        return;
+    }
+
+    groups.forEach(group => {
+        const header = document.createElement('div');
+        header.className = 'aj-group';
+
+        const gBtn = document.createElement('button');
+        gBtn.className   = 'aj-toggle';
+        gBtn.textContent = '▶';
+        gBtn.setAttribute('aria-label', 'Expand');
+        btnMeta.set(gBtn, { group, levels, depth });
+
+        const label = document.createElement('span');
+        label.className   = 'aj-group-label';
+        label.textContent = group.key.toUpperCase();
+
+        header.append(gBtn, label);
+
+        const body = document.createElement('div');
+        body.className = 'aj-group-body';
+
+        childTd.append(header, body);
+    });
+}
+
+// Toggle on a group header line; the table is built into the body on first expand.
+function toggleGroup(btn, { group, levels, depth }, isOpen) {
+    const body = btn.closest('.aj-group').nextElementSibling;
+    if (body.firstChild) {
+        body.classList.toggle('aj-hidden', isOpen);
+        return;
+    }
+    if (isOpen) return;
+    buildGroupTable(body, group, levels, depth);
+}
+
+function buildGroupTable(container, group, levels, depth) {
+    const table = document.createElement('table');
+    container.appendChild(table);
+    initTable({
+        table,
+        data:    group.items,
+        columns: getColumns(group.items, levels, depth),
+        nested:  true,
+        title:   group.key.toUpperCase(),
     });
 }

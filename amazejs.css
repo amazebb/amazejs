@@ -437,9 +437,22 @@ th.sortable.desc::after {
     font-size: 12px;
 }
 
-/* Space between stacked sibling child tables (multiple child groups per item) */
-.aj-children-cell table + .atv-toolbar {
-    margin-top: 14px;
+/* Expandable header line per child group (items with multiple child groups) */
+.aj-group {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.aj-group-label {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+
+.aj-group-body:not(:empty) {
+    margin-bottom: 12px;
 }
 
 

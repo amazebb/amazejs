@@ -29,7 +29,7 @@ The library follows a strict MVC split across four files:
 - **`model.js`** — pure functions only, no DOM. Handles data fetching (`fetchData`, `parseTsv`), column inference (`inferColumns`), filtering (`getVisible`, `computeCounts`), and sorting (`sortItems`).
 - **`view.js`** — DOM construction only, no business logic or mutable state. Auto-injects `amazejs.css` via `import.meta.url` on module load. Exports all DOM builders and mutators used by the controller.
 - **`controller.js`** — wires model + view; owns all mutable state (filter sets, sort state, visible set). The main entry point is `initTable(config)`.
-- **`tree.js`** — internal tree support, not exported publicly. `initTable` delegates here when data is tree-shaped (`isTreeData`: a root wrapper object, or items containing arrays of objects) or `levels` is passed. Children are detected per item: every array-of-objects property is a child group, so one item can expand into multiple stacked child tables (e.g. a country with both `states` and `timezones`). Child tables are rendered lazily on first expand using a delegated click listener on the container. Uses a `WeakMap` to store toggle button metadata without touching the DOM. Tree-specific code must stay in this file.
+- **`tree.js`** — internal tree support, not exported publicly. `initTable` delegates here when data is tree-shaped (`isTreeData`: a root wrapper object, or items containing arrays of objects) or `levels` is passed. Children are detected per item: every array-of-objects property is a child group (e.g. a country with both `states` and `timezones`); an item with multiple groups expands into expandable group header lines, each revealing its own child table. Child tables are rendered lazily on first expand using a delegated click listener on the container. Uses a `WeakMap` to store toggle button metadata without touching the DOM. Tree-specific code must stay in this file.
 - **`index.js`** — barrel re-export: `initTable`, `fetchData`, `parseTsv`, `linkCell`.
 
 ## Public API
@@ -84,6 +84,6 @@ Returns a column `render` function that builds `<a>` elements, optionally wrappe
 
 - No DOM access in `model.js` — keep it that way.
 - No business logic or state in `view.js` — it only builds/mutates DOM and returns references.
-- Child tables in tree view are built lazily (first expand only), one table per child group stacked in a single `aj-children-row` sibling `<tr>`; subsequent toggles just show/hide it.
+- Child tables in tree view are built lazily (first expand only) inside a single `aj-children-row` sibling `<tr>`; subsequent toggles just show/hide. An item with one child group expands straight into its table; with multiple groups it first shows an expandable `aj-group` header line per group (TIMEZONES, STATES), each building its table on first expand.
 - Filter dropdowns are portalled to `<body>` and positioned via JS; they use the native Popover API (`popover="auto"`).
 - Row visibility is toggled via `.hidden` CSS class (not `display` style), and striped row numbers use CSS counters so they recount visible rows automatically.
