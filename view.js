@@ -19,10 +19,15 @@ function positionBelow(dd, anchor) {
 // so the browser handles toggling, light dismiss, and aria-expanded. Positioning
 // runs in a rAF from beforetoggle: the popover is measurable but not yet painted.
 export function attachPopover(btns, dd, anchor) {
-    [btns].flat().forEach(btn => { btn.popoverTargetElement = dd; });
+    const invokers = [btns].flat();
+    invokers.forEach(btn => {
+        btn.popoverTargetElement = dd;
+        btn.setAttribute('aria-expanded', 'false');
+    });
     dd.addEventListener('beforetoggle', e => {
-        if (e.newState !== 'open') return;
-        requestAnimationFrame(() => positionBelow(dd, anchor));
+        const open = e.newState === 'open';
+        invokers.forEach(btn => btn.setAttribute('aria-expanded', String(open)));
+        if (open) requestAnimationFrame(() => positionBelow(dd, anchor));
     });
 }
 
@@ -75,9 +80,11 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 }
 
 // Builds and inserts a toolbar (title + count badge + optional export split button + extra buttons + settings) before the anchor.
-// Returns { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } for controller wiring.
+// Returns { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } for controller wiring.
 // exportBtns: { csv, json, dd } — the two clickable items and the dropdown element.
-export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
+// collapsible: everything after the badge goes into a container revealed by a
+// disclosure chevron (moreBtn); visibility is driven by its aria-expanded via CSS.
+export function buildToolbar(anchor, hasExport, buttons = [], title = '', collapsible = false) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -100,6 +107,24 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     countBadge.className   = 'atv-count-badge';
     titleWrap.appendChild(countBadge);
 
+    let moreBtn = null;
+    let btnHost = controls;
+    if (collapsible) {
+        const moreWrap = document.createElement('div');
+        moreWrap.className = 'atv-more-wrap';
+        controls.appendChild(moreWrap);
+
+        moreBtn = document.createElement('button');
+        moreBtn.className = 'atv-more-btn';
+        moreBtn.setAttribute('aria-expanded', 'false');
+        moreBtn.setAttribute('aria-label', 'More options');
+        moreWrap.appendChild(moreBtn);
+
+        btnHost = document.createElement('div');
+        btnHost.className = 'atv-toolbar-more';
+        moreWrap.appendChild(btnHost);
+    }
+
     let exportBtns = null;
     if (hasExport) {
         const group = document.createElement('div');
@@ -109,13 +134,13 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
         main.className    = 'atv-export-btn';
         main.textContent  = 'Export';
 
-        const arrow       = document.createElement('button');
-        arrow.className   = 'atv-split-arrow';
-        arrow.textContent = '▾';
+        const arrow     = document.createElement('button');
+        arrow.className = 'atv-split-arrow aj-rotate';
+        arrow.setAttribute('aria-label', 'Export options');
 
         group.appendChild(main);
         group.appendChild(arrow);
-        controls.appendChild(group);
+        btnHost.appendChild(group);
 
         const dd = document.createElement('div');
         dd.className = 'filter-dropdown atv-export-dd';
@@ -142,15 +167,14 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
         const btn           = document.createElement('button');
         btn.className       = 'atv-export-btn';
         btn.textContent     = cfg.label;
-        controls.appendChild(btn);
+        btnHost.appendChild(btn);
         return btn;
     });
 
-    // Settings button — always far right via margin-left: auto
     const settingsBtn       = document.createElement('button');
     settingsBtn.className   = 'atv-settings-btn';
     settingsBtn.textContent = '⚙';
-    toolbar.appendChild(settingsBtn);
+    (collapsible ? btnHost : toolbar).appendChild(settingsBtn);
 
     const settingsDd = document.createElement('div');
     settingsDd.className = 'filter-dropdown';
@@ -174,7 +198,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     attachPopover(settingsBtn, settingsDd, settingsBtn);
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb } };
+    return { countBadge, exportBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb } };
 }
 
 function makeSettingsRow(container, label) {
@@ -227,7 +251,7 @@ export function buildHeader(thead, columns, tableId) {
             wrap.className = 'filter-wrap';
 
             const btn = document.createElement('button');
-            btn.className   = 'filter-btn';
+            btn.className   = 'filter-btn aj-rotate';
             btn.id          = btnId;
             btn.textContent = col.label;
             wrap.appendChild(btn);

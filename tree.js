@@ -91,7 +91,7 @@ function getColumns(items, ctx, depth) {
                 const frag   = document.createDocumentFragment();
                 if (groups.length) {
                     const btn = document.createElement('button');
-                    btn.className = 'aj-toggle';
+                    btn.className = 'aj-toggle aj-rotate';
                     btn.setAttribute('aria-expanded', 'false');
                     btn.setAttribute('aria-label', 'Toggle children');
                     btnMeta.set(btn, { groups, ctx, depth: depth + 1, colCount });
@@ -153,7 +153,7 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
         header.className = 'aj-group';
 
         const gBtn = document.createElement('button');
-        gBtn.className = 'aj-toggle';
+        gBtn.className = 'aj-toggle aj-rotate';
         gBtn.setAttribute('aria-expanded', 'false');
         gBtn.setAttribute('aria-label', 'Toggle children');
 

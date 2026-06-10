@@ -55,7 +55,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, noResults, tableWrap;
+    let countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, noResults, tableWrap;
 
     if (!nested) {
         tableWrap = document.createElement('div');
@@ -71,10 +71,18 @@ export async function initTable(config) {
         noResults = buildNoResults(tableWrap);
     }
 
-    // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap).
+    // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap)
+    // and collapses everything after the badge behind a disclosure chevron.
     if (config.showToolbar ?? true) {
-        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
-            buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
+        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } =
+            buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title, nested));
+    }
+
+    if (moreBtn) {
+        moreBtn.addEventListener('click', () => {
+            const open = moreBtn.getAttribute('aria-expanded') === 'true';
+            moreBtn.setAttribute('aria-expanded', String(!open));
+        });
     }
 
     // An external count badge (e.g. a tree group header line) replaces the toolbar one.

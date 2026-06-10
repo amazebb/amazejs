@@ -8,9 +8,23 @@
     --sort-icon: " ↕";
     --sort-icon-asc: " ↑";
     --sort-icon-desc: " ↓";
-    --filter-icon: " ▾";
+    --filter-icon: "▾";
     --stripe-bg: var(--bg-subtle);
     --header-bg: var(--bg-hover);
+}
+
+/* Reusable dropdown-indicator rotation: apply .aj-rotate to any element whose
+   ::before/::after arrow should spin while it is aria-expanded="true".
+   Override --aj-rotate-angle (default 180deg) for other directions. */
+.aj-rotate::before,
+.aj-rotate::after {
+    display: inline-block;
+    transition: transform 0.25s ease;
+}
+
+.aj-rotate[aria-expanded="true"]::before,
+.aj-rotate[aria-expanded="true"]::after {
+    transform: rotate(var(--aj-rotate-angle, 180deg));
 }
 
 /* Toolbar — title, export and settings buttons, inserted before the table wrapper */
@@ -95,6 +109,58 @@
 
 .atv-hide-rownums .atv-row-num { display: none; }
 
+/* Ellipsis overflow button on collapsible (nested) toolbars — more actions live here.
+   Reveals inline while hovering the wrap; click pins open (aria-expanded, works on touch). */
+.atv-more-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.atv-more-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: var(--radius);
+}
+
+.atv-more-btn::before { content: "⋯"; }
+
+.atv-more-btn:hover {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+/* Pinned open */
+.atv-more-btn[aria-expanded="true"] {
+    color: var(--accent);
+    background: var(--accent-subtle);
+}
+
+/* Hidden until revealed; fades and slides in from the left */
+.atv-toolbar-more {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    visibility: hidden;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
+}
+
+.atv-more-btn[aria-expanded="true"] + .atv-toolbar-more,
+.atv-more-wrap:hover .atv-toolbar-more {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
 /* Export split button dropdown — narrower than the default filter dropdown */
 .atv-export-dd {
     min-width: 0;
@@ -110,6 +176,8 @@
     border-radius: var(--radius) 0 0 var(--radius);
     border-right: none;
 }
+
+.atv-split-arrow::after { content: "▾"; }
 
 .atv-split-arrow {
     padding: 8px 10px;
@@ -264,6 +332,7 @@ th.sortable.desc::after {
     content: var(--filter-icon);
     font-size: 11px;
     color: var(--text-muted);
+    margin-left: 3px;
 }
 
 .filter-btn.active {
@@ -413,6 +482,9 @@ th.sortable.desc::after {
     font-size: 12px;
 }
 
+/* Nested toolbars: symmetric spacing above and below, matching the parent row gap */
+.aj-children-cell .atv-toolbar { padding: 8px 0; }
+
 /* Expandable header line per child group (items with multiple child groups) */
 .aj-group {
     display: flex;
@@ -437,6 +509,7 @@ th.sortable.desc::after {
 
 
 .aj-toggle {
+    --aj-rotate-angle: 90deg;
     background: none;
     border: none;
     cursor: pointer;
@@ -450,9 +523,9 @@ th.sortable.desc::after {
 
 .aj-toggle:hover { color: var(--accent); }
 
-/* Arrow rendered from aria-expanded, the toggle's single source of truth */
+/* Arrow rendered from aria-expanded (the toggle's single source of truth),
+   rotated to ▼ by the .aj-rotate utility when expanded */
 .aj-toggle::before { content: "▶"; }
-.aj-toggle[aria-expanded="true"]::before { content: "▼"; }
 
 .aj-leaf {
     display: inline-block;
