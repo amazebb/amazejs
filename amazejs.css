@@ -28,17 +28,19 @@
 }
 
 /* Toolbar — title, export and settings buttons, inserted before the table wrapper */
+/* Children stretch to the row height; buttons have no vertical padding and
+   take their height from their parent div (the title pill sets the row height) */
 .atv-toolbar {
     display: flex;
     gap: 8px;
-    align-items: center;
-    padding-bottom: 16px;
+    align-items: stretch;
+    padding-bottom: 4px;
 }
 
 .atv-toolbar-controls {
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: stretch;
 }
 
 .atv-toolbar.atv-sticky {
@@ -76,7 +78,7 @@
 }
 
 .atv-export-btn {
-    padding: 8px 14px;
+    padding: 0 12px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 14px;
@@ -91,10 +93,10 @@
 }
 
 .atv-settings-btn {
-    padding: 8px 12px;
+    padding: 0 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1;
     background: var(--bg-subtle);
     color: var(--text-muted);
@@ -113,7 +115,7 @@
    Reveals inline while hovering the wrap; click pins open (aria-expanded, works on touch). */
 .atv-more-wrap {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 8px;
 }
 
@@ -125,7 +127,7 @@
     font-weight: 600;
     line-height: 1;
     color: var(--text-muted);
-    padding: 4px 8px;
+    padding: 0 8px;
     border-radius: var(--radius);
 }
 
@@ -146,7 +148,7 @@
 .atv-toolbar-more {
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: stretch;
     visibility: hidden;
     opacity: 0;
     transform: translateX(-10px);
@@ -180,7 +182,7 @@
 .atv-split-arrow::after { content: "▾"; }
 
 .atv-split-arrow {
-    padding: 8px 10px;
+    padding: 0 8px;
     border: 1px solid var(--border);
     border-radius: 0 var(--radius) var(--radius) 0;
     border-left: 1px solid var(--border-muted);
@@ -482,8 +484,8 @@ th.sortable.desc::after {
     font-size: 12px;
 }
 
-/* Nested toolbars: symmetric spacing above and below, matching the parent row gap */
-.aj-children-cell .atv-toolbar { padding: 8px 0; }
+/* Nested toolbars: minimal symmetric spacing above and below */
+.aj-children-cell .atv-toolbar { padding: 2px 0; }
 
 /* Expandable header line per child group (items with multiple child groups) */
 .aj-group {
