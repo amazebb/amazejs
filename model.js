@@ -1,5 +1,15 @@
 // Pure data functions — no DOM dependencies.
 
+// True when data is the [jsonUrl, tsvUrl?] form accepted by initTable.
+export function isUrlData(data) {
+    return Array.isArray(data) && typeof data[0] === 'string';
+}
+
+// Derives a display title from a data URL: filename without extension, uppercased.
+export function titleFromUrl(url) {
+    return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
+}
+
 // Fetches data from jsonUrl, falling back to tsvUrl if the JSON request fails.
 export async function fetchData(jsonUrl, tsvUrl) {
     const jsonRes = await fetch(jsonUrl);
@@ -32,17 +42,21 @@ export function inferColumns(data, configCols) {
     });
 }
 
+// True when the item passes every text filter and the (lowercased) search query.
+function matchesTextAndSearch(item, textState, q, searchKeys) {
+    const matchText = Object.entries(textState)
+        .every(([key, val]) => !val || (item[key] || '').toLowerCase().includes(val.toLowerCase()));
+    const matchSearch = !q || searchKeys.some(k => (item[k] || '').toLowerCase().includes(q));
+    return matchText && matchSearch;
+}
+
 // Returns the subset of data items that match all active filters and the search query.
 export function getVisible(data, categoryState, textState, query, searchKeys) {
     const q = query.toLowerCase();
-    return data.filter(item => {
-        const matchCategory = Object.entries(categoryState)
-            .every(([key, selected]) => selected.has(item[key]));
-        const matchText = Object.entries(textState)
-            .every(([key, val]) => !val || (item[key] || '').toLowerCase().includes(val.toLowerCase()));
-        const matchSearch = !q || searchKeys.some(k => (item[k] || '').toLowerCase().includes(q));
-        return matchCategory && matchText && matchSearch;
-    });
+    return data.filter(item =>
+        Object.entries(categoryState).every(([key, selected]) => selected.has(item[key]))
+        && matchesTextAndSearch(item, textState, q, searchKeys)
+    );
 }
 
 // Returns per-filter value counts, where each filter is counted against all OTHER
@@ -53,10 +67,7 @@ export function computeCounts(data, categoryState, textState, query, searchKeys)
     Object.keys(categoryState).forEach(key => { counts[key] = {}; });
 
     data.forEach(item => {
-        const matchText   = Object.entries(textState)
-            .every(([key, val]) => !val || (item[key] || '').toLowerCase().includes(val.toLowerCase()));
-        const matchSearch = !q || searchKeys.some(k => (item[k] || '').toLowerCase().includes(q));
-        if (!matchText || !matchSearch) return;
+        if (!matchesTextAndSearch(item, textState, q, searchKeys)) return;
 
         Object.keys(categoryState).forEach(key => {
             const matchOthers = Object.entries(categoryState)

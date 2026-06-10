@@ -1,20 +1,21 @@
 import { initTable } from './controller.js';
+import { isUrlData, titleFromUrl } from './model.js';
 
 const btnMeta = new WeakMap();
+
+const isObjectArray = v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
 
 // True when resolved data needs tree handling: a root wrapper object
 // (e.g. { countries: [...] }) or items containing arrays of objects.
 export function isTreeData(data) {
     if (data && !Array.isArray(data)) return true;
     const first = data?.[0];
-    return !!first && Object.values(first).some(
-        v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object'
-    );
+    return !!first && Object.values(first).some(isObjectArray);
 }
 
 // Called by initTable when tree handling applies; rawData is already fetched.
 export async function initTree(config, rawData) {
-    const rootItems = getRootItems(rawData, config.dataKey);
+    const { key: rootKey, items: rootItems } = getRootItems(rawData, config.dataKey);
     if (!rootItems?.length) return;
 
     // Settings threaded down to every nested level via the toggle metadata.
@@ -24,16 +25,11 @@ export async function initTree(config, rawData) {
     };
     const rootCols = getColumns(rootItems, ctx, 0);
 
-    let rootTitle = config.title;
-    if (!rootTitle && !Array.isArray(rawData)) {
-        const key = Object.keys(rawData).find(k => Array.isArray(rawData[k]));
-        rootTitle = key ? key.toUpperCase() : '';
-    }
-    if (!rootTitle && Array.isArray(config.data) && typeof config.data[0] === 'string') {
-        rootTitle = config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
-    }
+    const rootTitle = config.title
+        || (rootKey ? rootKey.toUpperCase() : '')
+        || (isUrlData(config.data) ? titleFromUrl(config.data[0]) : '');
 
-    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle || '' });
+    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle });
 
     // Delegated click listener scoped to the container — catches toggles from all nested levels.
     table.closest('.atv-table-container').addEventListener('click', e => {
@@ -44,19 +40,19 @@ export async function initTree(config, rawData) {
     return table;
 }
 
-// Extracts the root array: explicit dataKey, direct array, or first array property in root object.
+// Extracts the root array and its wrapper key (null when data is already an array):
+// explicit dataKey, or the first array property in a root object.
 function getRootItems(rawData, dataKey) {
-    if (dataKey) return rawData[dataKey];
-    if (Array.isArray(rawData)) return rawData;
-    const key = Object.keys(rawData).find(k => Array.isArray(rawData[k]));
-    return key ? rawData[key] : null;
+    if (Array.isArray(rawData)) return { key: null, items: rawData };
+    const key = dataKey || Object.keys(rawData).find(k => Array.isArray(rawData[k]));
+    return { key, items: key ? rawData[key] : null };
 }
 
 // Returns every child group of an item — properties holding arrays of objects —
 // optionally restricted to allowedKeys (from a levels override).
 function getChildGroups(item, allowedKeys) {
     return Object.keys(item)
-        .filter(k => Array.isArray(item[k]) && item[k].length > 0 && typeof item[k][0] === 'object')
+        .filter(k => isObjectArray(item[k]))
         .filter(k => !allowedKeys || allowedKeys.includes(k))
         .map(k => ({ key: k, items: item[k] }));
 }

@@ -1,10 +1,10 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
-    positionBelow
+    attachPopover
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -12,7 +12,7 @@ let _tableCount = 0;
 
 export async function initTable(config) {
     let data = config.data;
-    if (Array.isArray(data) && typeof data[0] === 'string') {
+    if (isUrlData(data)) {
         data = await fetchData(...data);
     }
 
@@ -39,9 +39,7 @@ export async function initTable(config) {
     } = config;
 
     const title = config.title ||
-        (Array.isArray(config.data) && typeof config.data[0] === 'string'
-            ? config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase()
-            : '');
+        (isUrlData(config.data) ? titleFromUrl(config.data[0]) : '');
 
     const effectiveExportFilename = exportFilename === false ? null
         : (typeof exportFilename === 'string' ? exportFilename
@@ -193,28 +191,20 @@ export async function initTable(config) {
     }
 
     // --- Dropdown management ---
-    function openDropdown(dd, btn) {
-        positionBelow(dd, btn.parentElement);
-        dd.querySelector('.filter-search').focus();
-    }
-
     filterDefs.forEach(def => {
-        const btn = document.getElementById(def.btnId);
-        const dd  = document.getElementById(def.id);
+        const btn    = document.getElementById(def.btnId);
+        const dd     = document.getElementById(def.id);
+        const search = dd.querySelector('.filter-search');
 
-        let wasOpen = false;
-        btn.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
-        btn.addEventListener('click', e => {
-            e.preventDefault();
-            if (!wasOpen) {
-                openDropdown(dd, btn);
-                const search = dd.querySelector('.filter-search');
-                search.value = '';
-                filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, '');
-            }
+        attachPopover(btn, dd, btn.parentElement);
+        dd.addEventListener('beforetoggle', e => {
+            if (e.newState !== 'open') return;
+            search.value = '';
+            filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, '');
+            requestAnimationFrame(() => search.focus());
         });
 
-        dd.querySelector('.filter-search').addEventListener('input', function() {
+        search.addEventListener('input', function() {
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, this.value);
         });
 
@@ -238,11 +228,9 @@ export async function initTable(config) {
         const dd    = document.getElementById(def.id);
         const input = dd.querySelector('.filter-search');
 
-        let wasOpen = false;
-        btn.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
-        btn.addEventListener('click', e => {
-            e.preventDefault();
-            if (!wasOpen) openDropdown(dd, btn);
+        attachPopover(btn, dd, btn.parentElement);
+        dd.addEventListener('beforetoggle', e => {
+            if (e.newState === 'open') requestAnimationFrame(() => input.focus());
         });
 
         input.addEventListener('input', () => {

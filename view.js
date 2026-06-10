@@ -5,15 +5,25 @@ _link.rel = 'stylesheet';
 _link.href = new URL('./amazejs.css', import.meta.url).href;
 document.head.appendChild(_link);
 
-// Positions dd below anchor, clamped to the viewport edges.
-export function positionBelow(dd, anchor) {
+// Positions an open dd below anchor, clamped to the viewport edges.
+function positionBelow(dd, anchor) {
     const rect = anchor.getBoundingClientRect();
     dd.style.top  = `${rect.bottom + 4}px`;
     dd.style.left = `${rect.left}px`;
-    dd.showPopover();
     const r = dd.getBoundingClientRect();
     if (r.right > window.innerWidth - 8) dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
     if (r.left < 8) dd.style.left = '8px';
+}
+
+// Wires button(s) to toggle dd via the native popovertarget invoker relationship,
+// so the browser handles toggling, light dismiss, and aria-expanded. Positioning
+// runs in a rAF from beforetoggle: the popover is measurable but not yet painted.
+export function attachPopover(btns, dd, anchor) {
+    [btns].flat().forEach(btn => { btn.popoverTargetElement = dd; });
+    dd.addEventListener('beforetoggle', e => {
+        if (e.newState !== 'open') return;
+        requestAnimationFrame(() => positionBelow(dd, anchor));
+    });
 }
 
 // Renders an array-valued cell: first value inline + "+N" badge that opens a dropdown list.
@@ -45,9 +55,7 @@ export function renderArrayCell(td, values) {
     });
     document.body.appendChild(dd);
 
-    let wasOpen = false;
-    badge.addEventListener('pointerdown', () => { wasOpen = dd.matches(':popover-open'); });
-    badge.addEventListener('click', () => { if (!wasOpen) positionBelow(dd, badge); });
+    attachPopover(badge, dd, badge);
 }
 
 // Returns a render function that builds <a> (optionally wrapped in another element).
@@ -125,13 +133,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
         dd.appendChild(csv);
         dd.appendChild(json);
 
-        let exportWasOpen = false;
-        const captureOpen = () => { exportWasOpen = dd.matches(':popover-open'); };
-        const openExport  = () => { if (!exportWasOpen) positionBelow(dd, group); };
-        main.addEventListener('pointerdown', captureOpen);
-        main.addEventListener('click', openExport);
-        arrow.addEventListener('pointerdown', captureOpen);
-        arrow.addEventListener('click', openExport);
+        attachPopover([main, arrow], dd, group);
 
         exportBtns = { csv, json, dd };
     }
@@ -169,9 +171,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     const stickyCb     = makeSettingsRow(settingsOpts, 'Freeze Filter Row');
     const filterRowCb  = makeSettingsRow(settingsOpts, 'Filter Row');
 
-    let settingsWasOpen = false;
-    settingsBtn.addEventListener('pointerdown', () => { settingsWasOpen = settingsDd.matches(':popover-open'); });
-    settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
+    attachPopover(settingsBtn, settingsDd, settingsBtn);
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
     return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb } };
