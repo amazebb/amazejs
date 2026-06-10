@@ -246,7 +246,9 @@ tr:last-child td {
     border-bottom: none;
 }
 
-tbody tr:hover>td {
+/* Wrapper rows holding expanded child tables are excluded so hovering a nested
+   row highlights only that row, not the whole expanded region */
+tbody tr:not(.aj-children-row):hover>td {
     background: var(--row-hover) !important;
 }
 
