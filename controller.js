@@ -180,13 +180,11 @@ export async function initTable(config) {
     if (settingsBtns) {
         function applySticky(on) { toolbar.classList.toggle('atv-sticky', on); }
 
-        settingsBtns.rowNums.checked   = rowNumbers;
-        settingsBtns.borders.checked   = bordered;
-        settingsBtns.sticky.checked    = stickyHeaders;
-        settingsBtns.filterRow.checked = showFilterRow;
+        settingsBtns.rowNums.checked = rowNumbers;
+        settingsBtns.borders.checked = bordered;
+        settingsBtns.sticky.checked  = stickyHeaders;
         applySticky(stickyHeaders);
-        const applyFilterRow = on => { controls.style.display = on ? '' : 'none'; };
-        applyFilterRow(showFilterRow);
+        if (!showFilterRow) controls.style.display = 'none';
 
         settingsBtns.rowNums.addEventListener('change', () => {
             table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
@@ -195,7 +193,6 @@ export async function initTable(config) {
             table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
         });
         settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
-        settingsBtns.filterRow.addEventListener('change', () => applyFilterRow(settingsBtns.filterRow.checked));
     }
 
     // --- Dropdown management ---

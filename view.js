@@ -190,15 +190,14 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '', collap
     settingsOpts.className = 'filter-options';
     settingsDd.appendChild(settingsOpts);
 
-    const rowNumsCb    = makeSettingsRow(settingsOpts, 'Row Numbers');
-    const bordersCb    = makeSettingsRow(settingsOpts, 'Column Separators');
-    const stickyCb     = makeSettingsRow(settingsOpts, 'Freeze Filter Row');
-    const filterRowCb  = makeSettingsRow(settingsOpts, 'Filter Row');
+    const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
+    const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
+    const stickyCb  = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
 
     attachPopover(settingsBtn, settingsDd, settingsBtn);
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, exportBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb } };
+    return { countBadge, exportBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
 }
 
 function makeSettingsRow(container, label) {
