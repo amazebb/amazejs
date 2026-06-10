@@ -15,10 +15,16 @@ function positionBelow(dd, anchor) {
     if (r.left < 8) dd.style.left = '8px';
 }
 
+// Grace period before a hover-opened popover closes, long enough to cross the
+// gap between the invoker button and the dropdown below it.
+const HOVER_CLOSE_DELAY = 300;
+
 // Wires button(s) to toggle dd via the native popovertarget invoker relationship,
 // so the browser handles toggling, light dismiss, and aria-expanded. Positioning
 // runs in a rAF from beforetoggle: the popover is measurable but not yet painted.
-export function attachPopover(btns, dd, anchor) {
+// With hover: true the dropdown also opens on pointer-over and closes after a
+// grace delay once the pointer has left both the button and the dropdown.
+export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
     const invokers = [btns].flat();
     invokers.forEach(btn => {
         btn.popoverTargetElement = dd;
@@ -29,6 +35,24 @@ export function attachPopover(btns, dd, anchor) {
         invokers.forEach(btn => btn.setAttribute('aria-expanded', String(open)));
         if (open) requestAnimationFrame(() => positionBelow(dd, anchor));
     });
+
+    if (hover) {
+        let closeTimer = null;
+        const cancelClose = () => clearTimeout(closeTimer);
+        const scheduleClose = () => {
+            cancelClose();
+            closeTimer = setTimeout(() => {
+                if (dd.matches(':popover-open')) dd.hidePopover();
+            }, HOVER_CLOSE_DELAY);
+        };
+        [...invokers, dd].forEach(el => {
+            el.addEventListener('mouseenter', () => {
+                cancelClose();
+                if (el !== dd && !dd.matches(':popover-open')) dd.showPopover();
+            });
+            el.addEventListener('mouseleave', scheduleClose);
+        });
+    }
 }
 
 // Renders an array-valued cell: first value inline + "+N" badge that opens a dropdown list.
@@ -128,7 +152,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     let fileBtns = null;
     if (hasFileMenu) {
         const fileBtn       = document.createElement('button');
-        fileBtn.className   = 'atv-export-btn atv-file-btn aj-rotate';
+        fileBtn.className   = 'atv-export-btn';
         fileBtn.textContent = 'File';
         btnHost.appendChild(fileBtn);
 
@@ -148,7 +172,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
         const csv  = item('Export CSV');
         const json = item('Export JSON');
 
-        attachPopover(fileBtn, dd, fileBtn);
+        attachPopover(fileBtn, dd, fileBtn, { hover: true });
 
         fileBtns = { open, csv, json, dd };
     }
@@ -162,8 +186,8 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     });
 
     const settingsBtn       = document.createElement('button');
-    settingsBtn.className   = 'atv-settings-btn';
-    settingsBtn.textContent = '⚙';
+    settingsBtn.className   = 'atv-export-btn';
+    settingsBtn.textContent = 'Settings';
     (collapsible ? btnHost : toolbar).appendChild(settingsBtn);
 
     const settingsDd = document.createElement('div');
@@ -184,7 +208,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
     const stickyCb  = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
 
-    attachPopover(settingsBtn, settingsDd, settingsBtn);
+    attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
     return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };

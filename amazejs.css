@@ -77,39 +77,49 @@
     white-space: nowrap;
 }
 
+/* Ghost toolbar button: plain text with an accent underline (on ::before)
+   that slides in from the left on hover and stays lit while its dropdown
+   is open. */
 .atv-export-btn {
-    padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 14px;
-    background: var(--bg-subtle);
-    color: var(--text);
-    white-space: nowrap;
-}
-
-.atv-export-btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-muted);
-}
-
-.atv-settings-btn {
     padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 16px;
-    line-height: 1;
-    background: var(--bg-subtle);
+    border: none;
+    background: none;
+    font-size: 14px;
     color: var(--text-muted);
     white-space: nowrap;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.15s ease;
 }
 
-.atv-settings-btn:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-muted);
-    color: var(--text);
+.atv-export-btn::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 4px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.2s ease;
 }
 
-.atv-hide-rownums .atv-row-num { display: none; }
+.atv-export-btn:hover,
+.atv-export-btn[aria-expanded="true"] {
+    color: var(--accent);
+}
+
+.atv-export-btn:hover::before,
+.atv-export-btn[aria-expanded="true"]::before {
+    transform: scaleX(1);
+}
+
+/* Direct-child paths so a parent table's class can't hide a nested child
+   table's row numbers — each table in tree view toggles only its own */
+table.atv-hide-rownums > thead > tr > th.atv-row-num,
+table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
 
 /* Ellipsis overflow button on collapsible (nested) toolbars — more actions live here.
    Reveals inline while hovering the wrap; click pins open (aria-expanded, works on touch). */
@@ -168,14 +178,6 @@
 .atv-export-dd {
     min-width: 0;
     width: auto;
-}
-
-/* File menu button chevron */
-.atv-file-btn::after {
-    content: "▾";
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: 6px;
 }
 
 /* No results message */
@@ -573,3 +575,6 @@ th.sortable.desc::after {
 }
 
 .aj-array-item:hover { background: var(--row-hover); }
+
+/* In the File menu the items are actions, not values — show a pointer */
+.atv-export-dd .aj-array-item { cursor: pointer; }
