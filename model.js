@@ -33,6 +33,37 @@ export function parseTsv(text) {
     });
 }
 
+// Parses a CSV string (quoted fields, "" escapes, CRLF) into an array of
+// objects keyed by the first-row headers. Round-trips the CSV we export.
+export function parseCsv(text) {
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQuotes) {
+            if (c !== '"') field += c;
+            else if (text[i + 1] === '"') { field += '"'; i++; }
+            else inQuotes = false;
+        } else if (c === '"') {
+            inQuotes = true;
+        } else if (c === ',') {
+            row.push(field); field = '';
+        } else if (c === '\n' || c === '\r') {
+            if (c === '\r' && text[i + 1] === '\n') i++;
+            row.push(field); field = '';
+            rows.push(row); row = [];
+        } else {
+            field += c;
+        }
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+
+    const records = rows.filter(r => r.length > 1 || r[0] !== '');
+    const headers = records.shift();
+    if (!headers) return [];
+    return records.map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
+}
+
 // Resolves column definitions, merging config with numeric-detection defaults.
 export function inferColumns(data, configCols) {
     const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));

@@ -156,47 +156,26 @@
 }
 
 .atv-more-btn[aria-expanded="true"] + .atv-toolbar-more,
-.atv-more-wrap:hover .atv-toolbar-more {
+.atv-more-wrap:hover .atv-toolbar-more,
+.atv-toolbar-more:has(:popover-open) {
     visibility: visible;
     opacity: 1;
     transform: translateX(0);
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-/* Export split button dropdown — narrower than the default filter dropdown */
+/* File menu dropdown — narrower than the default filter dropdown */
 .atv-export-dd {
     min-width: 0;
     width: auto;
 }
 
-/* Export split button */
-.atv-split-btn {
-    display: flex;
-}
-
-.atv-split-btn .atv-export-btn {
-    border-radius: var(--radius) 0 0 var(--radius);
-    border-right: none;
-}
-
-.atv-split-arrow::after { content: "▾"; }
-
-.atv-split-arrow {
-    padding: 0 8px;
-    border: 1px solid var(--border);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    border-left: 1px solid var(--border-muted);
-    font-size: 16px;
-    line-height: 1;
-    background: var(--bg-subtle);
+/* File menu button chevron */
+.atv-file-btn::after {
+    content: "▾";
+    font-size: 11px;
     color: var(--text-muted);
-    cursor: pointer;
-}
-
-.atv-split-arrow:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-muted);
-    color: var(--text);
+    margin-left: 6px;
 }
 
 /* No results message */
@@ -344,12 +323,15 @@ th.sortable.desc::after {
     border-color: var(--accent-border);
 }
 
-/* Filter dropdown — portalled to <body>, positioned via JS */
+/* Filter dropdown — nested in its trigger's DOM; the Popover API renders it in
+   the top layer when open. Resets undo inherited th styles (bold, nowrap). */
 .filter-dropdown {
     position: fixed;
     inset: auto;
     margin: 0;
     padding: 0;
+    font-weight: normal;
+    white-space: normal;
     color: var(--text);
     background: var(--bg);
     border: 1px solid var(--border);

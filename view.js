@@ -58,7 +58,7 @@ export function renderArrayCell(td, values) {
         item.textContent = String(v);
         dd.appendChild(item);
     });
-    document.body.appendChild(dd);
+    td.appendChild(dd);
 
     attachPopover(badge, dd, badge);
 }
@@ -79,12 +79,12 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (title + count badge + optional export split button + extra buttons + settings) before the anchor.
-// Returns { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } for controller wiring.
-// exportBtns: { csv, json, dd } — the two clickable items and the dropdown element.
+// Builds and inserts a toolbar (title + count badge + optional File menu + extra buttons + settings) before the anchor.
+// Returns { countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } for controller wiring.
+// fileBtns: { open, csv, json, dd } — the three menu items and the dropdown element.
 // collapsible: everything after the badge goes into a container revealed by a
 // disclosure chevron (moreBtn); visibility is driven by its aria-expanded via CSS.
-export function buildToolbar(anchor, hasExport, buttons = [], title = '', collapsible = false) {
+export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', collapsible = false) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -125,42 +125,32 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '', collap
         moreWrap.appendChild(btnHost);
     }
 
-    let exportBtns = null;
-    if (hasExport) {
-        const group = document.createElement('div');
-        group.className = 'atv-split-btn';
-
-        const main        = document.createElement('button');
-        main.className    = 'atv-export-btn';
-        main.textContent  = 'Export';
-
-        const arrow     = document.createElement('button');
-        arrow.className = 'atv-split-arrow aj-rotate';
-        arrow.setAttribute('aria-label', 'Export options');
-
-        group.appendChild(main);
-        group.appendChild(arrow);
-        btnHost.appendChild(group);
+    let fileBtns = null;
+    if (hasFileMenu) {
+        const fileBtn       = document.createElement('button');
+        fileBtn.className   = 'atv-export-btn atv-file-btn aj-rotate';
+        fileBtn.textContent = 'File';
+        btnHost.appendChild(fileBtn);
 
         const dd = document.createElement('div');
         dd.className = 'filter-dropdown atv-export-dd';
         dd.popover   = 'auto';
-        document.body.appendChild(dd);
+        btnHost.appendChild(dd);
 
-        const csv  = document.createElement('div');
-        csv.className   = 'aj-array-item';
-        csv.textContent = 'CSV';
+        const item = label => {
+            const el = document.createElement('div');
+            el.className   = 'aj-array-item';
+            el.textContent = label;
+            dd.appendChild(el);
+            return el;
+        };
+        const open = item('Open…');
+        const csv  = item('Export CSV');
+        const json = item('Export JSON');
 
-        const json = document.createElement('div');
-        json.className   = 'aj-array-item';
-        json.textContent = 'JSON';
+        attachPopover(fileBtn, dd, fileBtn);
 
-        dd.appendChild(csv);
-        dd.appendChild(json);
-
-        attachPopover([main, arrow], dd, group);
-
-        exportBtns = { csv, json, dd };
+        fileBtns = { open, csv, json, dd };
     }
 
     const extraBtns = buttons.map(cfg => {
@@ -179,7 +169,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '', collap
     const settingsDd = document.createElement('div');
     settingsDd.className = 'filter-dropdown';
     settingsDd.popover   = 'auto';
-    document.body.appendChild(settingsDd);
+    (collapsible ? btnHost : toolbar).appendChild(settingsDd);
 
     const settingsHdr       = document.createElement('div');
     settingsHdr.className   = 'aj-array-header';
@@ -197,7 +187,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '', collap
     attachPopover(settingsBtn, settingsDd, settingsBtn);
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, exportBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
 }
 
 function makeSettingsRow(container, label) {
@@ -258,10 +248,10 @@ export function buildHeader(thead, columns, tableId) {
 
             if (col.filter === 'category') {
                 filterDefs.push({ id: filterId, btnId, key: col.key, col: i });
-                document.body.appendChild(buildDropdown(filterId));
+                th.appendChild(buildDropdown(filterId));
             } else {
                 textDefs.push({ id: filterId, btnId, key: col.key, col: i });
-                document.body.appendChild(buildTextDropdown(filterId));
+                th.appendChild(buildTextDropdown(filterId));
             }
         } else {
             th.className   = 'sortable';

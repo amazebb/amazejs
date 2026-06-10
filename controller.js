@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -55,7 +55,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, noResults, tableWrap;
+    let countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, noResults, tableWrap, tableContainer;
 
     if (!nested) {
         tableWrap = document.createElement('div');
@@ -63,7 +63,7 @@ export async function initTable(config) {
         table.parentNode.insertBefore(tableWrap, table);
         tableWrap.appendChild(table);
 
-        const tableContainer = document.createElement('div');
+        tableContainer = document.createElement('div');
         tableContainer.className = 'atv-table-container';
         tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
         tableContainer.appendChild(tableWrap);
@@ -74,7 +74,7 @@ export async function initTable(config) {
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap)
     // and collapses everything after the badge behind a disclosure chevron.
     if (config.showToolbar ?? true) {
-        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title, nested));
     }
 
@@ -158,16 +158,60 @@ export async function initTable(config) {
         effectiveSearchInput.addEventListener('input', onSearch);
     }
 
-    if (exportBtns) {
+    if (fileBtns) {
         const jsonFilename = effectiveExportFilename.replace(/\.[^.]+$/, '.json');
-        exportBtns.csv.addEventListener('click', () => {
+        fileBtns.open.addEventListener('click', () => {
+            fileBtns.dd.hidePopover();
+            openFileDialog();
+        });
+        fileBtns.csv.addEventListener('click', () => {
             downloadCsv(columns, [...visibleSet], effectiveExportFilename);
-            exportBtns.dd.hidePopover();
+            fileBtns.dd.hidePopover();
         });
-        exportBtns.json.addEventListener('click', () => {
+        fileBtns.json.addEventListener('click', () => {
             downloadJson([...visibleSet], jsonFilename);
-            exportBtns.dd.hidePopover();
+            fileBtns.dd.hidePopover();
         });
+    }
+
+    // File > Open: tears down everything this init built (dropdowns are nested
+    // in the table/toolbar DOM, so removing the container removes them too) and
+    // re-inits in place with columns re-inferred from the opened data.
+    async function rebuild(newData, newTitle) {
+        const fresh = document.createElement('table');
+        fresh.id = tableId;
+        if (nested) {
+            toolbar?.remove();
+            table.replaceWith(fresh);
+        } else {
+            tableContainer.replaceWith(fresh);
+        }
+        return initTable({
+            ...config,
+            data: newData, title: newTitle,
+            columns: undefined, dataKey: undefined,
+            table: fresh,
+        });
+    }
+
+    function openFileDialog() {
+        const input  = document.createElement('input');
+        input.type   = 'file';
+        input.accept = '.csv,.json,text/csv,application/json';
+        input.addEventListener('change', async () => {
+            const file = input.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = file.name.toLowerCase().endsWith('.json')
+                    ? JSON.parse(text)
+                    : parseCsv(text);
+                await rebuild(data, titleFromUrl(file.name));
+            } catch (err) {
+                alert(`Could not open ${file.name}: ${err.message}`);
+            }
+        });
+        input.click();
     }
 
     if (extraBtns) {
