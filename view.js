@@ -215,9 +215,9 @@ export function buildHeader(thead, columns, tableId) {
     th.textContent = '#';
     tr.appendChild(th);
 
-    columns.forEach(col => {
+    columns.forEach((col, i) => {
         const th = document.createElement('th');
-        th.setAttribute('data-col', col._i);
+        th.setAttribute('data-col', i);
 
         if (col.filter === 'category' || col.filter === 'text') {
             const filterId = `${tableId}_filter_${col.key}`;
@@ -234,10 +234,10 @@ export function buildHeader(thead, columns, tableId) {
             th.appendChild(wrap);
 
             if (col.filter === 'category') {
-                filterDefs.push({ id: filterId, btnId, key: col.key, col: col._i });
+                filterDefs.push({ id: filterId, btnId, key: col.key, col: i });
                 document.body.appendChild(buildDropdown(filterId));
             } else {
-                textDefs.push({ id: filterId, btnId, key: col.key, col: col._i });
+                textDefs.push({ id: filterId, btnId, key: col.key, col: i });
                 document.body.appendChild(buildTextDropdown(filterId));
             }
         } else {

@@ -241,7 +241,7 @@ export async function initTable(config) {
 
     // --- Sorting ---
     function sortByCol(colIndex) {
-        const col = columns.find(c => c._i === colIndex);
+        const col = columns[colIndex];
         if (!col) return;
 
         sortState.dir = sortState.key === col.key ? sortState.dir * -1 : 1;
@@ -252,7 +252,7 @@ export async function initTable(config) {
         table.querySelector(`th[data-col="${colIndex}"]`)?.classList.add(dirClass);
         [...filterDefs, ...textDefs].forEach(def => {
             if (def.col === colIndex)
-                document.getElementById(def.btnId).parentElement.parentElement.classList.add(dirClass);
+                document.getElementById(def.btnId).closest('th').classList.add(dirClass);
         });
 
         sortedData = sortItems(data, col.key, sortState.dir, col.numeric);

@@ -91,9 +91,9 @@ function getColumns(items, ctx, depth) {
                 const frag   = document.createDocumentFragment();
                 if (groups.length) {
                     const btn = document.createElement('button');
-                    btn.className   = 'aj-toggle';
-                    btn.textContent = '▶';
-                    btn.setAttribute('aria-label', 'Expand');
+                    btn.className = 'aj-toggle';
+                    btn.setAttribute('aria-expanded', 'false');
+                    btn.setAttribute('aria-label', 'Toggle children');
                     btnMeta.set(btn, { groups, ctx, depth: depth + 1, colCount });
                     frag.appendChild(btn);
                 } else {
@@ -110,9 +110,8 @@ function getColumns(items, ctx, depth) {
 }
 
 function handleToggle(btn) {
-    const isOpen = btn.textContent === '▼';
-    btn.textContent = isOpen ? '▶' : '▼';
-    btn.setAttribute('aria-label', isOpen ? 'Expand' : 'Collapse');
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!isOpen));
 
     const meta = btnMeta.get(btn);
     if (meta.groups) toggleItemRow(btn, meta, isOpen);
@@ -154,9 +153,9 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
         header.className = 'aj-group';
 
         const gBtn = document.createElement('button');
-        gBtn.className   = 'aj-toggle';
-        gBtn.textContent = '▶';
-        gBtn.setAttribute('aria-label', 'Expand');
+        gBtn.className = 'aj-toggle';
+        gBtn.setAttribute('aria-expanded', 'false');
+        gBtn.setAttribute('aria-label', 'Toggle children');
 
         const label = document.createElement('span');
         label.className   = 'aj-group-label';

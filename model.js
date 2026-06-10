@@ -36,9 +36,9 @@ export function parseTsv(text) {
 // Resolves column definitions, merging config with numeric-detection defaults.
 export function inferColumns(data, configCols) {
     const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));
-    return base.map((col, i) => {
+    return base.map(col => {
         const isNumeric = data.every(item => !item[col.key] || !isNaN(Number(item[col.key])));
-        return { filter: isNumeric ? false : 'text', numeric: isNumeric, label: capitalize(col.key), ...col, _i: i };
+        return { filter: isNumeric ? false : 'text', numeric: isNumeric, label: capitalize(col.key), ...col };
     });
 }
 
