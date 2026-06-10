@@ -5,8 +5,6 @@ _link.rel = 'stylesheet';
 _link.href = new URL('./amazejs.css', import.meta.url).href;
 document.head.appendChild(_link);
 
-let _arrayDdCount = 0;
-
 // Positions dd below anchor, clamped to the viewport edges.
 export function positionBelow(dd, anchor) {
     const rect = anchor.getBoundingClientRect();
@@ -23,7 +21,6 @@ export function renderArrayCell(td, values) {
     if (!values.length) return;
     if (values.length === 1) { td.textContent = String(values[0]); return; }
 
-    const id = `ajdd_${++_arrayDdCount}`;
     td.appendChild(document.createTextNode(String(values[0])));
 
     const badge = document.createElement('button');
@@ -33,7 +30,6 @@ export function renderArrayCell(td, values) {
 
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
-    dd.id = id;
     dd.popover = 'auto';
 
     const header = document.createElement('div');
@@ -70,9 +66,9 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (search input + optional export split button + optional extra buttons) before the table wrapper.
-// Returns { searchInput, exportBtns, extraBtns } for controller wiring.
-// exportBtns: { csv, json, dd, wrap } — the two clickable items, dropdown el, and wrapper for click-outside detection.
+// Builds and inserts a toolbar (title + count badge + optional export split button + extra buttons + settings) before the anchor.
+// Returns { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } for controller wiring.
+// exportBtns: { csv, json, dd } — the two clickable items and the dropdown element.
 export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
@@ -137,7 +133,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
         arrow.addEventListener('pointerdown', captureOpen);
         arrow.addEventListener('click', openExport);
 
-        exportBtns = { csv, json, dd, wrap: group };
+        exportBtns = { csv, json, dd };
     }
 
     const extraBtns = buttons.map(cfg => {
@@ -178,7 +174,7 @@ export function buildToolbar(anchor, hasExport, buttons = [], title = '') {
     settingsBtn.addEventListener('click', () => { if (!settingsWasOpen) positionBelow(settingsDd, settingsBtn); });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb, dd: settingsDd, wrap: settingsBtn } };
+    return { countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, filterRow: filterRowCb } };
 }
 
 function makeSettingsRow(container, label) {
@@ -195,16 +191,7 @@ function makeSettingsRow(container, label) {
     return cb;
 }
 
-// Builds and inserts a footer showing visible/total counts after the table wrapper.
-// Returns the footer element for later updates.
-export function buildFooter(tableWrap) {
-    const footer       = document.createElement('div');
-    footer.className   = 'atv-footer';
-    tableWrap.insertAdjacentElement('afterend', footer);
-    return footer;
-}
-
-// Builds and inserts a no-results message after the footer.
+// Builds and inserts a no-results message after the table wrapper.
 // Returns the element for show/hide toggling.
 export function buildNoResults(tableWrap, message) {
     const el           = document.createElement('div');
@@ -212,11 +199,6 @@ export function buildNoResults(tableWrap, message) {
     el.textContent     = message || 'No items match the current filters.';
     tableWrap.insertAdjacentElement('afterend', el);
     return el;
-}
-
-// Updates the footer text.
-export function updateFooter(footerEl, visible, total) {
-    footerEl.textContent = `${visible} / ${total}`;
 }
 
 // Builds the thead row from column definitions.
@@ -340,7 +322,7 @@ export function buildRows(tbody, data, columns) {
             } else if (Array.isArray(value)) {
                 renderArrayCell(td, value);
             } else {
-                td.textContent = value || '';
+                td.textContent = value ?? '';
             }
             tr.appendChild(td);
         });
@@ -465,7 +447,7 @@ export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
     const rows   = items.map(item =>
         columns.map(c => {
-            const v = (item[c.key] || '').toString();
+            const v = (item[c.key] ?? '').toString();
             return `"${v.replace(/"/g, '""')}"`;
         })
     );

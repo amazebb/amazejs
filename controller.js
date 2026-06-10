@@ -89,11 +89,7 @@ export async function initTable(config) {
     const effectiveSearchInput = config.searchInputEl || null;
 
     // --- Model: resolve columns ---
-    const colsWithAttrs = (config.columns || []).map(col => ({
-        ...readColAttr(table, col.key),
-        ...col
-    }));
-    const columns = inferColumns(data, colsWithAttrs);
+    const columns = inferColumns(data, config.columns);
 
     // --- View: build table content ---
     const { filterDefs, textDefs } = buildHeader(thead, columns, tableId);
@@ -293,14 +289,4 @@ export async function initTable(config) {
 function debounce(fn, ms) {
     let t;
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
-}
-
-function readColAttr(table, key) {
-    const attr = table.dataset[`col${key[0].toUpperCase()}${key.slice(1)}`];
-    if (!attr) return {};
-    const [labelPart, filterPart] = attr.split(',').map(s => s.trim());
-    const result = {};
-    if (labelPart) result.label = labelPart;
-    if (filterPart !== undefined) result.filter = filterPart.toLowerCase() !== 'false';
-    return result;
 }

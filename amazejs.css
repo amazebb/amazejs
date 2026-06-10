@@ -13,7 +13,7 @@
     --header-bg: var(--bg-hover);
 }
 
-/* Toolbar — search input + export button, inserted before the table wrapper */
+/* Toolbar — title, export and settings buttons, inserted before the table wrapper */
 .atv-toolbar {
     display: flex;
     gap: 8px;
@@ -32,16 +32,6 @@
     top: 0;
     z-index: 5;
     background: var(--bg);
-}
-
-.atv-search {
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    font-size: 13px;
-    outline: none;
-    background: var(--bg);
-    color: var(--text);
 }
 
 .atv-title-wrap {
@@ -69,12 +59,6 @@
     border-radius: 10px;
     padding: 1px 7px;
     white-space: nowrap;
-}
-
-.atv-search:focus,
-.filter-search:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
 .atv-export-btn {
@@ -143,13 +127,6 @@
     background: var(--bg-hover);
     border-color: var(--border-muted);
     color: var(--text);
-}
-
-/* Footer — visible/total row count, inserted after the table wrapper */
-.atv-footer {
-    margin-top: 10px;
-    font-size: 13px;
-    color: var(--text-muted);
 }
 
 /* No results message */
@@ -460,17 +437,6 @@ th.sortable.desc::after {
 }
 
 
-.aj-section-header {
-    background: var(--accent-subtle);
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    padding: 5px 16px;
-    border-bottom: 1px solid var(--accent-border);
-}
-
-
 .aj-toggle {
     background: none;
     border: none;
@@ -489,43 +455,6 @@ th.sortable.desc::after {
     display: inline-block;
     width: 16px;
     margin-right: 6px;
-}
-
-.aj-section-cell {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-muted);
-}
-
-.aj-detail-cell { padding: 0 !important; }
-
-.aj-detail-strip {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-    padding: 8px 16px;
-    background: var(--accent-subtle);
-    border-bottom: 1px solid var(--accent-border);
-}
-
-.aj-detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.aj-detail-key {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-}
-
-.aj-detail-val {
-    font-size: 13px;
-    font-weight: 500;
 }
 
 /* Array cell indicator */

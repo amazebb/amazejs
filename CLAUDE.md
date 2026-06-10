@@ -45,7 +45,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `table` | HTMLTableElement | — | Direct element reference (for nested use) |
 | `columns` | `Array<{key, label?, filter?, render?, numeric?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `false` → sortable only |
 | `searchKeys` | string[] | `[]` | Fields included in the global search |
-| `exportFilename` | string | — | Enables CSV/JSON export button when set |
+| `exportFilename` | string or `false` | derived | Export button is shown by default. Filename defaults to the slugified title, or `data.csv` when there is no title. Pass a string to set it explicitly, `false` to hide the button. |
 | `buttons` | `Array<{label, onClick}>` | `[]` | Extra toolbar buttons; `onClick(visibleItems, btn)` |
 | `nested` | boolean | `false` | Suppresses toolbar/wrapper creation for child tables |
 | `title` | string | auto | Toolbar title. Auto-derived: root object key, else URL filename without extension (uppercased), else blank. Pass explicitly to override. |
@@ -62,8 +62,6 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `showFilterRow` | boolean | `true` | |
 | `badgeAlwaysShow` | boolean | `false` | |
 | `searchDebounce` | boolean or number | `true` (150ms) | `false` = no debounce |
-
-Column `filter` can also be set via `data-col-<key>` attributes on the `<table>` element, e.g. `data-col-status="Status,category"`.
 
 ### `linkCell(textKey, hrefKey, { wrap? })`
 
