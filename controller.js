@@ -6,6 +6,7 @@ import {
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
     positionBelow
 } from './view.js';
+import { initTree, isTreeData } from './tree.js';
 
 let _tableCount = 0;
 
@@ -13,6 +14,14 @@ export async function initTable(config) {
     let data = config.data;
     if (Array.isArray(data) && typeof data[0] === 'string') {
         data = await fetchData(...data);
+    }
+
+    // Tree-shaped data is handled by tree.js, which calls back in here for each
+    // table it builds — those calls carry explicit columns and take the flat path.
+    // levels: false forces a flat table even when the data looks tree-shaped.
+    if (!config.nested && !config.columns && config.levels !== false
+        && (config.levels || isTreeData(data))) {
+        return initTree(config, data);
     }
 
     const {
@@ -270,6 +279,7 @@ export async function initTable(config) {
     });
 
     refresh();
+    return table;
 }
 
 function debounce(fn, ms) {

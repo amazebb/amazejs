@@ -1,19 +1,24 @@
-import { fetchData } from './model.js';
 import { initTable } from './controller.js';
 
 const btnMeta = new WeakMap();
 
-export async function initTree(config) {
-    let rawData = config.data;
-    if (Array.isArray(rawData) && typeof rawData[0] === 'string') {
-        rawData = await fetchData(...rawData);
-    }
+// True when resolved data needs tree handling: a root wrapper object
+// (e.g. { countries: [...] }) or items containing arrays of objects.
+export function isTreeData(data) {
+    if (data && !Array.isArray(data)) return true;
+    const first = data?.[0];
+    return !!first && Object.values(first).some(
+        v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object'
+    );
+}
 
+// Called by initTable when tree handling applies; rawData is already fetched.
+export async function initTree(config, rawData) {
     const rootItems = getRootItems(rawData, config.dataKey);
     if (!rootItems?.length) return;
 
-    const levelDefs = detectLevels(rootItems[0], config.levels || []);
-    const rootCols  = getColumns(rootItems, levelDefs, 0);
+    const levels   = Array.isArray(config.levels) ? config.levels : null;
+    const rootCols = getColumns(rootItems, levels, 0);
 
     let rootTitle = config.title;
     if (!rootTitle && !Array.isArray(rawData)) {
@@ -24,15 +29,15 @@ export async function initTree(config) {
         rootTitle = config.data[0].split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
     }
 
-    await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle || '' });
+    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle || '' });
 
     // Delegated click listener scoped to the container — catches toggles from all nested levels.
-    const table = document.getElementById(config.tableId);
     table.closest('.atv-table-container').addEventListener('click', e => {
         const btn = e.target.closest('.aj-toggle');
         if (!btn) return;
         handleToggle(btn);
     });
+    return table;
 }
 
 // Extracts the root array: explicit dataKey, direct array, or first array property in root object.
@@ -43,41 +48,36 @@ function getRootItems(rawData, dataKey) {
     return key ? rawData[key] : null;
 }
 
-// Detects levels by walking the first item of each level.
-// If configLevels has entries, limits depth to that count.
-// Per-level childrenKey can be explicit (to pick between multiple arrays) or auto-detected.
-function detectLevels(sample, configLevels) {
-    const limited  = configLevels.length > 0;
-    const maxDepth = limited ? configLevels.length : Infinity;
-    const defs     = [];
-    let current    = sample;
-    let i          = 0;
-
-    while (current && i < maxDepth) {
-        const cfg      = configLevels[i] || {};
-        const childKey = cfg.childrenKey || Object.keys(current).find(k =>
-            Array.isArray(current[k]) && current[k].length > 0 && typeof current[k][0] === 'object'
-        );
-        if (!childKey) break;
-        defs.push({ childrenKey: childKey, nameKey: 'name', ...cfg });
-        current = current[childKey]?.[0];
-        i++;
-    }
-
-    return defs;
+// Returns every child group of an item — properties holding arrays of objects —
+// optionally restricted to allowedKeys (from a levels override).
+function getChildGroups(item, allowedKeys) {
+    return Object.keys(item)
+        .filter(k => Array.isArray(item[k]) && item[k].length > 0 && typeof item[k][0] === 'object')
+        .filter(k => !allowedKeys || allowedKeys.includes(k))
+        .map(k => ({ key: k, items: item[k] }));
 }
 
-// Returns column defs with nameKey first, labels uppercased, filters disabled.
-// The first column gets a render function that injects an expand toggle or leaf spacer,
-// reusing the existing col.render hook in buildRows (view.js).
-function getColumns(items, levelDefs, depth) {
-    const sample   = items[0] || {};
-    const levelDef = levelDefs[depth] || {};
-    const nameKey  = levelDef.nameKey || 'name';
-    const childKey = levelDef.childrenKey;
+// Resolves which children keys are allowed for items at a given depth.
+// null = no restriction (auto-detect); [] = none (depth beyond configured levels).
+function allowedChildKeys(levels, depth) {
+    if (!levels) return null;
+    if (depth >= levels.length) return [];
+    const def = levels[depth];
+    if (def.childrenKeys) return def.childrenKeys;
+    if (def.childrenKey)  return [def.childrenKey];
+    return null;
+}
+
+// Returns column defs with nameKey first and labels uppercased.
+// The first column gets a render function that injects an expand toggle (when the
+// item has child groups) or a leaf spacer, reusing the col.render hook in buildRows (view.js).
+function getColumns(items, levels, depth) {
+    const sample  = items[0] || {};
+    const nameKey = levels?.[depth]?.nameKey || 'name';
+    const allowed = allowedChildKeys(levels, depth);
 
     const keys = Object.keys(sample).filter(k => !Array.isArray(sample[k]));
-    if (nameKey && keys.includes(nameKey)) {
+    if (keys.includes(nameKey)) {
         keys.splice(keys.indexOf(nameKey), 1);
         keys.unshift(nameKey);
     }
@@ -87,15 +87,14 @@ function getColumns(items, levelDefs, depth) {
         const col = { key: k, label: k.toUpperCase() };
         if (i === 0) {
             col.render = item => {
-                const children    = childKey ? (item[childKey] || []) : [];
-                const hasChildren = children.length > 0;
-                const frag        = document.createDocumentFragment();
-                if (hasChildren) {
+                const groups = getChildGroups(item, allowed);
+                const frag   = document.createDocumentFragment();
+                if (groups.length) {
                     const btn = document.createElement('button');
                     btn.className   = 'aj-toggle';
                     btn.textContent = '▶';
                     btn.setAttribute('aria-label', 'Expand');
-                    btnMeta.set(btn, { children, levelDefs, depth: depth + 1, colCount });
+                    btnMeta.set(btn, { groups, levels, depth: depth + 1, colCount });
                     frag.appendChild(btn);
                 } else {
                     const leaf = document.createElement('span');
@@ -126,29 +125,32 @@ function handleToggle(btn) {
 
     if (isOpen) return;
 
-    // Lazy build on first expand.
-    const { children, levelDefs, depth, colCount } = btnMeta.get(btn);
-    const childCols = getColumns(children, levelDefs, depth);
+    // Lazy build on first expand: one child table per group, stacked in a single cell.
+    const { groups, levels, depth, colCount } = btnMeta.get(btn);
 
     const childTr = document.createElement('tr');
     childTr.className = 'aj-children-row';
     const childTd = document.createElement('td');
     childTd.colSpan   = colCount;
     childTd.className = 'aj-children-cell';
-    const childTable  = document.createElement('table');
-    childTd.appendChild(childTable);
     childTr.appendChild(childTd);
+
+    const tables = groups.map(() => {
+        const childTable = document.createElement('table');
+        childTd.appendChild(childTable);
+        return childTable;
+    });
 
     // Insert into DOM before initTable so getElementById can resolve filter button IDs.
     parentTr.insertAdjacentElement('afterend', childTr);
 
-    const sectionTitle = (levelDefs[depth - 1]?.childrenKey || '').toUpperCase();
-
-    initTable({
-        table:   childTable,
-        data:    children,
-        columns: childCols,
-        nested:  true,
-        title:   sectionTitle,
+    groups.forEach((group, i) => {
+        initTable({
+            table:   tables[i],
+            data:    group.items,
+            columns: getColumns(group.items, levels, depth),
+            nested:  true,
+            title:   group.key.toUpperCase(),
+        });
     });
 }
