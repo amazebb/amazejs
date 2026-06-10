@@ -51,6 +51,9 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `title` | string | auto | Toolbar title. Auto-derived: root object key, else URL filename without extension (uppercased), else blank. Pass explicitly to override. |
 | `dataKey` | string | first array property | Key on a root wrapper object holding the items array |
 | `levels` | `Array<{childrenKeys?, childrenKey?, nameKey?}>` or `false` | auto-detected | Tree-mode per-depth overrides: `childrenKeys` restricts which arrays count as children at that depth, `nameKey` picks the first column (default `'name'`); array length caps expansion depth. `false` forces a flat table. |
+| `childFilterRow` | boolean | `false` | Tree mode: show the toolbar (title, count badge, export, settings) on child tables under group header lines. Hidden entirely by default — the count badge sits on the header line instead. |
+| `showToolbar` | boolean | `true` | `false` skips toolbar creation entirely (no title, export, settings) |
+| `countBadgeEl` | HTMLElement | — | External count badge element updated on refresh (used internally by tree group header lines) |
 | `searchInputEl` | HTMLInputElement | — | External search input for nested tables |
 | `striped` | boolean | `false` | |
 | `bordered` | boolean | `false` | |
@@ -84,6 +87,6 @@ Returns a column `render` function that builds `<a>` elements, optionally wrappe
 
 - No DOM access in `model.js` — keep it that way.
 - No business logic or state in `view.js` — it only builds/mutates DOM and returns references.
-- Child tables in tree view are built lazily (first expand only) inside a single `aj-children-row` sibling `<tr>`; subsequent toggles just show/hide. An item with one child group expands straight into its table; with multiple groups it first shows an expandable `aj-group` header line per group (TIMEZONES, STATES), each building its table on first expand.
+- Child tables in tree view are built lazily (first expand only) inside a single `aj-children-row` sibling `<tr>`; subsequent toggles just show/hide. An item with one child group expands straight into its table; with multiple groups it first shows an expandable `aj-group` header line per group (TIMEZONES, STATES) carrying a live count badge, each building its table on first expand. Tables under header lines have no toolbar at all by default (`childFilterRow: false` → `showToolbar: false`).
 - Filter dropdowns are portalled to `<body>` and positioned via JS; they use the native Popover API (`popover="auto"`).
 - Row visibility is toggled via `.hidden` CSS class (not `display` style), and striped row numbers use CSS counters so they recount visible rows automatically.

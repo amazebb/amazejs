@@ -73,9 +73,17 @@ export async function initTable(config) {
         noResults = buildNoResults(tableWrap);
     }
 
-    // Toolbar for all tables; nested uses table as anchor (no tableWrap).
-    ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
-        buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
+    // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap).
+    if (config.showToolbar ?? true) {
+        ({ countBadge, exportBtns, extraBtns, toolbar, controls, settingsBtns } =
+            buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
+    }
+
+    // An external count badge (e.g. a tree group header line) replaces the toolbar one.
+    if (config.countBadgeEl) {
+        countBadge?.remove();
+        countBadge = config.countBadgeEl;
+    }
 
 
     const effectiveSearchInput = config.searchInputEl || null;

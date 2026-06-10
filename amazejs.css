@@ -451,6 +451,10 @@ th.sortable.desc::after {
     letter-spacing: 0.06em;
 }
 
+.aj-group .atv-count-badge {
+    margin-left: 8px;
+}
+
 .aj-group-body:not(:empty) {
     margin-bottom: 12px;
 }
