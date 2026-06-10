@@ -476,6 +476,8 @@ th.sortable.desc::after {
     display: flex;
     align-items: center;
     padding: 6px 0;
+    cursor: pointer;
+    user-select: none;
 }
 
 .aj-group-label {
@@ -508,6 +510,17 @@ th.sortable.desc::after {
 }
 
 .aj-toggle:hover { color: var(--accent); }
+
+/* Whole first cell (and group header line) act as the toggle's click target */
+.aj-toggle-wrap {
+    cursor: pointer;
+    user-select: none;
+}
+
+.aj-toggle-wrap:hover .aj-toggle,
+.aj-group:hover .aj-toggle {
+    color: var(--accent);
+}
 
 /* Arrow rendered from aria-expanded (the toggle's single source of truth),
    rotated to ▼ by the .aj-rotate utility when expanded */

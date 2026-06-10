@@ -31,11 +31,14 @@ export async function initTree(config, rawData) {
 
     const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle });
 
-    // Delegated click listener scoped to the container — catches toggles from all nested levels.
+    // Delegated click listener scoped to the container — catches toggles from all
+    // nested levels. The whole first-cell wrapper and group header lines are click
+    // targets too; both resolve to the toggle button they contain.
     table.closest('.atv-table-container').addEventListener('click', e => {
-        const btn = e.target.closest('.aj-toggle');
-        if (!btn) return;
-        handleToggle(btn);
+        const hit = e.target.closest('.aj-toggle, .aj-toggle-wrap, .aj-group');
+        if (!hit) return;
+        const btn = hit.classList.contains('aj-toggle') ? hit : hit.querySelector('.aj-toggle');
+        if (btn) handleToggle(btn);
     });
     return table;
 }
@@ -88,21 +91,23 @@ function getColumns(items, ctx, depth) {
         if (i === 0) {
             col.render = item => {
                 const groups = getChildGroups(item, allowed);
-                const frag   = document.createDocumentFragment();
-                if (groups.length) {
-                    const btn = document.createElement('button');
-                    btn.className = 'aj-toggle aj-rotate';
-                    btn.setAttribute('aria-expanded', 'false');
-                    btn.setAttribute('aria-label', 'Toggle children');
-                    btnMeta.set(btn, { groups, ctx, depth: depth + 1, colCount });
-                    frag.appendChild(btn);
-                } else {
+                if (!groups.length) {
+                    const frag = document.createDocumentFragment();
                     const leaf = document.createElement('span');
                     leaf.className = 'aj-leaf';
-                    frag.appendChild(leaf);
+                    frag.append(leaf, document.createTextNode(item[k] ?? ''));
+                    return frag;
                 }
-                frag.appendChild(document.createTextNode(item[k] ?? ''));
-                return frag;
+                // Wrapper makes the whole first cell a click target for the toggle.
+                const wrap = document.createElement('div');
+                wrap.className = 'aj-toggle-wrap';
+                const btn = document.createElement('button');
+                btn.className = 'aj-toggle aj-rotate';
+                btn.setAttribute('aria-expanded', 'false');
+                btn.setAttribute('aria-label', 'Toggle children');
+                btnMeta.set(btn, { groups, ctx, depth: depth + 1, colCount });
+                wrap.append(btn, document.createTextNode(item[k] ?? ''));
+                return wrap;
             };
         }
         return col;
