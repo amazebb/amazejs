@@ -2,7 +2,7 @@
 
 Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no build step, no package manager — import it straight from a CDN and call `initTable(config)`.
 
-**[Live demo](https://amazebb.github.io/amazejs/docs/)** — a flat table and a tree table, both zero-config.
+**[Live demo](https://amazebb.github.io/amazejs/)** — a flat table and a tree table, both zero-config.
 
 ## Table of contents
 
