@@ -4,17 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Testing / demo environment
 
-The demo app lives in `../brewbar/docs/` (a sibling repo). It has two pages:
-- `index.html` / `app.js` — flat table of Homebrew packages
-- `tree.html` / `tree-app.js` — nested tree table of countries
+The demo lives in `demo/`: a single landing page (`index.html` / `app.js`) showing a flat table and a tree table, both zero-config. Data comes from `demo/data/flat.json` (array of objects) and `demo/data/tree.json` (root wrapper object). The demo imports `../src/index.js` directly — no build step.
 
-To serve it locally (required — ES modules and `fetch` need HTTP), run the server from the common parent so the `../../amazejs/` relative path resolves:
+To serve it locally (required — ES modules and `fetch` need HTTP):
 ```
-cd .. && python3 -m http.server 8000
-# then open http://localhost:8000/brewbar/docs/
+python3 -m http.server 8000
+# then open http://localhost:8000/demo/
 ```
 
-**Switching between local and CDN**: edit one line in `docs/amazejs.js` — it's a re-export shim that all pages import from. Swap the commented line to point at the local library instead of the CDN.
+`../brewbar/docs/` (a sibling repo) is a real-world consumer, useful as a second test bed. Its pages import from `docs/amazejs.js`, a re-export shim — swap the commented line there to switch between the local library (`../../amazejs/src/index.js`, serve from the common parent dir) and the CDN (jsDelivr, pinned to a git tag).
 
 ## What this is
 
@@ -24,7 +22,7 @@ There are no build, lint, or test commands.
 
 ## Architecture
 
-The library follows a strict MVC split across four files:
+The library lives in `src/` and follows a strict MVC split across four files:
 
 - **`model.js`** — pure functions only, no DOM. Handles data fetching (`fetchData`, `parseTsv`), column inference (`inferColumns`), filtering (`getVisible`, `computeCounts`), and sorting (`sortItems`).
 - **`view.js`** — DOM construction only, no business logic or mutable state. Auto-injects `amazejs.css` via `import.meta.url` on module load. Exports all DOM builders and mutators used by the controller.
