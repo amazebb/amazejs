@@ -246,12 +246,14 @@ tr.hidden {
     display: none;
 }
 
-table.atv-bordered th:not(:last-child),
-table.atv-bordered td:not(:last-child) {
+/* Direct-child paths so a parent table's separators don't leak into nested
+   child tables — each table in tree view toggles only its own */
+table.atv-bordered > thead > tr > th:not(:last-child),
+table.atv-bordered > tbody > tr > td:not(:last-child) {
     border-right: 1px solid var(--border);
 }
 
-table.atv-striped tbody tr:nth-child(even of :not(.hidden))>td {
+table.atv-striped > tbody > tr:nth-child(even of :not(.hidden)) > td {
     background: var(--stripe-bg);
 }
 
