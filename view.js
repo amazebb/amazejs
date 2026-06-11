@@ -118,8 +118,11 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (title + count badge + optional File menu + extra buttons + settings) before the anchor.
-// Returns { countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } for controller wiring.
+// Builds and inserts a toolbar (disclosure toggle + title + count badge + optional
+// File menu + extra buttons + settings) before the anchor.
+// Returns { countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn,
+// toggleBtn, titleWrap } for controller wiring. The toolbar doubles as the table's
+// disclosure header: the controller toggles the table container via toggleBtn/titleWrap.
 // fileBtns: { open, csv, json, dd } — the three menu items and the dropdown element.
 // collapsible: everything after the badge goes into a container revealed by a
 // disclosure chevron (moreBtn); visibility is driven by its aria-expanded via CSS.
@@ -134,6 +137,12 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     const titleWrap = document.createElement('div');
     titleWrap.className = 'atv-title-wrap';
     controls.appendChild(titleWrap);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'aj-toggle aj-rotate';
+    toggleBtn.setAttribute('aria-expanded', 'true');
+    toggleBtn.setAttribute('aria-label', 'Toggle table');
+    titleWrap.appendChild(toggleBtn);
 
     if (title) {
         const titleEl = document.createElement('span');
@@ -226,7 +235,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
 }
 
 function makeSettingsRow(container, label) {

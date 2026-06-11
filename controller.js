@@ -35,7 +35,8 @@ export async function initTable(config) {
         buttons        = [],
         searchDebounce = true,
         stickyHeaders  = true,
-        showFilterRow  = true
+        showFilterRow  = true,
+        collapsed      = false
     } = config;
 
     const title = config.title ||
@@ -55,7 +56,13 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, noResults, tableWrap, tableContainer;
+    let countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, toggleBtn, titleWrap, noResults, tableWrap;
+
+    // Every table gets a container holding toolbar + table: it is the disclosure
+    // target the toolbar collapses. Non-nested tables also get a scroll wrapper
+    // and a no-results message.
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'atv-table-container';
 
     if (!nested) {
         tableWrap = document.createElement('div');
@@ -63,18 +70,19 @@ export async function initTable(config) {
         table.parentNode.insertBefore(tableWrap, table);
         tableWrap.appendChild(table);
 
-        tableContainer = document.createElement('div');
-        tableContainer.className = 'atv-table-container';
         tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
         tableContainer.appendChild(tableWrap);
 
         noResults = buildNoResults(tableWrap);
+    } else {
+        table.parentNode.insertBefore(tableContainer, table);
+        tableContainer.appendChild(table);
     }
 
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap)
     // and collapses everything after the badge behind a disclosure chevron.
     if (config.showToolbar ?? true) {
-        ({ countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, toggleBtn, titleWrap } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title, nested));
     }
 
@@ -85,14 +93,37 @@ export async function initTable(config) {
         });
     }
 
-    // An external count badge (e.g. a tree group header line) replaces the toolbar one.
-    if (config.countBadgeEl) {
-        countBadge?.remove();
-        countBadge = config.countBadgeEl;
+    const effectiveSearchInput = config.searchInputEl || null;
+
+    // --- Disclosure: the toolbar doubles as a collapse/expand header line for
+    // the container. A table starting collapsed defers its whole build (header,
+    // rows, filter wiring) to the first expand — tree child groups rely on this
+    // to keep deep trees lazy.
+    let built = false;
+    function setExpanded(open) {
+        tableContainer.classList.toggle('atv-collapsed', !open);
+        toggleBtn.setAttribute('aria-expanded', String(open));
+        if (open && !built) { built = true; buildTableUI(); }
+    }
+    if (titleWrap) {
+        titleWrap.addEventListener('click', () => {
+            setExpanded(toggleBtn.getAttribute('aria-expanded') !== 'true');
+        });
     }
 
+    if (collapsed && toggleBtn) {
+        tableContainer.classList.add('atv-collapsed');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        // Full count until the table is built and refresh() takes over.
+        if (countBadge) countBadge.textContent = `${data.length} / ${data.length}`;
+    } else {
+        built = true;
+        buildTableUI();
+    }
 
-    const effectiveSearchInput = config.searchInputEl || null;
+    return table;
+
+    function buildTableUI() {
 
     // --- Model: resolve columns ---
     const columns = inferColumns(data, config.columns);
@@ -174,22 +205,18 @@ export async function initTable(config) {
         });
     }
 
-    // File > Open: tears down everything this init built (dropdowns are nested
-    // in the table/toolbar DOM, so removing the container removes them too) and
+    // File > Open: tears down everything this init built (toolbar and dropdowns
+    // are nested in the container DOM, so removing it removes them too) and
     // re-inits in place with columns re-inferred from the opened data.
     async function rebuild(newData, newTitle) {
         const fresh = document.createElement('table');
         fresh.id = tableId;
-        if (nested) {
-            toolbar?.remove();
-            table.replaceWith(fresh);
-        } else {
-            tableContainer.replaceWith(fresh);
-        }
+        tableContainer.replaceWith(fresh);
         return initTable({
             ...config,
             data: newData, title: newTitle,
             columns: undefined, dataKey: undefined,
+            collapsed: false,
             table: fresh,
         });
     }
@@ -221,7 +248,7 @@ export async function initTable(config) {
         });
     }
 
-    // --- Settings toggles (non-nested only) ---
+    // --- Settings toggles ---
     if (settingsBtns) {
         function applySticky(on) { toolbar.classList.toggle('atv-sticky', on); }
 
@@ -321,7 +348,8 @@ export async function initTable(config) {
     });
 
     refresh();
-    return table;
+
+    }
 }
 
 function debounce(fn, ms) {

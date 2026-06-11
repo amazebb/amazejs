@@ -20,8 +20,7 @@ export async function initTree(config, rawData) {
 
     // Settings threaded down to every nested level via the toggle metadata.
     const ctx = {
-        levels:         Array.isArray(config.levels) ? config.levels : null,
-        childFilterRow: config.childFilterRow ?? false,
+        levels: Array.isArray(config.levels) ? config.levels : null,
     };
     const rootCols = getColumns(rootItems, ctx, 0);
 
@@ -31,11 +30,13 @@ export async function initTree(config, rawData) {
 
     const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle });
 
-    // Delegated click listener scoped to the container — catches toggles from all
-    // nested levels. The whole first-cell wrapper and group header lines are click
-    // targets too; both resolve to the toggle button they contain.
+    // Delegated click listener scoped to the container — catches row toggles from
+    // all nested levels. The whole first-cell wrapper is a click target too; it
+    // resolves to the toggle button it contains. Toolbar disclosure toggles also
+    // match .aj-toggle but have no btnMeta entry — handleToggle ignores them and
+    // the controller's own titleWrap listener handles the collapse.
     table.closest('.atv-table-container').addEventListener('click', e => {
-        const hit = e.target.closest('.aj-toggle, .aj-toggle-wrap, .aj-group');
+        const hit = e.target.closest('.aj-toggle, .aj-toggle-wrap');
         if (!hit) return;
         const btn = hit.classList.contains('aj-toggle') ? hit : hit.querySelector('.aj-toggle');
         if (btn) handleToggle(btn);
@@ -115,16 +116,17 @@ function getColumns(items, ctx, depth) {
 }
 
 function handleToggle(btn) {
+    const meta = btnMeta.get(btn);
+    if (!meta) return; // a toolbar disclosure toggle — wired by the controller
+
     const isOpen = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', String(!isOpen));
-
-    const meta = btnMeta.get(btn);
-    if (meta.groups) toggleItemRow(btn, meta, isOpen);
-    else toggleGroup(btn, meta, isOpen);
+    toggleItemRow(btn, meta, isOpen);
 }
 
-// Toggle on an item row. A single child group expands straight into its table;
-// multiple groups expand into one expandable header line per group.
+// Toggle on an item row. Every child group becomes a nested table with its own
+// disclosure toolbar: a single group starts expanded (one click to the table,
+// as before), multiple groups start as collapsed toolbar lines.
 function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
     const parentTr = btn.closest('tr');
 
@@ -148,66 +150,20 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
     // Insert into DOM before initTable so getElementById can resolve filter button IDs.
     parentTr.insertAdjacentElement('afterend', childTr);
 
-    if (groups.length === 1) {
-        buildGroupTable(childTd, groups[0], ctx, depth, null);
-        return;
-    }
-
-    groups.forEach(group => {
-        const header = document.createElement('div');
-        header.className = 'aj-group';
-
-        const gBtn = document.createElement('button');
-        gBtn.className = 'aj-toggle aj-rotate';
-        gBtn.setAttribute('aria-expanded', 'false');
-        gBtn.setAttribute('aria-label', 'Toggle children');
-
-        const label = document.createElement('span');
-        label.className   = 'aj-group-label';
-        label.textContent = group.key.toUpperCase();
-
-        header.append(gBtn, label);
-
-        // The group's count badge lives on the header line unless the child
-        // filter row (which carries its own badge) is enabled.
-        let badge = null;
-        if (!ctx.childFilterRow) {
-            badge = document.createElement('span');
-            badge.className   = 'atv-count-badge';
-            badge.textContent = `${group.items.length} / ${group.items.length}`;
-            header.appendChild(badge);
-        }
-
-        btnMeta.set(gBtn, { group, ctx, depth, badgeEl: badge });
-
-        const body = document.createElement('div');
-        body.className = 'aj-group-body';
-
-        childTd.append(header, body);
-    });
+    groups.forEach(group => buildGroupTable(childTd, group, ctx, depth, groups.length > 1));
 }
 
-// Toggle on a group header line; the table is built into the body on first expand.
-function toggleGroup(btn, { group, ctx, depth, badgeEl }, isOpen) {
-    const body = btn.closest('.aj-group').nextElementSibling;
-    if (body.firstChild) {
-        body.classList.toggle('aj-hidden', isOpen);
-        return;
-    }
-    if (isOpen) return;
-    buildGroupTable(body, group, ctx, depth, badgeEl);
-}
-
-function buildGroupTable(container, group, ctx, depth, badgeEl) {
+// Each group is a full nested table whose disclosure toolbar is its header line.
+// collapsed: true defers the table build to first expand (see controller.js).
+function buildGroupTable(container, group, ctx, depth, collapsed) {
     const table = document.createElement('table');
     container.appendChild(table);
     initTable({
         table,
-        data:    group.items,
-        columns: getColumns(group.items, ctx, depth),
-        nested:  true,
-        title:   group.key.toUpperCase(),
-        // Group-line tables hide their whole toolbar by default; the header badge takes over.
-        ...(badgeEl ? { showToolbar: false, countBadgeEl: badgeEl } : {}),
+        data:      group.items,
+        columns:   getColumns(group.items, ctx, depth),
+        nested:    true,
+        collapsed,
+        title:     group.key.toUpperCase(),
     });
 }

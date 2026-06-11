@@ -49,23 +49,32 @@
     background: var(--bg);
 }
 
+/* Disclosure header line: toggle arrow + title + count badge. Clicking it
+   collapses/expands everything below the toolbar in the table container. */
 .atv-title-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 10px 4px 14px;
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    background: var(--bg-subtle);
+    padding: 4px 2px;
+    cursor: pointer;
+    user-select: none;
 }
 
+.atv-title-wrap .aj-toggle { margin-right: 0; }
+
+.atv-title-wrap:hover .aj-toggle { color: var(--accent); }
+
 .atv-title {
-    font-size: 15px;
+    color: var(--accent);
+    font-size: 12px;
     font-weight: 600;
-    color: var(--text);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     white-space: nowrap;
-    margin-right: 4px;
 }
+
+/* Collapsed disclosure: only the toolbar header line stays visible */
+.atv-table-container.atv-collapsed > :not(.atv-toolbar) { display: none; }
 
 .atv-count-badge {
     font-size: 11px;
@@ -451,30 +460,10 @@ thead th.active {
 /* Nested toolbars: minimal symmetric spacing above and below */
 .aj-children-cell .atv-toolbar { padding: 2px 0; }
 
-/* Expandable header line per child group (items with multiple child groups) */
-.aj-group {
-    display: flex;
-    align-items: center;
-    padding: 6px 0;
-    cursor: pointer;
-    user-select: none;
-}
+.aj-children-cell .atv-title { font-size: 11px; }
 
-.aj-group-label {
-    color: var(--accent);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-}
-
-.aj-group .atv-count-badge {
-    margin-left: 8px;
-}
-
-.aj-group-body:not(:empty) {
-    margin-bottom: 12px;
-}
-
+/* Expanded nested tables get breathing room below their disclosure line */
+.aj-children-cell .atv-table-container:not(.atv-collapsed) { margin-bottom: 12px; }
 
 .aj-toggle {
     --aj-rotate-angle: 90deg;
@@ -491,14 +480,13 @@ thead th.active {
 
 .aj-toggle:hover { color: var(--accent); }
 
-/* Whole first cell (and group header line) act as the toggle's click target */
+/* Whole first cell acts as the toggle's click target */
 .aj-toggle-wrap {
     cursor: pointer;
     user-select: none;
 }
 
-.aj-toggle-wrap:hover .aj-toggle,
-.aj-group:hover .aj-toggle {
+.aj-toggle-wrap:hover .aj-toggle {
     color: var(--accent);
 }
 
