@@ -8,7 +8,7 @@ document.head.appendChild(_link);
 // Positions an open dd below anchor, clamped to the viewport edges.
 function positionBelow(dd, anchor) {
     const rect = anchor.getBoundingClientRect();
-    dd.style.top  = `${rect.bottom + 4}px`;
+    dd.style.top = `${rect.bottom + 4}px`;
     dd.style.left = `${rect.left}px`;
     const r = dd.getBoundingClientRect();
     if (r.right > window.innerWidth - 8) dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
@@ -39,18 +39,33 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
     if (hover) {
         let closeTimer = null;
         const cancelClose = () => clearTimeout(closeTimer);
+        const close = () => {
+            // Don't close mid-typing: the pointer may drift off while the
+            // user is in a filter search field — light dismiss handles it.
+            const typing = dd.contains(document.activeElement)
+                && document.activeElement.matches('input[type="text"]');
+            if (dd.matches(':popover-open') && !typing) dd.hidePopover();
+        };
         const scheduleClose = () => {
             cancelClose();
-            closeTimer = setTimeout(() => {
-                if (dd.matches(':popover-open')) dd.hidePopover();
-            }, HOVER_CLOSE_DELAY);
+            closeTimer = setTimeout(close, HOVER_CLOSE_DELAY);
         };
         [...invokers, dd].forEach(el => {
             el.addEventListener('mouseenter', () => {
                 cancelClose();
                 if (el !== dd && !dd.matches(':popover-open')) dd.showPopover();
             });
-            el.addEventListener('mouseleave', scheduleClose);
+            el.addEventListener('mouseleave', e => {
+                const t = e.relatedTarget instanceof Element ? e.relatedTarget : null;
+                // Still within the trigger or its dropdown (e.g. dropdown back
+                // to its own th, which never refires mouseenter): not a leave.
+                if (t && (dd.contains(t) || invokers.some(b => b.contains(t)))) return;
+                // Moving onto a different column header closes immediately —
+                // the grace delay only exists so the pointer can cross the
+                // gap between this trigger and its dropdown.
+                if (t?.closest('thead th')) { cancelClose(); close(); }
+                else scheduleClose();
+            });
         });
     }
 }
@@ -63,7 +78,7 @@ export function renderArrayCell(td, values) {
     td.appendChild(document.createTextNode(String(values[0])));
 
     const badge = document.createElement('button');
-    badge.className   = 'aj-array-badge';
+    badge.className = 'aj-array-badge';
     badge.textContent = `+${values.length - 1}`;
     td.appendChild(badge);
 
@@ -93,7 +108,7 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     return item => {
         const a = document.createElement('a');
         a.textContent = item[textKey];
-        a.href        = item[hrefKey];
+        a.href = item[hrefKey];
         if (wrap) {
             const el = document.createElement(wrap);
             el.appendChild(a);
@@ -112,23 +127,23 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
-    const controls       = document.createElement('div');
-    controls.className   = 'atv-toolbar-controls';
+    const controls = document.createElement('div');
+    controls.className = 'atv-toolbar-controls';
     toolbar.appendChild(controls);
 
-    const titleWrap       = document.createElement('div');
-    titleWrap.className   = 'atv-title-wrap';
+    const titleWrap = document.createElement('div');
+    titleWrap.className = 'atv-title-wrap';
     controls.appendChild(titleWrap);
 
     if (title) {
-        const titleEl       = document.createElement('span');
-        titleEl.className   = 'atv-title';
+        const titleEl = document.createElement('span');
+        titleEl.className = 'atv-title';
         titleEl.textContent = title;
         titleWrap.appendChild(titleEl);
     }
 
-    const countBadge       = document.createElement('span');
-    countBadge.className   = 'atv-count-badge';
+    const countBadge = document.createElement('span');
+    countBadge.className = 'atv-count-badge';
     titleWrap.appendChild(countBadge);
 
     let moreBtn = null;
@@ -151,25 +166,25 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
 
     let fileBtns = null;
     if (hasFileMenu) {
-        const fileBtn       = document.createElement('button');
-        fileBtn.className   = 'atv-export-btn';
+        const fileBtn = document.createElement('button');
+        fileBtn.className = 'atv-export-btn';
         fileBtn.textContent = 'File';
         btnHost.appendChild(fileBtn);
 
         const dd = document.createElement('div');
         dd.className = 'filter-dropdown atv-export-dd';
-        dd.popover   = 'auto';
+        dd.popover = 'auto';
         btnHost.appendChild(dd);
 
         const item = label => {
             const el = document.createElement('div');
-            el.className   = 'aj-array-item';
+            el.className = 'aj-array-item';
             el.textContent = label;
             dd.appendChild(el);
             return el;
         };
         const open = item('Open…');
-        const csv  = item('Export CSV');
+        const csv = item('Export CSV');
         const json = item('Export JSON');
 
         attachPopover(fileBtn, dd, fileBtn, { hover: true });
@@ -178,25 +193,25 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     }
 
     const extraBtns = buttons.map(cfg => {
-        const btn           = document.createElement('button');
-        btn.className       = 'atv-export-btn';
-        btn.textContent     = cfg.label;
+        const btn = document.createElement('button');
+        btn.className = 'atv-export-btn';
+        btn.textContent = cfg.label;
         btnHost.appendChild(btn);
         return btn;
     });
 
-    const settingsBtn       = document.createElement('button');
-    settingsBtn.className   = 'atv-export-btn';
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'atv-export-btn';
     settingsBtn.textContent = 'Settings';
     (collapsible ? btnHost : toolbar).appendChild(settingsBtn);
 
     const settingsDd = document.createElement('div');
     settingsDd.className = 'filter-dropdown';
-    settingsDd.popover   = 'auto';
+    settingsDd.popover = 'auto';
     (collapsible ? btnHost : toolbar).appendChild(settingsDd);
 
-    const settingsHdr       = document.createElement('div');
-    settingsHdr.className   = 'aj-array-header';
+    const settingsHdr = document.createElement('div');
+    settingsHdr.className = 'aj-array-header';
     settingsHdr.textContent = 'Settings';
     settingsDd.appendChild(settingsHdr);
 
@@ -206,7 +221,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
 
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
-    const stickyCb  = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
+    const stickyCb = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
 
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
@@ -219,8 +234,8 @@ function makeSettingsRow(container, label) {
     row.className = 'filter-row';
 
     const lbl = document.createElement('label');
-    const cb  = document.createElement('input');
-    cb.type   = 'checkbox';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
     lbl.appendChild(cb);
     lbl.appendChild(document.createTextNode(label));
     row.appendChild(lbl);
@@ -231,9 +246,9 @@ function makeSettingsRow(container, label) {
 // Builds and inserts a no-results message after the table wrapper.
 // Returns the element for show/hide toggling.
 export function buildNoResults(tableWrap, message) {
-    const el           = document.createElement('div');
-    el.className       = 'atv-no-results';
-    el.textContent     = message || 'No items match the current filters.';
+    const el = document.createElement('div');
+    el.className = 'atv-no-results';
+    el.textContent = message || 'No items match the current filters.';
     tableWrap.insertAdjacentElement('afterend', el);
     return el;
 }
@@ -243,13 +258,13 @@ export function buildNoResults(tableWrap, message) {
 // 'text' columns get a button + dropdown with just a search input.
 // Others are plain sortable ths.
 export function buildHeader(thead, columns, tableId) {
-    const tr         = document.createElement('tr');
+    const tr = document.createElement('tr');
     const filterDefs = [];
-    const textDefs   = [];
+    const textDefs = [];
 
-    const th       = document.createElement('th');
-    th.className   = 'atv-row-num';
-    th.textContent = '#';
+    const th = document.createElement('th');
+    th.className = 'atv-row-num';
+    th.textContent = '';
     tr.appendChild(th);
 
     columns.forEach((col, i) => {
@@ -258,27 +273,20 @@ export function buildHeader(thead, columns, tableId) {
 
         if (col.filter === 'category' || col.filter === 'text') {
             const filterId = `${tableId}_filter_${col.key}`;
-            const btnId    = `${tableId}_btn_${col.key}`;
+            const thId = `${tableId}_th_${col.key}`;
 
-            const wrap = document.createElement('span');
-            wrap.className = 'filter-wrap';
-
-            const btn = document.createElement('button');
-            btn.className   = 'filter-btn aj-rotate';
-            btn.id          = btnId;
-            btn.textContent = col.label;
-            wrap.appendChild(btn);
-            th.appendChild(wrap);
+            th.id = thId;
+            th.textContent = col.label;
 
             if (col.filter === 'category') {
-                filterDefs.push({ id: filterId, btnId, key: col.key, col: i });
+                filterDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildDropdown(filterId));
             } else {
-                textDefs.push({ id: filterId, btnId, key: col.key, col: i });
+                textDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildTextDropdown(filterId));
             }
         } else {
-            th.className   = 'sortable';
+            th.className = 'sortable';
             th.textContent = col.label;
         }
 
@@ -292,30 +300,30 @@ export function buildHeader(thead, columns, tableId) {
 function buildDropdown(id) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
-    dd.id        = id;
-    dd.popover   = 'auto';
+    dd.id = id;
+    dd.popover = 'auto';
 
-    const fsearch         = document.createElement('input');
-    fsearch.className     = 'filter-search';
-    fsearch.type          = 'text';
-    fsearch.placeholder   = 'Search...';
+    const fsearch = document.createElement('input');
+    fsearch.className = 'filter-search';
+    fsearch.type = 'text';
+    fsearch.placeholder = 'Search...';
 
-    const foptions        = document.createElement('div');
-    foptions.className    = 'filter-options';
+    const foptions = document.createElement('div');
+    foptions.className = 'filter-options';
 
-    const factions        = document.createElement('div');
-    factions.className    = 'filter-actions';
+    const factions = document.createElement('div');
+    factions.className = 'filter-actions';
 
-    const selAll          = document.createElement('button');
-    selAll.className      = 'sel-all';
-    selAll.textContent    = 'Show All';
+    const selAll = document.createElement('button');
+    selAll.className = 'sel-all';
+    selAll.textContent = 'Show All';
 
-    const badge           = document.createElement('span');
-    badge.className       = 'filter-actions-badge';
+    const badge = document.createElement('span');
+    badge.className = 'filter-actions-badge';
 
-    const clrAll          = document.createElement('button');
-    clrAll.className      = 'clr-all';
-    clrAll.textContent    = 'Clear All';
+    const clrAll = document.createElement('button');
+    clrAll.className = 'clr-all';
+    clrAll.textContent = 'Clear All';
 
     factions.appendChild(selAll);
     factions.appendChild(badge);
@@ -329,12 +337,12 @@ function buildDropdown(id) {
 function buildTextDropdown(id) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown';
-    dd.id        = id;
-    dd.popover   = 'auto';
+    dd.id = id;
+    dd.popover = 'auto';
 
-    const input       = document.createElement('input');
-    input.className   = 'filter-search';
-    input.type        = 'text';
+    const input = document.createElement('input');
+    input.className = 'filter-search';
+    input.type = 'text';
     input.placeholder = 'Filter…';
 
     dd.appendChild(input);
@@ -348,7 +356,7 @@ export function buildRows(tbody, data, columns) {
     const fragment = document.createDocumentFragment();
     data.forEach(item => {
         const tr = document.createElement('tr');
-        const td     = document.createElement('td');
+        const td = document.createElement('td');
         td.className = 'atv-row-num';
         tr.appendChild(td);
         columns.forEach(col => {
@@ -385,15 +393,15 @@ export function buildFilterOptions(filterId, values, onCheck, onOnly) {
         row.setAttribute('data-value', v.toLowerCase());
 
         const label = document.createElement('label');
-        const cb    = document.createElement('input');
-        cb.type    = 'checkbox';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
         cb.checked = true;
         cb.addEventListener('change', function() { onCheck(v, this.checked); });
         label.appendChild(cb);
         label.appendChild(document.createTextNode(v));
 
-        const onlyBtn       = document.createElement('button');
-        onlyBtn.className   = 'only-btn';
+        const onlyBtn = document.createElement('button');
+        onlyBtn.className = 'only-btn';
         onlyBtn.textContent = 'Only';
         onlyBtn.addEventListener('click', e => { e.preventDefault(); onOnly(v); });
 
@@ -401,7 +409,7 @@ export function buildFilterOptions(filterId, values, onCheck, onOnly) {
         row.appendChild(onlyBtn);
         container.appendChild(row);
 
-        rows[v]       = row;
+        rows[v] = row;
         checkboxes[v] = cb;
     });
 
@@ -417,7 +425,7 @@ export function syncCheckboxes(checkboxes, selected) {
 // Also hides any expanded child table row so nested content collapses with the parent.
 export function setRowVisibility(data, visibleSet, rowMap) {
     data.forEach(item => {
-        const tr      = rowMap.get(item);
+        const tr = rowMap.get(item);
         const visible = visibleSet.has(item);
         tr.classList.toggle('hidden', !visible);
         const next = tr.nextElementSibling;
@@ -430,25 +438,25 @@ export function setRowVisibility(data, visibleSet, rowMap) {
 // Updates count labels, hides zero-count options, and refreshes the badge.
 export function updateFilterCounts(filterDef, values, counts, selected, rows, badgeAlwaysShow) {
     values.forEach(v => {
-        const row   = rows[v];
+        const row = rows[v];
         const count = counts[v] || 0;
         let countEl = row.querySelector('.filter-count');
         if (!countEl) {
-            countEl           = document.createElement('span');
+            countEl = document.createElement('span');
             countEl.className = 'filter-count';
             row.insertBefore(countEl, row.querySelector('.only-btn'));
         }
         countEl.textContent = count;
-        row.dataset.empty   = count === 0 ? 'true' : '';
-        row.style.display   = count === 0 ? 'none' : '';
+        row.dataset.empty = count === 0 ? 'true' : '';
+        row.style.display = count === 0 ? 'none' : '';
     });
 
-    const visibleTotal    = values.filter(v => (counts[v] || 0) > 0).length;
+    const visibleTotal = values.filter(v => (counts[v] || 0) > 0).length;
     const visibleSelected = values.filter(v => (counts[v] || 0) > 0 && selected.has(v)).length;
-    const isFiltered      = visibleSelected < visibleTotal;
-    const btn             = document.getElementById(filterDef.btnId);
-    const badgeEl         = document.querySelector(`#${filterDef.id} .filter-actions-badge`);
-    btn.classList.toggle('active', isFiltered);
+    const isFiltered = visibleSelected < visibleTotal;
+    const th = document.getElementById(filterDef.thId);
+    const badgeEl = document.querySelector(`#${filterDef.id} .filter-actions-badge`);
+    th.classList.toggle('active', isFiltered);
     badgeEl.textContent = '';
     if (isFiltered || badgeAlwaysShow) {
         const badge = document.createElement('span');
@@ -462,7 +470,7 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
 async function saveFile(blob, suggestedName, types) {
     if ('showSaveFilePicker' in window) {
         try {
-            const handle   = await window.showSaveFilePicker({ suggestedName, types });
+            const handle = await window.showSaveFilePicker({ suggestedName, types });
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
@@ -472,8 +480,8 @@ async function saveFile(blob, suggestedName, types) {
             // fall through to legacy on unexpected errors
         }
     }
-    const a    = document.createElement('a');
-    a.href     = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
     a.download = suggestedName;
     a.click();
     URL.revokeObjectURL(a.href);
@@ -482,13 +490,13 @@ async function saveFile(blob, suggestedName, types) {
 // Generates a CSV from visible items and saves it.
 export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
-    const rows   = items.map(item =>
+    const rows = items.map(item =>
         columns.map(c => {
             const v = (item[c.key] ?? '').toString();
             return `"${v.replace(/"/g, '""')}"`;
         })
     );
-    const csv  = [header, ...rows].map(r => r.join(',')).join('\n');
+    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     await saveFile(blob, filename, [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }]);
 }
@@ -503,7 +511,7 @@ export async function downloadJson(items, filename) {
 export function filterOptionRows(rows, values, query) {
     const q = query.toLowerCase();
     values.forEach(v => {
-        const row   = rows[v];
+        const row = rows[v];
         const match = (!q || v.toLowerCase().includes(q)) && row.dataset.empty !== 'true';
         row.style.display = match ? '' : 'none';
     });

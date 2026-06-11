@@ -148,7 +148,7 @@ export async function initTable(config) {
             updateFilterCounts(def, ui.values, counts[def.key] || {}, filterState[def.key], ui.rows, badgeAlwaysShow);
         });
         textDefs.forEach(def => {
-            document.getElementById(def.btnId).classList.toggle('active', !!textFilterState[def.key]);
+            document.getElementById(def.thId).classList.toggle('active', !!textFilterState[def.key]);
         });
     }
 
@@ -242,17 +242,19 @@ export async function initTable(config) {
 
     // --- Dropdown management ---
     filterDefs.forEach(def => {
-        const btn    = document.getElementById(def.btnId);
+        const th     = document.getElementById(def.thId);
         const dd     = document.getElementById(def.id);
         const search = dd.querySelector('.filter-search');
 
-        attachPopover(btn, dd, btn.parentElement);
+        attachPopover(th, dd, th, { hover: true });
         dd.addEventListener('beforetoggle', e => {
             if (e.newState !== 'open') return;
             search.value = '';
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, '');
-            requestAnimationFrame(() => search.focus());
         });
+        // Focus only once the pointer commits to the dropdown — focusing on
+        // open would steal focus while sweeping across hover-opened headers
+        dd.addEventListener('mouseenter', () => search.focus());
 
         search.addEventListener('input', function() {
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, this.value);
@@ -274,14 +276,12 @@ export async function initTable(config) {
     });
 
     textDefs.forEach(def => {
-        const btn   = document.getElementById(def.btnId);
+        const th    = document.getElementById(def.thId);
         const dd    = document.getElementById(def.id);
         const input = dd.querySelector('.filter-search');
 
-        attachPopover(btn, dd, btn.parentElement);
-        dd.addEventListener('beforetoggle', e => {
-            if (e.newState === 'open') requestAnimationFrame(() => input.focus());
-        });
+        attachPopover(th, dd, th, { hover: true });
+        dd.addEventListener('mouseenter', () => input.focus());
 
         input.addEventListener('input', () => {
             textFilterState[def.key] = input.value;
@@ -302,7 +302,7 @@ export async function initTable(config) {
         table.querySelector(`th[data-col="${colIndex}"]`)?.classList.add(dirClass);
         [...filterDefs, ...textDefs].forEach(def => {
             if (def.col === colIndex)
-                document.getElementById(def.btnId).closest('th').classList.add(dirClass);
+                document.getElementById(def.thId).classList.add(dirClass);
         });
 
         sortedData = sortItems(data, col.key, sortState.dir, col.numeric);
@@ -315,7 +315,7 @@ export async function initTable(config) {
     });
 
     [...filterDefs, ...textDefs].forEach(def => {
-        const th = document.getElementById(def.btnId).closest('th');
+        const th = document.getElementById(def.thId);
         th.classList.add('sortable');
         th.addEventListener('click', e => { if (e.target === th) sortByCol(def.col); });
     });
