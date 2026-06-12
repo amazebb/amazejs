@@ -66,7 +66,9 @@ Returns a column `render` function that builds `<a>` elements, optionally wrappe
 
 ## CSS theming
 
-`amazejs.css` uses only CSS custom properties. The host app **must** supply these variables (typically on `:root`):
+`amazejs.css` uses only CSS custom properties and ships a complete default theme (light + dark via `prefers-color-scheme`), declared in `:where(:root)` so it has **zero specificity**: any host rule on `:root` outranks the defaults regardless of stylesheet load order. Tables must look right on a bare page with no host CSS — the component scopes its own `box-sizing`, font (`--font`, system stack default), text color, and button/input font inheritance to `.atv-table-container`. Keep new variables in the `:where(:root)` block and new base styles scoped to the container.
+
+Themeable variables:
 
 ```
 --bg, --bg-subtle, --bg-hover
@@ -76,6 +78,7 @@ Returns a column `render` function that builds `<a>` elements, optionally wrappe
 --row-hover
 --dropdown-shadow
 --radius
+--font
 ```
 
 ## Key design constraints

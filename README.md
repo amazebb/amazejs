@@ -22,7 +22,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - **Tree tables** — nested JSON (e.g. countries → states / timezones) is auto-detected and rendered as expandable rows with lazily built child tables, each with its own toolbar, filters, and settings.
 - **File menu** — open a local CSV/TSV/JSON file into the table, export the visible rows as CSV or JSON.
 - **Settings** — per-table toggles for row numbers, column separators, and a frozen (sticky) toolbar.
-- **Theming** — styled entirely through CSS custom properties supplied by your page.
+- **Theming** — a default light/dark theme ships built in; override CSS custom properties to restyle.
 
 ## Quick start
 
@@ -39,7 +39,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 </script>
 ```
 
-Columns, title, and filters are inferred from the data. The component CSS is injected automatically; your page only supplies the theme variables below.
+Columns, title, and filters are inferred from the data. The component CSS — including a default light/dark theme — is injected automatically, so this works on a completely bare page.
 
 ### Explicit columns
 
@@ -72,21 +72,17 @@ initTable({ data: { countries: [/* each may hold states: [...], timezones: [...]
 
 ## Theming
 
-Define these CSS custom properties on `:root` (see [`docs/style.css`](docs/style.css) for a complete light/dark example):
+A complete light/dark default theme is built in — no CSS required. The defaults have zero specificity, so anything you define on `:root` wins automatically. Override only what you want to change:
 
 ```css
 :root {
-    --bg: #ffffff;          --bg-subtle: #f6f8fa;      --bg-hover: #e8ecf0;
-    --text: #1f2328;        --text-muted: #656d76;
-    --accent: #0969da;      --accent-subtle: #ddf4ff;
-    --accent-border: #54aeff;
-    --accent-shadow: rgba(9, 105, 218, 0.15);
-    --border: #d0d7de;      --border-muted: #b0b8c1;
-    --row-hover: #f0f4ff;
-    --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --radius: 6px;
+    --accent: #8250df;       /* e.g. purple accent */
+    --radius: 10px;
+    --font: 'Inter', sans-serif;
 }
 ```
+
+Available variables: `--bg`, `--bg-subtle`, `--bg-hover`, `--text`, `--text-muted`, `--accent`, `--accent-subtle`, `--accent-border`, `--accent-shadow`, `--border`, `--border-muted`, `--row-hover`, `--dropdown-shadow`, `--radius`, `--font` (defaults are in [`src/amazejs.css`](src/amazejs.css)).
 
 ## API
 

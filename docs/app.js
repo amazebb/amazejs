@@ -1,4 +1,5 @@
-import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.1.0/src/index.js';
+import { initTable } from '../src/index.js';
+// import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.1.0/src/index.js';
 
 initTable({
     data: ['data/flat.json'],
