@@ -147,6 +147,17 @@
     white-space: nowrap;
 }
 
+/* badgePosition: 'right' — direct toolbar child pushed past every button */
+.atv-count-badge.atv-badge-right {
+    margin-left: auto;
+    align-self: center;
+}
+
+/* badgePosition: 'none' — hide the count badge entirely */
+.atv-count-badge.atv-badge-none {
+    display: none;
+}
+
 /* Ghost toolbar button: plain text with an accent underline (on ::before)
    that slides in from the left on hover and stays lit while its dropdown
    is open. */
@@ -442,6 +453,31 @@ thead th.active {
 
 .filter-options input[type="checkbox"] {
     accent-color: var(--accent);
+}
+
+/* Toggle button settings row: label flips between Count on Left / Count on
+   Right; aria-pressed (right) lights it with the accent. */
+.filter-options .atv-settings-btn {
+    flex: 1;
+    text-align: left;
+    font-size: 13px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-subtle);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-options .atv-settings-btn:hover {
+    border-color: var(--accent-border);
+}
+
+.filter-options .atv-settings-btn[aria-pressed="true"] {
+    background: var(--accent-subtle);
+    color: var(--accent);
+    border-color: var(--accent-border);
 }
 
 .filter-options .only-btn {

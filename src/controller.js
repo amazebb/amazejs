@@ -28,6 +28,7 @@ export async function initTable(config) {
         nested         = false,
         searchKeys     = [],
         badgeAlwaysShow = false,
+        badgePosition  = 'left',
         exportFilename,
         striped        = false,
         rowNumbers     = false,
@@ -92,6 +93,18 @@ export async function initTable(config) {
             moreBtn.setAttribute('aria-expanded', String(!open));
         });
     }
+
+    // Count badge sits in the title line ('left') by default; 'right' relocates
+    // it to the far end of the toolbar, after every button (margin-left:auto in
+    // CSS); 'none' hides it. Applied here so the placement is right even while a
+    // table is collapsed, before buildTableUI wires the matching settings toggle.
+    function applyBadgePosition(pos) {
+        if (!countBadge) return;
+        countBadge.classList.toggle('atv-badge-none', pos === 'none');
+        countBadge.classList.toggle('atv-badge-right', pos === 'right');
+        (pos === 'right' ? toolbar : titleWrap).appendChild(countBadge);
+    }
+    applyBadgePosition(badgePosition);
 
     const effectiveSearchInput = config.searchInputEl || null;
 
@@ -255,6 +268,15 @@ export async function initTable(config) {
         settingsBtns.rowNums.checked = rowNumbers;
         settingsBtns.borders.checked = bordered;
         settingsBtns.sticky.checked  = stickyHeaders;
+        const BADGE_CYCLE  = { left: 'right', right: 'none', none: 'left' };
+        const BADGE_LABELS = { left: 'Count on Left', right: 'Count on Right', none: 'Count None' };
+        let badgeState = BADGE_LABELS[badgePosition] ? badgePosition : 'left';
+        const setBadgeState = pos => {
+            badgeState = pos;
+            settingsBtns.badgeRight.textContent = BADGE_LABELS[pos];
+            settingsBtns.badgeRight.setAttribute('aria-pressed', String(pos !== 'none'));
+        };
+        setBadgeState(badgeState);
         applySticky(stickyHeaders);
         if (!showFilterRow) controls.style.display = 'none';
 
@@ -265,6 +287,11 @@ export async function initTable(config) {
             table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
         });
         settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
+        settingsBtns.badgeRight.addEventListener('click', () => {
+            const next = BADGE_CYCLE[badgeState];
+            setBadgeState(next);
+            applyBadgePosition(next);
+        });
     }
 
     // --- Dropdown management ---

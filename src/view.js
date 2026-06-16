@@ -237,11 +237,12 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
     const stickyCb = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
+    const badgeRightToggle = makeSettingsButton(settingsOpts);
 
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
 }
 
 function makeSettingsRow(container, label) {
@@ -256,6 +257,22 @@ function makeSettingsRow(container, label) {
     row.appendChild(lbl);
     container.appendChild(row);
     return cb;
+}
+
+// A settings row that is a single toggle button instead of a checkbox. State
+// lives in aria-pressed; the controller flips it and sets the label on click.
+function makeSettingsButton(container) {
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'atv-settings-btn';
+    btn.setAttribute('aria-pressed', 'false');
+
+    row.appendChild(btn);
+    container.appendChild(row);
+    return btn;
 }
 
 // Builds and inserts a no-results message after the table wrapper.

@@ -58,6 +58,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `stickyHeaders` | boolean | `true` | |
 | `showFilterRow` | boolean | `true` | |
 | `badgeAlwaysShow` | boolean | `false` | |
+| `badgePosition` | `'left'`, `'right'`, or `'none'` | `'left'` | `'left'` keeps the count badge in the title line; `'right'` moves it to the far end of the toolbar, after all buttons; `'none'` hides it. Cycled at runtime via the Settings menu button (Count on Left → Count on Right → Count None). |
 | `searchDebounce` | boolean or number | `true` (150ms) | `false` = no debounce |
 
 ### `linkCell(textKey, hrefKey, { wrap? })`

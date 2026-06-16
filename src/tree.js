@@ -19,8 +19,20 @@ export async function initTree(config, rawData) {
     if (!rootItems?.length) return;
 
     // Settings threaded down to every nested level via the toggle metadata.
+    // childOpts carries the parent's presentational options so child tables —
+    // built here, not via the spread path the root takes — match the flat table.
     const ctx = {
         levels: Array.isArray(config.levels) ? config.levels : null,
+        childOpts: {
+            striped:         config.striped,
+            bordered:        config.bordered,
+            rowNumbers:      config.rowNumbers,
+            stickyHeaders:   config.stickyHeaders,
+            showFilterRow:   config.showFilterRow,
+            badgeAlwaysShow: config.badgeAlwaysShow,
+            badgePosition:   config.badgePosition,
+            searchDebounce:  config.searchDebounce,
+        },
     };
     const rootCols = getColumns(rootItems, ctx, 0);
 
@@ -159,6 +171,7 @@ function buildGroupTable(container, group, ctx, depth, collapsed) {
     const table = document.createElement('table');
     container.appendChild(table);
     initTable({
+        ...ctx.childOpts,
         table,
         data:      group.items,
         columns:   getColumns(group.items, ctx, depth),
