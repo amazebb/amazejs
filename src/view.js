@@ -60,11 +60,17 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
                 // Still within the trigger or its dropdown (e.g. dropdown back
                 // to its own th, which never refires mouseenter): not a leave.
                 if (t && (dd.contains(t) || invokers.some(b => b.contains(t)))) return;
-                // Moving onto a different column header closes immediately —
-                // the grace delay only exists so the pointer can cross the
-                // gap between this trigger and its dropdown.
-                if (t?.closest('thead th')) { cancelClose(); close(); }
-                else scheduleClose();
+                // Leaving the dropdown itself, or moving onto another column
+                // header, closes immediately — the grace delay only exists so
+                // the pointer can cross the gap from a trigger down to its
+                // dropdown. Drop the focus the dropdown grabbed on enter first,
+                // else close()'s typing guard pins it open while the pointer is
+                // already over the rows below.
+                if (el === dd || t?.closest('thead th')) {
+                    cancelClose();
+                    if (dd.contains(document.activeElement)) document.activeElement.blur();
+                    close();
+                } else scheduleClose();
             });
         });
     }
