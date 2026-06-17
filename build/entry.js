@@ -1,9 +1,10 @@
-// Bundle-only entrypoint. Inlines amazejs.css as a string and hands it to the
-// view's setStyles() so the built dist/amazejs.js is fully self-contained (one
-// file, CSS injected as a <style>). The raw src/ entry stays import-and-go.
-import css from '../src/amazejs.css' with { type: 'text' };
+// Bundle-only entrypoint (built by build/build.js). __AMAZE_CSS__ is replaced
+// at build time with the minified stylesheet string and handed to the view's
+// setStyles(), so the built dist/amazejs.js is fully self-contained (one file,
+// CSS injected as a <style>). This file is never imported raw — the dev path
+// uses src/index.js, which loads amazejs.css via <link>.
 import { setStyles } from '../src/view.js';
 
-setStyles(css);
+setStyles(__AMAZE_CSS__);
 
 export * from '../src/index.js';
