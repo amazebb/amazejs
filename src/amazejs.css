@@ -387,6 +387,44 @@ thead th.active {
     background: var(--accent-subtle);
 }
 
+/* Explicit filter trigger inside a filterable header. Mouse users open the
+   dropdown by hovering the th, so the button is hidden by default; it only
+   appears on touch devices (no hover / coarse pointer), where tap is the sole
+   gesture and it gives filtering a target distinct from the sort tap. Sized as
+   a comfortable tap chip and spaced clear of the sort ::after arrow so the two
+   regions don't collide ("Label  [⏷]  ↕"). */
+.atv-filter-btn { display: none; }
+
+@media (hover: none), (pointer: coarse) {
+    .atv-filter-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 2em;
+        min-height: 2em;
+        margin: 0 .5em;
+        padding: 0;
+        border: 1px solid var(--accent-border);
+        border-radius: var(--radius);
+        background: var(--accent-subtle);
+        color: var(--accent);
+        font: inherit;
+        line-height: 1;
+        vertical-align: middle;
+        cursor: pointer;
+    }
+    .atv-filter-btn::before {
+        content: "⏷";
+        font-size: 12px;
+    }
+    /* Filter applied: invert the chip so the active column is obvious. */
+    thead th.active > .atv-filter-btn {
+        background: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+    }
+}
+
 /* Filter dropdown — nested in its trigger's DOM; the Popover API renders it in
    the top layer when open. Resets undo inherited th styles (bold, nowrap). */
 .filter-dropdown {

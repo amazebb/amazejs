@@ -310,6 +310,16 @@ export function buildHeader(thead, columns, tableId) {
             th.id = thId;
             th.textContent = col.label;
 
+            // Explicit filter affordance: a tap target distinct from the sort
+            // gesture. Mouse users open the dropdown by hovering the th; touch
+            // devices (no hover) tap this button. The sort click guard
+            // (e.target === th) ignores taps that land here, so the two
+            // actions never collide.
+            const filterBtn = document.createElement('button');
+            filterBtn.className = 'atv-filter-btn';
+            filterBtn.setAttribute('aria-label', `Filter ${col.label}`);
+            th.appendChild(filterBtn);
+
             if (col.filter === 'category') {
                 filterDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildDropdown(filterId));

@@ -300,7 +300,7 @@ export async function initTable(config) {
         const dd     = document.getElementById(def.id);
         const search = dd.querySelector('.filter-search');
 
-        attachPopover(th, dd, th, { hover: true });
+        attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
         dd.addEventListener('beforetoggle', e => {
             if (e.newState !== 'open') return;
             search.value = '';
@@ -334,7 +334,7 @@ export async function initTable(config) {
         const dd    = document.getElementById(def.id);
         const input = dd.querySelector('.filter-search');
 
-        attachPopover(th, dd, th, { hover: true });
+        attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
         dd.addEventListener('mouseenter', () => input.focus());
 
         input.addEventListener('input', () => {
