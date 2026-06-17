@@ -1,9 +1,26 @@
 // DOM rendering functions — no business logic or mutable state.
 
-const _link = document.createElement('link');
-_link.rel = 'stylesheet';
-_link.href = new URL('./amazejs.css', import.meta.url).href;
-document.head.appendChild(_link);
+// Stylesheet injection, lazy and once, on the first initTable() (ensureStyles).
+// Raw/dev use loads the sibling amazejs.css via <link> (import.meta.url); the
+// bundled release calls setStyles() at import time with the inlined stylesheet,
+// which is injected as a <style> instead.
+let _inlinedCss = null;
+let _stylesDone = false;
+export function setStyles(css) { _inlinedCss = css; }
+export function ensureStyles() {
+    if (_stylesDone) return;
+    _stylesDone = true;
+    if (_inlinedCss != null) {
+        const style = document.createElement('style');
+        style.textContent = _inlinedCss;
+        document.head.appendChild(style);
+    } else {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = new URL('./amazejs.css', import.meta.url).href;
+        document.head.appendChild(link);
+    }
+}
 
 // Positions an open dd below anchor, clamped to the viewport edges.
 function positionBelow(dd, anchor) {

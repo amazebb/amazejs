@@ -1,0 +1,8 @@
+{
+  "name": "amazejs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build build/entry.js --outfile dist/amazejs.js --minify --format=esm"
+  }
+}

@@ -16,16 +16,16 @@ python3 -m http.server 8000
 
 ## What this is
 
-amazejs is a zero-dependency vanilla JS ES module library for interactive data tables. It has no build system, no package manager, and no test runner — all files are plain `.js`/`.css` consumed directly by a browser via `<script type="module">`.
+amazejs is a zero-dependency vanilla JS ES module library for interactive data tables. The `src/` files are plain `.js`/`.css` consumed directly by a browser via `<script type="module">` — this is the dev path (the demo imports `../src/index.js` raw, no build).
 
-There are no build, lint, or test commands.
+For CDN consumers there is **one** build: `bun run build` bundles `build/entry.js` into `dist/amazejs.js` — a single self-contained, minified ESM file with `amazejs.css` inlined as a `<style>`. Consumers pin `cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js`; after tagging a release, regenerate `dist/`, commit it, and purge that one jsDelivr path. There is no lint or test command.
 
 ## Architecture
 
 The library lives in `src/` and follows a strict MVC split across four files:
 
 - **`model.js`** — pure functions only, no DOM. Handles data fetching (`fetchData`, `parseTsv`), column inference (`inferColumns`), filtering (`getVisible`, `computeCounts`), and sorting (`sortItems`).
-- **`view.js`** — DOM construction only, no business logic or mutable state. Auto-injects `amazejs.css` via `import.meta.url` on module load. Exports all DOM builders and mutators used by the controller.
+- **`view.js`** — DOM construction only, no business logic or mutable state. Injects `amazejs.css` lazily and once on the first `initTable()` (`ensureStyles`): raw/dev use loads the sibling file via `import.meta.url` `<link>`; the bundle calls `setStyles()` at import time with the inlined CSS, injected as a `<style>`. Exports all DOM builders and mutators used by the controller.
 - **`controller.js`** — wires model + view; owns all mutable state (filter sets, sort state, visible set). The main entry point is `initTable(config)`.
 - **`tree.js`** — internal tree support, not exported publicly. `initTable` delegates here when data is tree-shaped (`isTreeData`: a root wrapper object, or items containing arrays of objects) or `levels` is passed. Children are detected per item: every array-of-objects property is a child group (e.g. a country with both `states` and `timezones`). Expanding a row creates one nested table per group via `initTable` — a single group starts expanded, multiple groups start as collapsed disclosure toolbars (`collapsed: true`), whose table builds lazily on first expand (handled in controller.js). Row toggles use a delegated click listener on the container and a `WeakMap` for toggle metadata without touching the DOM. Tree-specific code must stay in this file.
 - **`index.js`** — barrel re-export: `initTable`, `fetchData`, `parseTsv`, `linkCell`.

@@ -4,13 +4,14 @@ import {
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
-    attachPopover
+    attachPopover, ensureStyles
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
 let _tableCount = 0;
 
 export async function initTable(config) {
+    ensureStyles();
     let data = config.data;
     if (isUrlData(data)) {
         data = await fetchData(...data);
