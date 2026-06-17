@@ -154,9 +154,10 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 // The toolbar is just two parts: the disclosure handle (toggle + title) and a
 // single `rest` wrapper holding everything after the title (count badge, File/
 // Settings menus, extra buttons). Collapsing the table — and showFilterRow:false
-// — hide `rest` as one unit, leaving only the handle. When `collapsible`, the
-// rest's buttons additionally sit behind a `⋯` chevron (moreBtn) via CSS.
-export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', collapsible = false) {
+// — hide `rest` as one unit, leaving only the handle. The rest's buttons always
+// sit behind a `⋯` overflow (moreBtn), revealed on hover/click via CSS — same
+// for flat and nested tables.
+export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
@@ -186,23 +187,19 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     countBadge.className = 'atv-count-badge';
     rest.appendChild(countBadge);
 
-    let moreBtn = null;
-    let btnHost = rest;
-    if (collapsible) {
-        const moreWrap = document.createElement('div');
-        moreWrap.className = 'atv-more-wrap';
-        rest.appendChild(moreWrap);
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'atv-more-wrap';
+    rest.appendChild(moreWrap);
 
-        moreBtn = document.createElement('button');
-        moreBtn.className = 'atv-more-btn';
-        moreBtn.setAttribute('aria-expanded', 'false');
-        moreBtn.setAttribute('aria-label', 'More options');
-        moreWrap.appendChild(moreBtn);
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'atv-more-btn';
+    moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.setAttribute('aria-label', 'More options');
+    moreWrap.appendChild(moreBtn);
 
-        btnHost = document.createElement('div');
-        btnHost.className = 'atv-toolbar-more';
-        moreWrap.appendChild(btnHost);
-    }
+    const btnHost = document.createElement('div');
+    btnHost.className = 'atv-toolbar-more';
+    moreWrap.appendChild(btnHost);
 
     let fileBtns = null;
     if (hasFileMenu) {

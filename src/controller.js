@@ -81,11 +81,11 @@ export async function initTable(config) {
         tableContainer.appendChild(table);
     }
 
-    // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap)
-    // and collapses everything after the badge behind a disclosure chevron.
+    // Toolbar for all tables unless suppressed; nested uses table as anchor (no
+    // tableWrap). File/Settings always sit behind the `⋯` overflow.
     if (config.showToolbar ?? true) {
         ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap } =
-            buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title, nested));
+            buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
     }
 
     if (moreBtn) {

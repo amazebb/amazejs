@@ -212,7 +212,7 @@
 table.atv-hide-rownums > thead > tr > th.atv-row-num,
 table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
 
-/* Ellipsis overflow button on collapsible (nested) toolbars — more actions live here.
+/* Ellipsis overflow button — every toolbar's File/Settings/extra actions live here.
    Reveals inline while hovering the wrap; click pins open (aria-expanded, works on touch). */
 .atv-more-wrap {
     display: flex;
