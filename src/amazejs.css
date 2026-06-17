@@ -213,8 +213,8 @@ table.atv-hide-rownums > thead > tr > th.atv-row-num,
 table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
 
 /* Ellipsis overflow button — every toolbar's File/Settings/extra actions live here.
-   Reveals inline while hovering the wrap (mouse); clicking the button toggles
-   open/closed via aria-expanded — the show/hide path on touch. */
+   Clicking the button toggles the menu open/closed via aria-expanded (same on
+   mouse and touch); no hover-reveal, so the toggle is never fought by :hover. */
 .atv-more-wrap {
     display: flex;
     align-items: stretch;
@@ -240,7 +240,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     background: var(--bg-hover);
 }
 
-/* Pinned open */
+/* Toggled open */
 .atv-more-btn[aria-expanded="true"] {
     color: var(--accent);
     background: var(--accent-subtle);
@@ -263,18 +263,6 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     opacity: 1;
     transform: translateX(0);
     transition: opacity 0.25s ease, transform 0.25s ease;
-}
-
-/* Hover-reveal only on devices that actually hover. On touch the :hover state
-   is sticky after a tap, which would pin the menu open and fight the
-   aria-expanded toggle — there the `⋯` button click is the sole show/hide. */
-@media (hover: hover) {
-    .atv-more-wrap:hover .atv-toolbar-more {
-        visibility: visible;
-        opacity: 1;
-        transform: translateX(0);
-        transition: opacity 0.25s ease, transform 0.25s ease;
-    }
 }
 
 /* File menu dropdown — narrower than the default filter dropdown */
