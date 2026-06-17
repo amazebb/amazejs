@@ -36,7 +36,11 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
         if (open) requestAnimationFrame(() => positionBelow(dd, anchor));
     });
 
-    if (hover) {
+    // Only wire hover-open on devices that actually hover. On touch the first
+    // tap synthesizes a mouseenter, which would otherwise open the dropdown
+    // before the tap falls through to sort — there the explicit invoker button
+    // (and native click toggling) is the only filter path.
+    if (hover && window.matchMedia('(hover: hover)').matches) {
         let closeTimer = null;
         const cancelClose = () => clearTimeout(closeTimer);
         const close = () => {
@@ -316,7 +320,7 @@ export function buildHeader(thead, columns, tableId) {
             // (e.target === th) ignores taps that land here, so the two
             // actions never collide.
             const filterBtn = document.createElement('button');
-            filterBtn.className = 'atv-filter-btn';
+            filterBtn.className = 'atv-filter-btn aj-rotate';
             filterBtn.setAttribute('aria-label', `Filter ${col.label}`);
             th.appendChild(filterBtn);
 
