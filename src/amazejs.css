@@ -153,12 +153,14 @@
     border-radius: 10px;
     padding: 1px 7px;
     white-space: nowrap;
+    /* Center in the stretch-aligned rest wrapper so the pill keeps its natural
+       height instead of stretching to the toolbar's full height. */
+    align-self: center;
 }
 
 /* badgePosition: 'right' — pushed to the end of the rest wrapper, past every button */
 .atv-count-badge.atv-badge-right {
     margin-left: auto;
-    align-self: center;
 }
 
 /* badgePosition: 'none' — hide the count badge entirely */
