@@ -187,15 +187,20 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     countBadge.className = 'atv-count-badge';
     rest.appendChild(countBadge);
 
-    const moreWrap = document.createElement('div');
-    moreWrap.className = 'atv-more-wrap';
-    rest.appendChild(moreWrap);
-
+    // The ⋯ button sits OUTSIDE the hover wrap, so hovering/clicking it never
+    // trips the hover-reveal — it's a plain click toggle (aria-expanded). The
+    // wrap holds only the menu; hovering the wrap (the reserved space where the
+    // hidden buttons sit) is what reveals them on mouse. moreBtn stays adjacent
+    // to moreWrap for the `+ .atv-more-wrap` reveal selector.
     const moreBtn = document.createElement('button');
     moreBtn.className = 'atv-more-btn';
     moreBtn.setAttribute('aria-expanded', 'false');
     moreBtn.setAttribute('aria-label', 'More options');
-    moreWrap.appendChild(moreBtn);
+    rest.appendChild(moreBtn);
+
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'atv-more-wrap';
+    rest.appendChild(moreWrap);
 
     const btnHost = document.createElement('div');
     btnHost.className = 'atv-toolbar-more';
