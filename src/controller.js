@@ -57,7 +57,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, toggleBtn, titleWrap, noResults, tableWrap;
+    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, noResults, tableWrap;
 
     // Every table gets a container holding toolbar + table: it is the disclosure
     // target the toolbar collapses. Non-nested tables also get a scroll wrapper
@@ -83,7 +83,7 @@ export async function initTable(config) {
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no tableWrap)
     // and collapses everything after the badge behind a disclosure chevron.
     if (config.showToolbar ?? true) {
-        ({ countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn, toggleBtn, titleWrap } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title, nested));
     }
 
@@ -94,15 +94,17 @@ export async function initTable(config) {
         });
     }
 
-    // Count badge sits in the title line ('left') by default; 'right' relocates
-    // it to the far end of the toolbar, after every button (margin-left:auto in
-    // CSS); 'none' hides it. Applied here so the placement is right even while a
-    // table is collapsed, before buildTableUI wires the matching settings toggle.
+    // Count badge leads the rest wrapper ('left', sitting just after the title)
+    // by default; 'right' relocates it to the far end, after every button
+    // (margin-left:auto in CSS); 'none' hides it. Applied here so the placement
+    // is right even while a table is collapsed, before buildTableUI wires the
+    // matching settings toggle.
     function applyBadgePosition(pos) {
         if (!countBadge) return;
         countBadge.classList.toggle('atv-badge-none', pos === 'none');
         countBadge.classList.toggle('atv-badge-right', pos === 'right');
-        (pos === 'right' ? toolbar : titleWrap).appendChild(countBadge);
+        if (pos === 'right') rest.appendChild(countBadge);
+        else rest.prepend(countBadge);
     }
     applyBadgePosition(badgePosition);
 
@@ -278,7 +280,7 @@ export async function initTable(config) {
         };
         setBadgeState(badgeState);
         applySticky(stickyHeaders);
-        if (!showFilterRow) controls.style.display = 'none';
+        if (!showFilterRow) rest.style.display = 'none';
 
         settingsBtns.rowNums.addEventListener('change', () => {
             table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
