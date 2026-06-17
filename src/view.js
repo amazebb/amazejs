@@ -130,23 +130,22 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 
 // Builds and inserts a toolbar (disclosure toggle + title + count badge + optional
 // File menu + extra buttons + settings) before the anchor.
-// Returns { countBadge, fileBtns, extraBtns, toolbar, controls, settingsBtns, moreBtn,
+// Returns { countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn,
 // toggleBtn, titleWrap } for controller wiring. The toolbar doubles as the table's
 // disclosure header: the controller toggles the table container via toggleBtn/titleWrap.
 // fileBtns: { open, csv, json, dd } — the three menu items and the dropdown element.
-// collapsible: everything after the badge goes into a container revealed by a
-// disclosure chevron (moreBtn); visibility is driven by its aria-expanded via CSS.
+// The toolbar is just two parts: the disclosure handle (toggle + title) and a
+// single `rest` wrapper holding everything after the title (count badge, File/
+// Settings menus, extra buttons). Collapsing the table — and showFilterRow:false
+// — hide `rest` as one unit, leaving only the handle. When `collapsible`, the
+// rest's buttons additionally sit behind a `⋯` chevron (moreBtn) via CSS.
 export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', collapsible = false) {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
-    const controls = document.createElement('div');
-    controls.className = 'atv-toolbar-controls';
-    toolbar.appendChild(controls);
-
     const titleWrap = document.createElement('div');
     titleWrap.className = 'atv-title-wrap';
-    controls.appendChild(titleWrap);
+    toolbar.appendChild(titleWrap);
 
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'aj-toggle aj-rotate';
@@ -161,16 +160,21 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
         titleWrap.appendChild(titleEl);
     }
 
+    // Everything after the title collapses as one unit (see header comment).
+    const rest = document.createElement('div');
+    rest.className = 'atv-toolbar-rest';
+    toolbar.appendChild(rest);
+
     const countBadge = document.createElement('span');
     countBadge.className = 'atv-count-badge';
-    titleWrap.appendChild(countBadge);
+    rest.appendChild(countBadge);
 
     let moreBtn = null;
-    let btnHost = controls;
+    let btnHost = rest;
     if (collapsible) {
         const moreWrap = document.createElement('div');
         moreWrap.className = 'atv-more-wrap';
-        controls.appendChild(moreWrap);
+        rest.appendChild(moreWrap);
 
         moreBtn = document.createElement('button');
         moreBtn.className = 'atv-more-btn';
@@ -222,12 +226,12 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'atv-export-btn';
     settingsBtn.textContent = 'Settings';
-    (collapsible ? btnHost : toolbar).appendChild(settingsBtn);
+    btnHost.appendChild(settingsBtn);
 
     const settingsDd = document.createElement('div');
     settingsDd.className = 'filter-dropdown';
     settingsDd.popover = 'auto';
-    (collapsible ? btnHost : toolbar).appendChild(settingsDd);
+    btnHost.appendChild(settingsDd);
 
     const settingsHdr = document.createElement('div');
     settingsHdr.className = 'aj-array-header';
@@ -246,7 +250,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '', coll
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, controls, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
 }
 
 function makeSettingsRow(container, label) {

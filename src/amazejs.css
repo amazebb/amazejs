@@ -98,8 +98,12 @@
     padding-bottom: 4px;
 }
 
-.atv-toolbar-controls {
+/* Everything after the disclosure handle (count badge, File/Settings menus,
+   extra buttons). flex:1 lets it fill the toolbar so a right-aligned badge
+   reaches the far edge; collapsing the table hides this whole block. */
+.atv-toolbar-rest {
     display: flex;
+    flex: 1;
     gap: 8px;
     align-items: stretch;
 }
@@ -111,8 +115,9 @@
     background: var(--bg);
 }
 
-/* Disclosure header line: toggle arrow + title + count badge. Clicking it
-   collapses/expands everything below the toolbar in the table container. */
+/* Disclosure handle: toggle arrow + title. Clicking it collapses/expands the
+   table container; it stays visible while everything else (.atv-toolbar-rest)
+   hides on collapse. */
 .atv-title-wrap {
     display: flex;
     align-items: center;
@@ -135,8 +140,11 @@
     white-space: nowrap;
 }
 
-/* Collapsed disclosure: only the toolbar header line stays visible */
-.atv-table-container.atv-collapsed > :not(.atv-toolbar) { display: none; }
+/* Collapsed disclosure: hide the table below the toolbar, and within the
+   toolbar hide everything after the title — leaving only the disclosure
+   handle (toggle arrow + title). */
+.atv-table-container.atv-collapsed > :not(.atv-toolbar),
+.atv-table-container.atv-collapsed .atv-toolbar-rest { display: none; }
 
 .atv-count-badge {
     font-size: 11px;
@@ -147,7 +155,7 @@
     white-space: nowrap;
 }
 
-/* badgePosition: 'right' — direct toolbar child pushed past every button */
+/* badgePosition: 'right' — pushed to the end of the rest wrapper, past every button */
 .atv-count-badge.atv-badge-right {
     margin-left: auto;
     align-self: center;
