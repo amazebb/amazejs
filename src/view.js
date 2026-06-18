@@ -457,6 +457,18 @@ function buildRangeDropdown(id) {
     return dd;
 }
 
+// Display-only formatting for a cell value. Numeric columns get locale thousands
+// separators (27400013 -> "27,400,013"), preserving decimals. Opt out per column
+// with `separator: false` (years, IDs, zips). Sort/filter read the raw data, so
+// this never affects them.
+function formatCell(value, col) {
+    if (col.numeric && col.separator !== false && value !== '' && value != null
+        && !Number.isNaN(Number(value))) {
+        return Number(value).toLocaleString(undefined, { maximumFractionDigits: 20 });
+    }
+    return value ?? '';
+}
+
 // Builds tbody rows via DocumentFragment (single reflow).
 // Returns a WeakMap<item, tr> for later visibility toggling and sorting.
 export function buildRows(tbody, data, columns) {
@@ -475,7 +487,7 @@ export function buildRows(tbody, data, columns) {
             } else if (Array.isArray(value)) {
                 renderArrayCell(td, value);
             } else {
-                td.textContent = value ?? '';
+                td.textContent = formatCell(value, col);
             }
             tr.appendChild(td);
         });
