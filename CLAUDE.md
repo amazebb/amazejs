@@ -41,7 +41,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `data` | `Array`, root object, or `[jsonUrl, tsvUrl]` | required | If a two-element string array, fetched via `fetchData` |
 | `tableId` | string | auto-generated | ID of the `<table>` element, or use `table` directly |
 | `table` | HTMLTableElement | — | Direct element reference (for nested use) |
-| `columns` | `Array<{key, label?, filter?, render?, numeric?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `false` → sortable only |
+| `columns` | `Array<{key, label?, filter?, render?, numeric?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `filter: 'range'` → numeric Min/Max dropdown (auto-applied to inferred numeric columns); `false` → sortable only |
 | `searchKeys` | string[] | `[]` | Fields included in the global search |
 | `exportFilename` | string or `false` | derived | The File menu (Open…, Export CSV, Export JSON) is shown by default. Export filename defaults to the slugified title, or `data.csv` when there is no title. Pass a string to set it explicitly, `false` to hide the menu. Open reads a CSV/TSV/JSON file and rebuilds the table in place with columns re-inferred. |
 | `buttons` | `Array<{label, onClick}>` | `[]` | Extra toolbar buttons; `onClick(visibleItems, btn)` |

@@ -64,7 +64,7 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
             // Don't close mid-typing: the pointer may drift off while the
             // user is in a filter search field — light dismiss handles it.
             const typing = dd.contains(document.activeElement)
-                && document.activeElement.matches('input[type="text"]');
+                && document.activeElement.matches('input[type="text"], input[type="number"]');
             if (dd.matches(':popover-open') && !typing) dd.hidePopover();
         };
         const scheduleClose = () => {
@@ -315,11 +315,13 @@ export function buildNoResults(tableWrap, message) {
 // Builds the thead row from column definitions.
 // 'category' columns get a button + dropdown with checkboxes.
 // 'text' columns get a button + dropdown with just a search input.
+// 'range' columns (numeric) get a button + dropdown with Min/Max number inputs.
 // Others are plain sortable ths.
 export function buildHeader(thead, columns, tableId) {
     const tr = document.createElement('tr');
     const filterDefs = [];
     const textDefs = [];
+    const rangeDefs = [];
 
     const th = document.createElement('th');
     th.className = 'atv-row-num';
@@ -330,7 +332,7 @@ export function buildHeader(thead, columns, tableId) {
         const th = document.createElement('th');
         th.setAttribute('data-col', i);
 
-        if (col.filter === 'category' || col.filter === 'text') {
+        if (col.filter === 'category' || col.filter === 'text' || col.filter === 'range') {
             const filterId = `${tableId}_filter_${col.key}`;
             const thId = `${tableId}_th_${col.key}`;
 
@@ -350,6 +352,9 @@ export function buildHeader(thead, columns, tableId) {
             if (col.filter === 'category') {
                 filterDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildDropdown(filterId));
+            } else if (col.filter === 'range') {
+                rangeDefs.push({ id: filterId, thId, key: col.key, col: i });
+                th.appendChild(buildRangeDropdown(filterId));
             } else {
                 textDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildTextDropdown(filterId));
@@ -363,7 +368,7 @@ export function buildHeader(thead, columns, tableId) {
     });
 
     thead.appendChild(tr);
-    return { filterDefs, textDefs };
+    return { filterDefs, textDefs, rangeDefs };
 }
 
 function buildDropdown(id) {
@@ -415,6 +420,40 @@ function buildTextDropdown(id) {
     input.placeholder = 'Filter…';
 
     dd.appendChild(input);
+    return dd;
+}
+
+// Numeric range dropdown: a Min and Max number input. The controller wires both
+// to the column's [min, max] range state. Future numeric controls (comparator
+// presets, a slider) can be appended here — they write the same range state, so
+// no surrounding code changes.
+function buildRangeDropdown(id) {
+    const dd = document.createElement('div');
+    dd.className = 'filter-dropdown filter-range-dd';
+    dd.id = id;
+    dd.popover = 'auto';
+
+    const row = document.createElement('div');
+    row.className = 'filter-range';
+
+    const min = document.createElement('input');
+    min.className = 'filter-range-min';
+    min.type = 'number';
+    min.placeholder = 'Min';
+    min.setAttribute('aria-label', 'Minimum');
+
+    const sep = document.createElement('span');
+    sep.className = 'filter-range-sep';
+    sep.textContent = '–';
+
+    const max = document.createElement('input');
+    max.className = 'filter-range-max';
+    max.type = 'number';
+    max.placeholder = 'Max';
+    max.setAttribute('aria-label', 'Maximum');
+
+    row.append(min, sep, max);
+    dd.appendChild(row);
     return dd;
 }
 

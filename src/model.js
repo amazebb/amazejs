@@ -69,7 +69,7 @@ export function inferColumns(data, configCols) {
     const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));
     return base.map(col => {
         const isNumeric = data.every(item => !item[col.key] || !isNaN(Number(item[col.key])));
-        return { filter: isNumeric ? false : 'text', numeric: isNumeric, label: capitalize(col.key), ...col };
+        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label: capitalize(col.key), ...col };
     });
 }
 
@@ -81,24 +81,43 @@ function matchesTextAndSearch(item, textState, q, searchKeys) {
     return matchText && matchSearch;
 }
 
+// True when the item's numeric value falls within every active [min, max] range.
+// Each range bound is a number or null (unbounded); both null = inactive. Every
+// numeric filter mode (Min/Max now, comparators/presets later) reduces to this
+// predicate, so it never has to change as new range UIs are added.
+function matchesRange(item, rangeState) {
+    return Object.entries(rangeState).every(([key, { min, max }]) => {
+        if (min == null && max == null) return true;
+        const v = Number(item[key]);
+        if (item[key] === '' || item[key] == null || Number.isNaN(v)) return false;
+        return (min == null || v >= min) && (max == null || v <= max);
+    });
+}
+
+// All non-category filters: text + search + numeric range. Shared by getVisible
+// and computeCounts so category option counts reflect these filters too.
+function matchesNonCategory(item, textState, rangeState, q, searchKeys) {
+    return matchesTextAndSearch(item, textState, q, searchKeys) && matchesRange(item, rangeState);
+}
+
 // Returns the subset of data items that match all active filters and the search query.
-export function getVisible(data, categoryState, textState, query, searchKeys) {
+export function getVisible(data, categoryState, textState, rangeState, query, searchKeys) {
     const q = query.toLowerCase();
     return data.filter(item =>
         Object.entries(categoryState).every(([key, selected]) => selected.has(item[key]))
-        && matchesTextAndSearch(item, textState, q, searchKeys)
+        && matchesNonCategory(item, textState, rangeState, q, searchKeys)
     );
 }
 
 // Returns per-filter value counts, where each filter is counted against all OTHER
 // active filters + text filters + search (so the dropdown shows how many items each option would reveal).
-export function computeCounts(data, categoryState, textState, query, searchKeys) {
+export function computeCounts(data, categoryState, textState, rangeState, query, searchKeys) {
     const q = query.toLowerCase();
     const counts = {};
     Object.keys(categoryState).forEach(key => { counts[key] = {}; });
 
     data.forEach(item => {
-        if (!matchesTextAndSearch(item, textState, q, searchKeys)) return;
+        if (!matchesNonCategory(item, textState, rangeState, q, searchKeys)) return;
 
         Object.keys(categoryState).forEach(key => {
             const matchOthers = Object.entries(categoryState)

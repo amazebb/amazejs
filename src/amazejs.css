@@ -481,6 +481,34 @@ thead th.active {
     box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
+/* Numeric range dropdown — Min/Max inputs on one row, sized to content */
+.filter-range-dd { min-width: 0; }
+
+.filter-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+}
+
+.filter-range input {
+    width: 5.5em;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 13px;
+    outline: none;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.filter-range input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-shadow);
+}
+
+.filter-range-sep { color: var(--text-muted); }
+
 /* Filter option rows */
 .filter-options {
     max-height: 240px;

@@ -145,13 +145,14 @@ export async function initTable(config) {
     const columns = inferColumns(data, config.columns);
 
     // --- View: build table content ---
-    const { filterDefs, textDefs } = buildHeader(thead, columns, tableId);
+    const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
     const rowMap = buildRows(tbody, data, columns);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
     // --- State ---
     const filterState     = {};
     const textFilterState = {};
+    const rangeState      = {};
     const filterUI        = {};
     let sortedData = [...data];
     let visibleSet = new Set(data);
@@ -179,23 +180,28 @@ export async function initTable(config) {
     });
 
     textDefs.forEach(def => { textFilterState[def.key] = ''; });
+    rangeDefs.forEach(def => { rangeState[def.key] = { min: null, max: null }; });
 
     // --- Refresh: apply filters, update all UI ---
     function refresh() {
         const query = effectiveSearchInput ? effectiveSearchInput.value : '';
-        visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, query, searchKeys));
+        visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, rangeState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
         if (countBadge) countBadge.textContent = `${visibleSet.size} / ${data.length}`;
         if (noResults)  noResults.classList.toggle('show', visibleSet.size === 0);
 
-        const counts = computeCounts(data, filterState, textFilterState, query, searchKeys);
+        const counts = computeCounts(data, filterState, textFilterState, rangeState, query, searchKeys);
         filterDefs.forEach(def => {
             const ui = filterUI[def.key];
             updateFilterCounts(def, ui.values, counts[def.key] || {}, filterState[def.key], ui.rows, badgeAlwaysShow);
         });
         textDefs.forEach(def => {
             document.getElementById(def.thId).classList.toggle('active', !!textFilterState[def.key]);
+        });
+        rangeDefs.forEach(def => {
+            const { min, max } = rangeState[def.key];
+            document.getElementById(def.thId).classList.toggle('active', min != null || max != null);
         });
     }
 
@@ -346,6 +352,34 @@ export async function initTable(config) {
         });
     });
 
+    rangeDefs.forEach(def => {
+        const th     = document.getElementById(def.thId);
+        const dd     = document.getElementById(def.id);
+        const minInp = dd.querySelector('.filter-range-min');
+        const maxInp = dd.querySelector('.filter-range-max');
+
+        attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
+        dd.addEventListener('mouseenter', () => minInp.focus());
+
+        // Show the column's actual span as placeholders so the bounds are
+        // obvious, and widen both inputs to fit the longer number (digits in
+        // ch + room for padding and the number spinner).
+        const nums = data.map(d => Number(d[def.key])).filter(n => !Number.isNaN(n));
+        if (nums.length) {
+            minInp.placeholder = String(Math.min(...nums));
+            maxInp.placeholder = String(Math.max(...nums));
+            const chars = Math.max(minInp.placeholder.length, maxInp.placeholder.length, 2);
+            minInp.style.width = maxInp.style.width = `calc(${chars}ch + 2.5em)`;
+        }
+
+        // Single point where range state is set — every numeric control (the
+        // inputs now, presets/slider later) funnels through here.
+        const setRange = patch => { Object.assign(rangeState[def.key], patch); refresh(); };
+        const parse = v => v.trim() === '' ? null : Number(v);
+        minInp.addEventListener('input', () => setRange({ min: parse(minInp.value) }));
+        maxInp.addEventListener('input', () => setRange({ max: parse(maxInp.value) }));
+    });
+
     // --- Sorting ---
     function sortByCol(colIndex) {
         const col = columns[colIndex];
@@ -357,7 +391,7 @@ export async function initTable(config) {
         const dirClass = sortState.dir === 1 ? 'asc' : 'desc';
         table.querySelectorAll('th.sortable').forEach(th => th.classList.remove('asc', 'desc'));
         table.querySelector(`th[data-col="${colIndex}"]`)?.classList.add(dirClass);
-        [...filterDefs, ...textDefs].forEach(def => {
+        [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {
             if (def.col === colIndex)
                 document.getElementById(def.thId).classList.add(dirClass);
         });
@@ -371,7 +405,7 @@ export async function initTable(config) {
         th.addEventListener('click', () => sortByCol(parseInt(th.getAttribute('data-col'))));
     });
 
-    [...filterDefs, ...textDefs].forEach(def => {
+    [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {
         const th = document.getElementById(def.thId);
         th.classList.add('sortable');
         th.addEventListener('click', e => { if (e.target === th) sortByCol(def.col); });
