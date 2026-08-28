@@ -124,14 +124,18 @@ export function sampleKeys(items, sample = SAMPLE_SIZE) {
 }
 
 // Resolves column definitions, merging config with numeric-detection defaults.
-export function inferColumns(data, configCols) {
+// Labels are derived here and nowhere else: every column that doesn't carry an
+// explicit one gets labelFor(key), uppercased when labelStyle is 'upper' (tree
+// tables). One rule, so any path that adds a column later matches the rest.
+export function inferColumns(data, configCols, labelStyle) {
     const base = configCols || sampleKeys(data).map(key => ({ key }));
     return base.map(col => {
         const isNumeric = data.every(item => {
             const v = getValue(item, col.key);
             return !v || !isNaN(Number(v));
         });
-        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label: labelFor(col.key), ...col };
+        const label = labelStyle === 'upper' ? labelFor(col.key).toUpperCase() : labelFor(col.key);
+        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label, ...col };
     });
 }
 

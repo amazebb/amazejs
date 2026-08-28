@@ -43,7 +43,9 @@ export async function initTree(config, rawData) {
         || (rootKey ? rootKey.toUpperCase() : '')
         || (isUrlData(config.data) ? titleFromUrl(config.data[0]) : '');
 
-    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle });
+    // labelStyle is the table's one labelling rule, applied by inferColumns — so
+    // columns added later from the Columns picker match (TAP, not Tap).
+    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle, labelStyle: 'upper' });
 
     ensureToggleListener();
     return table;
@@ -96,7 +98,8 @@ function allowedChildKeys(levels, depth) {
     return null;
 }
 
-// Returns column defs with nameKey first and labels uppercased.
+// Returns column defs with nameKey first. Labels are left to inferColumns, which
+// uppercases them for the labelStyle: 'upper' these tables are built with.
 // The first column gets a render function that injects an expand toggle (when the
 // item has child groups) or a leaf spacer, reusing the col.render hook in buildRows (view.js).
 function getColumns(items, ctx, depth) {
@@ -120,7 +123,7 @@ function getColumns(items, ctx, depth) {
 
     const colCount = keys.length;
     return keys.map((k, i) => {
-        const col = { key: k, label: k.toUpperCase() };
+        const col = { key: k };
         if (i === 0) {
             col.render = item => {
                 const groups = getChildGroups(item, allowed);
@@ -197,6 +200,7 @@ function buildGroupTable(container, group, ctx, depth, collapsed) {
         columns:   getColumns(group.items, ctx, depth),
         nested:    true,
         collapsed,
+        labelStyle: 'upper',
         title:     group.key.toUpperCase(),
     });
 }

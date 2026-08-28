@@ -57,6 +57,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `rowNumbers` | boolean | `false` | |
 | `stickyHeaders` | boolean | `true` | Freezes the toolbar at the top of the scroller and pins the table's header row directly beneath it (offset by `--aj-toolbar-h`, the toolbar's measured height). Toggled at runtime from the Settings menu. |
 | `showFilterRow` | boolean | `true` | |
+| `labelStyle` | `'upper'` or unset | unset | The table's one labelling rule, applied by `inferColumns` to every column without an explicit `label`. `tree.js` passes `'upper'`; flat tables leave it unset and get `labelFor`'s capitalized default. Nothing else derives labels, so any path that adds a column later (the Columns picker, a rebuild) matches automatically. |
 | `lockWidths` | boolean | `true` | Freezes the column widths the auto layout computes from the full data set (measured once, right after the rows are built) and switches the table to `table-layout: fixed`, so filtering to a few rows no longer re-fits every column. `false` keeps the native auto layout. |
 | `objectCell` | `'summary'`, `'lines'`, or `'table'` | `'summary'` | How a plain-object cell value (a nested record like `{stable, head}`) renders. `'summary'`: first pair inline + a `+N` badge opening a popover of all pairs; `'lines'`: one `key: value` per line; `'table'`: a bare striped key/value table in the cell. Per-column override via `col.objectCell`. Search, filters, sort and CSV export all use the flattened `"k: v, k: v"` text (`cellText`). |
 | `objectAlign` | `'left'` or `'right'` | `'left'` | Text alignment of the value column in `'summary'` and `'table'` object cells. Per-column override via `col.objectAlign`. |
@@ -99,7 +100,12 @@ it as an ordinary column keyed by its path and rebuilds the table in place
 (`rebuildColumns`, the same swap File > Open uses, reusing the existing column objects
 so a tree's first column keeps its render and its row toggles). A path with
 `distinct <= CATEGORY_MAX` (25) values in the sample gets `filter: 'category'`, so
-booleans and enums arrive as checkboxes instead of a text box. A rebuild resets the
+booleans and enums arrive as checkboxes instead of a text box. Columns are re-sorted
+into the dropdown's own (discovery) order on every change, so re-ticking one puts it
+back where it was rather than at the far end — except a tree's first column, which is
+pinned first because it carries the row-toggle render. Added columns carry no label of their
+own — `inferColumns` derives every missing one on the rebuild, so they match whatever
+the rest of the table uses. A rebuild resets the
 current filters, and the picked columns don't persist across a reload. Show All /
 Clear All are stripped from that dropdown — on deep data they would mean "add 400
 columns".

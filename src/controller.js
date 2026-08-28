@@ -39,6 +39,7 @@ export async function initTable(config) {
         searchDebounce = true,
         stickyHeaders  = true,
         showFilterRow  = true,
+        labelStyle,
         lockWidths     = true,
         objectCell     = 'summary',
         objectAlign    = 'left',
@@ -146,7 +147,7 @@ export async function initTable(config) {
     function buildTableUI() {
 
     // --- Model: resolve columns ---
-    const columns = inferColumns(data, config.columns);
+    const columns = inferColumns(data, config.columns, labelStyle);
 
     // --- View: build table content ---
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
@@ -287,10 +288,19 @@ export async function initTable(config) {
         // Current columns first (a tree's name column is never a discovered leaf).
         const paths = [...shown.filter(k => !distinct.has(k)), ...found.map(d => d.path)];
 
+        // Discovery order is the order the table was built in, so sorting by it puts a
+        // re-ticked column back where it started instead of at the far end.
+        const order = new Map(paths.map((p, i) => [p, i]));
+        // The tree's first column carries the row-toggle render, so it stays first.
+        const pinned = columns[0]?.render ? columns[0].key : null;
+        const rank = col => col.key === pinned ? -1 : (order.get(col.key) ?? paths.length);
+
         const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
         const rows = buildColumnOptions(menu.dd, paths, new Set(shown), (path, checked) => {
+            // No label here: inferColumns derives it on the rebuild, in the table's style.
+            const added = distinct.get(path) <= CATEGORY_MAX ? { key: path, filter: 'category' } : { key: path };
             const next = checked
-                ? [...columns, distinct.get(path) <= CATEGORY_MAX ? { key: path, filter: 'category' } : { key: path }]
+                ? [...columns, added].sort((a, b) => rank(a) - rank(b))
                 : columns.filter(c => c.key !== path);
             if (next.length) rebuildColumns(next);
         });
