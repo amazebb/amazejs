@@ -122,6 +122,10 @@
    wrapper. Lower z-index than the toolbar so the header slides under it. */
 .atv-table-container.atv-sticky-head > .table-wrap {
     overflow: visible;
+    /* No longer clipping, so the wrapper has to grow with a too-wide table —
+       otherwise its right border cuts a vertical rule across the middle of it. */
+    width: fit-content;
+    min-width: 100%;
 }
 
 .atv-table-container.atv-sticky-head > .table-wrap > table > thead > tr > th {
