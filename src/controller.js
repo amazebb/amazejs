@@ -151,6 +151,7 @@ export async function initTable(config) {
 
     // --- State ---
     const filterState     = {};
+    const optionQuery     = {};
     const textFilterState = {};
     const rangeState      = {};
     const filterUI        = {};
@@ -163,6 +164,7 @@ export async function initTable(config) {
         // they stay selectable instead of being silently filtered out.
         const values = [...new Set(data.map(d => d[def.key] ?? ''))].sort();
         filterState[def.key] = new Set(values);
+        optionQuery[def.key] = '';
 
         const { rows, checkboxes } = buildFilterOptions(
             def.id, values,
@@ -184,19 +186,31 @@ export async function initTable(config) {
     textDefs.forEach(def => { textFilterState[def.key] = ''; });
     rangeDefs.forEach(def => { rangeState[def.key] = { min: null, max: null }; });
 
+    // Each category selection narrowed by its dropdown's option search, so typing
+    // there filters the table too, not just the list of options.
+    function narrowedFilterState() {
+        const state = {};
+        Object.entries(filterState).forEach(([key, selected]) => {
+            const q = optionQuery[key].toLowerCase();
+            state[key] = q ? new Set([...selected].filter(v => v.toLowerCase().includes(q))) : selected;
+        });
+        return state;
+    }
+
     // --- Refresh: apply filters, update all UI ---
     function refresh() {
         const query = effectiveSearchInput ? effectiveSearchInput.value : '';
-        visibleSet  = new Set(getVisible(sortedData, filterState, textFilterState, rangeState, query, searchKeys));
+        const activeState = narrowedFilterState();
+        visibleSet  = new Set(getVisible(sortedData, activeState, textFilterState, rangeState, query, searchKeys));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
         if (countBadge) countBadge.textContent = `${visibleSet.size} / ${data.length}`;
         if (noResults)  noResults.classList.toggle('show', visibleSet.size === 0);
 
-        const counts = computeCounts(data, filterState, textFilterState, rangeState, query, searchKeys);
+        const counts = computeCounts(data, activeState, textFilterState, rangeState, query, searchKeys);
         filterDefs.forEach(def => {
             const ui = filterUI[def.key];
-            updateFilterCounts(def, ui.values, counts[def.key] || {}, filterState[def.key], ui.rows, badgeAlwaysShow);
+            updateFilterCounts(def, ui.values, counts[def.key] || {}, activeState[def.key], ui.rows, badgeAlwaysShow);
         });
         textDefs.forEach(def => {
             document.getElementById(def.thId).classList.toggle('active', !!textFilterState[def.key]);
@@ -313,15 +327,21 @@ export async function initTable(config) {
 
         attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
         dd.addEventListener('beforetoggle', e => {
-            if (e.newState !== 'open') return;
+            if (e.newState !== 'open' || !search.value) return;
             search.value = '';
+            optionQuery[def.key] = '';
+            refresh();
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, '');
         });
         // Focus only once the pointer commits to the dropdown — focusing on
         // open would steal focus while sweeping across hover-opened headers
         dd.addEventListener('mouseenter', () => search.focus());
 
+        // refresh() first: it rewrites option counts (and their row display), so the
+        // option-row filtering has to run after it to survive.
         search.addEventListener('input', function() {
+            optionQuery[def.key] = this.value;
+            refresh();
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, this.value);
         });
 
