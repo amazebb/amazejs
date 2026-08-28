@@ -112,7 +112,7 @@ function matchesNonCategory(item, textState, rangeState, q, searchKeys) {
 export function getVisible(data, categoryState, textState, rangeState, query, searchKeys) {
     const q = query.toLowerCase();
     return data.filter(item =>
-        Object.entries(categoryState).every(([key, selected]) => selected.has(item[key]))
+        Object.entries(categoryState).every(([key, selected]) => selected.has(item[key] ?? ''))
         && matchesNonCategory(item, textState, rangeState, q, searchKeys)
     );
 }
@@ -130,9 +130,9 @@ export function computeCounts(data, categoryState, textState, rangeState, query,
         Object.keys(categoryState).forEach(key => {
             const matchOthers = Object.entries(categoryState)
                 .filter(([k]) => k !== key)
-                .every(([k, selected]) => selected.has(item[k]));
+                .every(([k, selected]) => selected.has(item[k] ?? ''));
             if (matchOthers) {
-                const val = item[key];
+                const val = item[key] ?? '';
                 counts[key][val] = (counts[key][val] || 0) + 1;
             }
         });

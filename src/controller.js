@@ -159,7 +159,9 @@ export async function initTable(config) {
     const sortState = { key: null, dir: 1 };
 
     filterDefs.forEach(def => {
-        const values = [...new Set(data.map(d => d[def.key]))].filter(Boolean).sort();
+        // Blank values are a real option: missing/empty cells get their own row so
+        // they stay selectable instead of being silently filtered out.
+        const values = [...new Set(data.map(d => d[def.key] ?? ''))].sort();
         filterState[def.key] = new Set(values);
 
         const { rows, checkboxes } = buildFilterOptions(
