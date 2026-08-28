@@ -38,7 +38,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 
 | Option | Type | Default | Notes |
 |---|---|---|---|
-| `data` | `Array`, root object, or `[jsonUrl, tsvUrl]` | required | If a two-element string array, fetched via `fetchData` |
+| `data` | `Array`, root object, or `[url, fallbackUrl?]` | required | If a string array, fetched via `fetchData`; each URL is parsed by extension (`.json`, `.csv`, else TSV), the second used only if the first request fails |
 | `tableId` | string | auto-generated | ID of the `<table>` element, or use `table` directly |
 | `table` | HTMLTableElement | — | Direct element reference (for nested use) |
 | `columns` | `Array<{key, label?, filter?, render?, numeric?, separator?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `filter: 'range'` → numeric Min/Max dropdown (auto-applied to inferred numeric columns); `false` → sortable only. Numeric columns display with locale thousands separators by default; set `separator: false` to disable (years, IDs, zips). Formatting is display-only — sort/filter use the raw values. |

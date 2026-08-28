@@ -1,6 +1,6 @@
 // Pure data functions — no DOM dependencies.
 
-// True when data is the [jsonUrl, tsvUrl?] form accepted by initTable.
+// True when data is the [url, fallbackUrl?] form accepted by initTable.
 export function isUrlData(data) {
     return Array.isArray(data) && typeof data[0] === 'string';
 }
@@ -10,14 +10,22 @@ export function titleFromUrl(url) {
     return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
 }
 
-// Fetches data from jsonUrl, falling back to tsvUrl if the JSON request fails.
-export async function fetchData(jsonUrl, tsvUrl) {
-    const jsonRes = await fetch(jsonUrl);
-    if (jsonRes.ok) return jsonRes.json();
-    if (!tsvUrl) throw new Error(`Failed to load data from ${jsonUrl}`);
-    const tsvRes = await fetch(tsvUrl);
-    if (!tsvRes.ok) throw new Error(`Failed to load data from ${jsonUrl} and ${tsvUrl}`);
-    return parseTsv(await tsvRes.text());
+// Parses fetched text by the URL's extension: .json → JSON, .csv → CSV, else TSV.
+export function parseByUrl(url, text) {
+    const ext = url.split(/[?#]/)[0].split('.').pop().toLowerCase();
+    if (ext === 'json') return JSON.parse(text);
+    if (ext === 'csv') return parseCsv(text);
+    return parseTsv(text);
+}
+
+// Fetches data from url, falling back to fallbackUrl if the first request fails.
+export async function fetchData(url, fallbackUrl) {
+    const res = await fetch(url);
+    if (res.ok) return parseByUrl(url, await res.text());
+    if (!fallbackUrl) throw new Error(`Failed to load data from ${url}`);
+    const fallbackRes = await fetch(fallbackUrl);
+    if (!fallbackRes.ok) throw new Error(`Failed to load data from ${url} and ${fallbackUrl}`);
+    return parseByUrl(fallbackUrl, await fallbackRes.text());
 }
 
 // Parses a TSV string into an array of objects keyed by the first-row headers.

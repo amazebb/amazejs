@@ -90,7 +90,7 @@ Available variables: `--bg`, `--bg-subtle`, `--bg-hover`, `--text`, `--text-mute
 
 | Option | Default | Description |
 |---|---|---|
-| `data` | required | Array of objects, a root wrapper object, or `[jsonUrl, tsvUrl]` to fetch |
+| `data` | required | Array of objects, a root wrapper object, or `[url, fallbackUrl?]` to fetch (`.json`, `.csv` or `.tsv`) |
 | `tableId` / `table` | auto | Target `<table>` by id or element reference |
 | `columns` | inferred | `{ key, label?, filter?, render?, numeric? }`; `filter: 'category'` or `'text'` |
 | `title` | derived | Toolbar title (from data key or URL filename) |
