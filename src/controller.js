@@ -4,7 +4,7 @@ import {
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
-    attachPopover, ensureStyles
+    attachPopover, ensureStyles, lockColumnWidths
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -38,6 +38,7 @@ export async function initTable(config) {
         searchDebounce = true,
         stickyHeaders  = true,
         showFilterRow  = true,
+        lockWidths     = true,
         objectCell     = 'summary',
         objectAlign    = 'left',
         collapsed      = false
@@ -150,6 +151,8 @@ export async function initTable(config) {
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
     const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
+    // Measured here, with every row still visible, so filters cannot reflow them.
+    if (lockWidths) lockColumnWidths(table);
 
     // --- State ---
     const filterState     = {};

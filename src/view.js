@@ -366,6 +366,18 @@ function makeSettingsButton(container) {
     return btn;
 }
 
+// Freezes the column widths the auto layout computed from the full data set and
+// switches the table to a fixed layout. Without this the browser re-fits columns
+// to whichever rows a filter leaves visible, so a single match shrinks its column
+// and squeezes the rest. Call once, with every row still visible.
+export function lockColumnWidths(table) {
+    const cells = [...table.tHead.rows[0].cells];
+    const widths = cells.map(th => th.offsetWidth);
+    if (!widths.some(w => w > 0)) return; // not laid out (hidden) — leave it auto
+    cells.forEach((th, i) => { th.style.width = `${widths[i]}px`; });
+    table.style.tableLayout = 'fixed';
+}
+
 // Builds and inserts a no-results message after the table wrapper.
 // Returns the element for show/hide toggling.
 export function buildNoResults(tableWrap, message) {
