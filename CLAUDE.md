@@ -41,7 +41,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `data` | `Array`, root object, or `[url, fallbackUrl?]` | required | If a string array, fetched via `fetchData`; each URL is parsed by extension (`.json`, `.csv`, else TSV), the second used only if the first request fails |
 | `tableId` | string | auto-generated | ID of the `<table>` element, or use `table` directly |
 | `table` | HTMLTableElement | — | Direct element reference (for nested use) |
-| `columns` | `Array<{key, label?, filter?, render?, numeric?, separator?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `filter: 'range'` → numeric Min/Max dropdown (auto-applied to inferred numeric columns); `false` → sortable only. Numeric columns display with locale thousands separators by default; set `separator: false` to disable (years, IDs, zips). Formatting is display-only — sort/filter use the raw values. |
+| `columns` | `Array<{key, label?, filter?, render?, numeric?, separator?}>` | inferred | `filter: 'category'` → checkbox dropdown; `filter: 'text'` → text dropdown; `filter: 'range'` → numeric Min/Max dropdown (auto-applied to inferred numeric columns); `false` → sortable only. Numeric columns display with locale thousands separators by default; set `separator: false` to disable (years, IDs, zips). Formatting is display-only — sort/filter use the raw values. `key` may be a path — see below. |
 | `searchKeys` | string[] | `[]` | Fields included in the global search |
 | `exportFilename` | string or `false` | derived | The File menu (Open…, Export CSV, Export JSON) is shown by default. Export filename defaults to the slugified title, or `data.csv` when there is no title. Pass a string to set it explicitly, `false` to hide the menu. Open reads a CSV/TSV/JSON file and rebuilds the table in place with columns re-inferred. |
 | `buttons` | `Array<{label, onClick}>` | `[]` | Extra toolbar buttons; `onClick(visibleItems, btn)` |
@@ -63,6 +63,30 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `badgeAlwaysShow` | boolean | `false` | |
 | `badgePosition` | `'left'`, `'right'`, or `'none'` | `'left'` | `'left'` keeps the count badge in the title line; `'right'` moves it to the far end of the toolbar, after all buttons; `'none'` hides it. Cycled at runtime via the Settings menu button (Count on Left → Count on Right → Count None). |
 | `searchDebounce` | boolean or number | `true` (150ms) | `false` = no debounce |
+
+### Path keys
+
+Any key naming a field — `col.key`, `searchKeys`, `linkCell`'s two keys — may be a
+path into nested data, so a deep field becomes an ordinary column with ordinary
+sorting and filters:
+
+```js
+columns: [
+    { key: 'name' },
+    { key: 'versions.stable', label: 'Stable' },
+    { key: 'installed[0].time', numeric: true },
+    { key: 'installed[*].installed_on_request', label: 'Requested', filter: 'category' },
+]
+```
+
+Segments are dotted names, numeric indices, and `[*]`, which maps over an array and
+yields every match (so a category/text filter on it means "any element matches").
+Resolution is `getValue(item, key)` in `model.js`, paired with `cellText` as
+`cellValue(item, key)` — the single accessor behind cells, filters, counts, search,
+sort and CSV export; a plain key still takes a direct property lookup first, so
+keys containing dots keep working. Inferred labels use the path's last named
+segment. Header/dropdown element ids are keyed by column index, since path
+characters (`[`, `*`, `.`) break `#id` selectors.
 
 ### `linkCell(textKey, hrefKey, { wrap? })`
 

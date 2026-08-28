@@ -62,6 +62,24 @@ initTable({
 });
 ```
 
+### Deep fields
+
+A column key can be a path, so a nested field becomes a normal column — sortable,
+filterable, searchable, exportable:
+
+```js
+columns: [
+    { key: 'name' },
+    { key: 'versions.stable', label: 'Stable' },
+    { key: 'installed[0].time', numeric: true },
+    { key: 'installed[*].installed_on_request', label: 'Requested', filter: 'category' },
+]
+```
+
+`[*]` maps over an array and yields every match, so filtering on it means "any
+element matches". Paths work anywhere a field is named, including `searchKeys` and
+`linkCell`.
+
 ### Tree tables
 
 Pass nested data — a root wrapper object or items containing arrays of objects — and tree mode engages automatically:

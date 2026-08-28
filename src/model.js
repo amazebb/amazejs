@@ -72,12 +72,52 @@ export function parseCsv(text) {
     return records.map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
 }
 
+// Column keys are paths: a plain key, or dotted segments with array indices and
+// [*] wildcards — 'versions.stable', 'installed[0].time',
+// 'installed[*].installed_on_request'. Parsed once per key and cached, since
+// every filter, sort and render pass resolves the same handful of keys.
+const _paths = new Map();
+function parsePath(key) {
+    let segs = _paths.get(key);
+    if (!segs) {
+        segs = key.split(/\.|\[(.*?)\]/).filter(s => s !== undefined && s !== '');
+        _paths.set(key, segs);
+    }
+    return segs;
+}
+
+// Resolves a column key against an item. A [*] segment maps over the array and
+// returns every matched value, so 'installed[*].installed_on_request' is "the
+// values from all installs" — which filters and search then treat as any-match.
+export function getValue(item, key) {
+    if (item == null) return undefined;
+    if (key in Object(item)) return item[key]; // plain key, including keys with dots
+    return walkPath(item, parsePath(key), 0);
+}
+
+function walkPath(value, segs, i) {
+    for (; i < segs.length; i++) {
+        if (value == null) return undefined;
+        if (segs[i] === '*') {
+            if (!Array.isArray(value)) return undefined;
+            return value
+                .map(v => walkPath(v, segs, i + 1))
+                .filter(v => v !== undefined);
+        }
+        value = value[segs[i]];
+    }
+    return value;
+}
+
 // Resolves column definitions, merging config with numeric-detection defaults.
 export function inferColumns(data, configCols) {
     const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));
     return base.map(col => {
-        const isNumeric = data.every(item => !item[col.key] || !isNaN(Number(item[col.key])));
-        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label: capitalize(col.key), ...col };
+        const isNumeric = data.every(item => {
+            const v = getValue(item, col.key);
+            return !v || !isNaN(Number(v));
+        });
+        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label: labelFor(col.key), ...col };
     });
 }
 
@@ -96,11 +136,18 @@ export function cellText(value) {
     return String(value);
 }
 
+// A cell's value as comparable text — the pairing of getValue and cellText that
+// every filter, the search and the sort share, so a path key behaves exactly
+// like a plain one everywhere.
+export function cellValue(item, key) {
+    return cellText(getValue(item, key));
+}
+
 // True when the item passes every text filter and the (lowercased) search query.
 function matchesTextAndSearch(item, textState, q, searchKeys) {
     const matchText = Object.entries(textState)
-        .every(([key, val]) => !val || cellText(item[key]).toLowerCase().includes(val.toLowerCase()));
-    const matchSearch = !q || searchKeys.some(k => cellText(item[k]).toLowerCase().includes(q));
+        .every(([key, val]) => !val || cellValue(item, key).toLowerCase().includes(val.toLowerCase()));
+    const matchSearch = !q || searchKeys.some(k => cellValue(item, k).toLowerCase().includes(q));
     return matchText && matchSearch;
 }
 
@@ -111,8 +158,9 @@ function matchesTextAndSearch(item, textState, q, searchKeys) {
 function matchesRange(item, rangeState) {
     return Object.entries(rangeState).every(([key, { min, max }]) => {
         if (min == null && max == null) return true;
-        const v = Number(item[key]);
-        if (item[key] === '' || item[key] == null || Number.isNaN(v)) return false;
+        const raw = getValue(item, key);
+        const v = Number(raw);
+        if (raw === '' || raw == null || Number.isNaN(v)) return false;
         return (min == null || v >= min) && (max == null || v <= max);
     });
 }
@@ -127,7 +175,7 @@ function matchesNonCategory(item, textState, rangeState, q, searchKeys) {
 export function getVisible(data, categoryState, textState, rangeState, query, searchKeys) {
     const q = query.toLowerCase();
     return data.filter(item =>
-        Object.entries(categoryState).every(([key, selected]) => selected.has(item[key] ?? ''))
+        Object.entries(categoryState).every(([key, selected]) => selected.has(cellValue(item, key)))
         && matchesNonCategory(item, textState, rangeState, q, searchKeys)
     );
 }
@@ -145,9 +193,9 @@ export function computeCounts(data, categoryState, textState, rangeState, query,
         Object.keys(categoryState).forEach(key => {
             const matchOthers = Object.entries(categoryState)
                 .filter(([k]) => k !== key)
-                .every(([k, selected]) => selected.has(item[k] ?? ''));
+                .every(([k, selected]) => selected.has(cellValue(item, k)));
             if (matchOthers) {
-                const val = item[key] ?? '';
+                const val = cellValue(item, key);
                 counts[key][val] = (counts[key][val] || 0) + 1;
             }
         });
@@ -159,13 +207,20 @@ export function computeCounts(data, categoryState, textState, rangeState, query,
 // Returns a new sorted array, leaving the original untouched.
 export function sortItems(data, key, dir, numeric = false) {
     return [...data].sort((a, b) => {
-        if (numeric) return (Number(a[key]) - Number(b[key])) * dir;
-        const aVal = cellText(a[key]).toLowerCase();
-        const bVal = cellText(b[key]).toLowerCase();
+        if (numeric) return (Number(getValue(a, key)) - Number(getValue(b, key))) * dir;
+        const aVal = cellValue(a, key).toLowerCase();
+        const bVal = cellValue(b, key).toLowerCase();
         if (aVal < bVal) return -dir;
         if (aVal > bVal) return dir;
         return 0;
     });
+}
+
+// Default label for a path key: its last named segment, so
+// 'installed[*].installed_on_request' reads as "Installed_on_request".
+function labelFor(key) {
+    const named = parsePath(key).filter(s => s !== '*' && !/^\d+$/.test(s));
+    return capitalize(named[named.length - 1] || key);
 }
 
 function capitalize(str) {

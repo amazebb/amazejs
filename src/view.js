@@ -1,5 +1,5 @@
 // DOM rendering functions — no business logic or mutable state.
-import { cellText, isPlainObject } from './model.js';
+import { cellText, cellValue, getValue, isPlainObject } from './model.js';
 
 // Stylesheet injection, lazy and once, on the first initTable() (ensureStyles).
 // Raw/dev use loads the sibling amazejs.css via <link> (import.meta.url); the
@@ -198,8 +198,8 @@ export function renderObjectCell(td, obj, mode, label, align = 'left') {
 export function linkCell(textKey, hrefKey, { wrap } = {}) {
     return item => {
         const a = document.createElement('a');
-        a.textContent = item[textKey];
-        a.href = item[hrefKey];
+        a.textContent = cellValue(item, textKey);
+        a.href = getValue(item, hrefKey);
         if (wrap) {
             const el = document.createElement(wrap);
             el.appendChild(a);
@@ -409,8 +409,10 @@ export function buildHeader(thead, columns, tableId) {
         th.setAttribute('data-col', i);
 
         if (col.filter === 'category' || col.filter === 'text' || col.filter === 'range') {
-            const filterId = `${tableId}_filter_${col.key}`;
-            const thId = `${tableId}_th_${col.key}`;
+            // Keyed by column index, not by col.key: a path key ('installed[*].time')
+            // carries characters that break the `#id` selectors these ids feed.
+            const filterId = `${tableId}_filter_${i}`;
+            const thId = `${tableId}_th_${i}`;
 
             th.id = thId;
             th.textContent = col.label;
@@ -557,7 +559,7 @@ export function buildRows(tbody, data, columns, objectCell = 'summary', objectAl
         tr.appendChild(td);
         columns.forEach(col => {
             const td = document.createElement('td');
-            const value = item[col.key];
+            const value = getValue(item, col.key);
             if (col.render) {
                 td.appendChild(col.render(item));
             } else if (Array.isArray(value)) {
@@ -690,7 +692,7 @@ export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
     const rows = items.map(item =>
         columns.map(c => {
-            const v = cellText(item[c.key]);
+            const v = cellValue(item, c.key);
             return `"${v.replace(/"/g, '""')}"`;
         })
     );

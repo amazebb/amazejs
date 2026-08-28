@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellValue, getValue } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -167,7 +167,7 @@ export async function initTable(config) {
     filterDefs.forEach(def => {
         // Blank values are a real option: missing/empty cells get their own row so
         // they stay selectable instead of being silently filtered out.
-        const values = [...new Set(data.map(d => d[def.key] ?? ''))].sort();
+        const values = [...new Set(data.map(d => cellValue(d, def.key)))].sort();
         filterState[def.key] = new Set(values);
         optionQuery[def.key] = '';
 
@@ -406,7 +406,7 @@ export async function initTable(config) {
         // Show the column's actual span as placeholders so the bounds are
         // obvious, and widen both inputs to fit the longer number (digits in
         // ch + room for padding and the number spinner).
-        const nums = data.map(d => Number(d[def.key])).filter(n => !Number.isNaN(n));
+        const nums = data.map(d => Number(getValue(d, def.key))).filter(n => !Number.isNaN(n));
         if (nums.length) {
             minInp.placeholder = String(Math.min(...nums));
             maxInp.placeholder = String(Math.max(...nums));
