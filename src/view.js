@@ -1,4 +1,5 @@
 // DOM rendering functions — no business logic or mutable state.
+import { cellText, isPlainObject } from './model.js';
 
 // Stylesheet injection, lazy and once, on the first initTable() (ensureStyles).
 // Raw/dev use loads the sibling amazejs.css via <link> (import.meta.url); the
@@ -124,6 +125,69 @@ export function renderArrayCell(td, values) {
         item.textContent = String(v);
         dd.appendChild(item);
     });
+    td.appendChild(dd);
+
+    attachPopover(badge, dd, badge);
+}
+
+// Renders a plain-object cell (a nested record like { stable: '4.0.0', head: 'HEAD' };
+// arrays of objects become child tables instead). Modes: 'summary' — first pair inline
+// plus a +N badge opening a popover with every pair; 'lines' — one pair per line;
+// 'table' — a bare key/value table. label titles the popover, align ('left' or
+// 'right') sets the value column's text alignment.
+export function renderObjectCell(td, obj, mode, label, align = 'left') {
+    const pairs = Object.entries(obj).map(([k, v]) => [k, cellText(v)]);
+    if (!pairs.length) return;
+
+    if (mode === 'lines') {
+        td.classList.add('aj-obj-lines');
+        td.textContent = pairs.map(([k, v]) => `${k}: ${v}`).join('\n');
+        return;
+    }
+
+    if (mode === 'table') {
+        const inner = document.createElement('table');
+        inner.className = `aj-obj-table aj-obj-${align}`;
+        pairs.forEach(([k, v]) => {
+            const tr = inner.insertRow();
+            tr.insertCell().textContent = k;
+            tr.insertCell().textContent = v;
+        });
+        td.appendChild(inner);
+        return;
+    }
+
+    td.appendChild(document.createTextNode(`${pairs[0][0]}: ${pairs[0][1]}`));
+    if (pairs.length === 1) return;
+
+    const badge = document.createElement('button');
+    badge.className = 'aj-array-badge';
+    badge.textContent = `+${pairs.length - 1}`;
+    td.appendChild(badge);
+
+    const dd = document.createElement('div');
+    dd.className = 'filter-dropdown aj-obj-dd';
+    dd.popover = 'auto';
+
+    const header = document.createElement('div');
+    header.className = 'aj-array-header';
+    header.textContent = label;
+    dd.appendChild(header);
+
+    // One grid, two content-sized columns: keys line up down the popover and the
+    // values sit right beside them instead of being pushed to the far edge.
+    const list = document.createElement('div');
+    list.className = `aj-obj-pairs aj-obj-${align}`;
+    pairs.forEach(([k, v]) => {
+        const key = document.createElement('span');
+        key.className = 'aj-obj-key';
+        key.textContent = k;
+        const val = document.createElement('span');
+        val.className = 'aj-obj-val';
+        val.textContent = v;
+        list.append(key, val);
+    });
+    dd.appendChild(list);
     td.appendChild(dd);
 
     attachPopover(badge, dd, badge);
@@ -471,7 +535,7 @@ function formatCell(value, col) {
 
 // Builds tbody rows via DocumentFragment (single reflow).
 // Returns a WeakMap<item, tr> for later visibility toggling and sorting.
-export function buildRows(tbody, data, columns) {
+export function buildRows(tbody, data, columns, objectCell = 'summary', objectAlign = 'left') {
     const rowMap = new WeakMap();
     const fragment = document.createDocumentFragment();
     data.forEach(item => {
@@ -486,6 +550,8 @@ export function buildRows(tbody, data, columns) {
                 td.appendChild(col.render(item));
             } else if (Array.isArray(value)) {
                 renderArrayCell(td, value);
+            } else if (isPlainObject(value)) {
+                renderObjectCell(td, value, col.objectCell || objectCell, col.label, col.objectAlign || objectAlign);
             } else {
                 td.textContent = formatCell(value, col);
             }
@@ -612,7 +678,7 @@ export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
     const rows = items.map(item =>
         columns.map(c => {
-            const v = (item[c.key] ?? '').toString();
+            const v = cellText(item[c.key]);
             return `"${v.replace(/"/g, '""')}"`;
         })
     );

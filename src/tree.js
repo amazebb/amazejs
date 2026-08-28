@@ -31,6 +31,8 @@ export async function initTree(config, rawData) {
             showFilterRow:   config.showFilterRow,
             badgeAlwaysShow: config.badgeAlwaysShow,
             badgePosition:   config.badgePosition,
+            objectCell:      config.objectCell,
+            objectAlign:     config.objectAlign,
             searchDebounce:  config.searchDebounce,
         },
     };

@@ -81,11 +81,26 @@ export function inferColumns(data, configCols) {
     });
 }
 
+// True for a plain object value — a nested record rendered as key/value pairs,
+// as opposed to an array (a child group) or a scalar.
+export function isPlainObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+// Flattens any cell value to text for searching, filtering and sorting: objects
+// become "key: value" pairs, arrays a comma list, scalars themselves.
+export function cellText(value) {
+    if (value == null) return '';
+    if (Array.isArray(value)) return value.map(cellText).join(', ');
+    if (isPlainObject(value)) return Object.entries(value).map(([k, v]) => `${k}: ${cellText(v)}`).join(', ');
+    return String(value);
+}
+
 // True when the item passes every text filter and the (lowercased) search query.
 function matchesTextAndSearch(item, textState, q, searchKeys) {
     const matchText = Object.entries(textState)
-        .every(([key, val]) => !val || (item[key] || '').toLowerCase().includes(val.toLowerCase()));
-    const matchSearch = !q || searchKeys.some(k => (item[k] || '').toLowerCase().includes(q));
+        .every(([key, val]) => !val || cellText(item[key]).toLowerCase().includes(val.toLowerCase()));
+    const matchSearch = !q || searchKeys.some(k => cellText(item[k]).toLowerCase().includes(q));
     return matchText && matchSearch;
 }
 
@@ -145,8 +160,8 @@ export function computeCounts(data, categoryState, textState, rangeState, query,
 export function sortItems(data, key, dir, numeric = false) {
     return [...data].sort((a, b) => {
         if (numeric) return (Number(a[key]) - Number(b[key])) * dir;
-        const aVal = (a[key] || '').toLowerCase();
-        const bVal = (b[key] || '').toLowerCase();
+        const aVal = cellText(a[key]).toLowerCase();
+        const bVal = cellText(b[key]).toLowerCase();
         if (aVal < bVal) return -dir;
         if (aVal > bVal) return dir;
         return 0;

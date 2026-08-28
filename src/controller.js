@@ -38,6 +38,8 @@ export async function initTable(config) {
         searchDebounce = true,
         stickyHeaders  = true,
         showFilterRow  = true,
+        objectCell     = 'summary',
+        objectAlign    = 'left',
         collapsed      = false
     } = config;
 
@@ -146,7 +148,7 @@ export async function initTable(config) {
 
     // --- View: build table content ---
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
-    const rowMap = buildRows(tbody, data, columns);
+    const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
     // --- State ---

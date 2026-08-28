@@ -98,6 +98,8 @@ Available variables: `--bg`, `--bg-subtle`, `--bg-hover`, `--text`, `--text-mute
 | `exportFilename` | derived | Export name; `false` hides the File menu |
 | `buttons` | `[]` | Extra toolbar buttons: `{ label, onClick(visibleItems, btn) }` |
 | `striped`, `bordered`, `rowNumbers` | `false` | Appearance toggles |
+| `objectCell` | `'summary'` | How nested-object values render: `'summary'`, `'lines'` or `'table'` |
+| `objectAlign` | `'left'` | Alignment of object-cell values: `'left'` or `'right'` |
 | `collapsed` | `false` | Start as a collapsed disclosure line; table builds on first expand |
 | `levels` | auto | Tree-mode per-depth overrides, or `false` to force a flat table |
 
