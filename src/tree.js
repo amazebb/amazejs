@@ -1,5 +1,5 @@
 import { initTable } from './controller.js';
-import { isUrlData, titleFromUrl } from './model.js';
+import { isUrlData, titleFromUrl, sampleKeys, SAMPLE_SIZE } from './model.js';
 
 const btnMeta = new WeakMap();
 
@@ -45,18 +45,27 @@ export async function initTree(config, rawData) {
 
     const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle });
 
-    // Delegated click listener scoped to the container — catches row toggles from
-    // all nested levels. The whole first-cell wrapper is a click target too; it
-    // resolves to the toggle button it contains. Toolbar disclosure toggles also
-    // match .aj-toggle but have no btnMeta entry — handleToggle ignores them and
-    // the controller's own titleWrap listener handles the collapse.
-    table.closest('.atv-table-container').addEventListener('click', e => {
-        const hit = e.target.closest('.aj-toggle, .aj-toggle-wrap');
+    ensureToggleListener();
+    return table;
+}
+
+// One delegated click listener for every tree on the page — catches row toggles
+// from all nested levels. The whole first-cell wrapper is a click target too; it
+// resolves to the toggle button it contains. Toolbar disclosure toggles also match
+// .aj-toggle but have no btnMeta entry — handleToggle ignores them and the
+// controller's own titleWrap listener handles the collapse. Bound to the document
+// rather than the container so it survives a rebuild that replaces the container
+// (the Columns picker, File > Open).
+let _toggleListenerBound = false;
+function ensureToggleListener() {
+    if (_toggleListenerBound) return;
+    _toggleListenerBound = true;
+    document.addEventListener('click', e => {
+        const hit = e.target.closest?.('.aj-toggle, .aj-toggle-wrap');
         if (!hit) return;
         const btn = hit.classList.contains('aj-toggle') ? hit : hit.querySelector('.aj-toggle');
         if (btn) handleToggle(btn);
     });
-    return table;
 }
 
 // Extracts the root array and its wrapper key (null when data is already an array):
@@ -91,11 +100,19 @@ function allowedChildKeys(levels, depth) {
 // The first column gets a render function that injects an expand toggle (when the
 // item has child groups) or a leaf spacer, reusing the col.render hook in buildRows (view.js).
 function getColumns(items, ctx, depth) {
-    const sample  = items[0] || {};
     const nameKey = ctx.levels?.[depth]?.nameKey || 'name';
     const allowed = allowedChildKeys(ctx.levels, depth);
 
-    const keys = Object.keys(sample).filter(k => !Array.isArray(sample[k]));
+    // Keys come from a sample, not just the first item, since records vary. A key
+    // is a child group if it holds an array of objects in ANY sampled item — an
+    // empty array in the first one must not demote it to a column. Everything else
+    // is an ordinary column, arrays of scalars (oldnames, aliases) included: they
+    // render as a value list.
+    const groupKeys = new Set();
+    items.slice(0, SAMPLE_SIZE).forEach(item => {
+        Object.entries(item).forEach(([k, v]) => { if (isObjectArray(v)) groupKeys.add(k); });
+    });
+    const keys = sampleKeys(items).filter(k => !groupKeys.has(k));
     if (keys.includes(nameKey)) {
         keys.splice(keys.indexOf(nameKey), 1);
         keys.unshift(nameKey);

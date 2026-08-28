@@ -1,10 +1,11 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellValue, getValue } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellValue, getValue, discoverPaths, CATEGORY_MAX } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
-    attachPopover, ensureStyles, lockColumnWidths
+    attachPopover, ensureStyles, lockColumnWidths,
+    buildColumnsMenu, buildColumnOptions
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -61,7 +62,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, noResults, tableWrap;
+    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, btnHost, noResults, tableWrap;
 
     // Every table gets a container holding toolbar + table: it is the disclosure
     // target the toolbar collapses. Non-nested tables also get a scroll wrapper
@@ -87,7 +88,7 @@ export async function initTable(config) {
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no
     // tableWrap). File/Settings always sit behind the `⋯` overflow.
     if (config.showToolbar ?? true) {
-        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, btnHost } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
     }
 
@@ -261,6 +262,40 @@ export async function initTable(config) {
             columns: undefined, dataKey: undefined,
             collapsed: false,
             table: fresh,
+        });
+    }
+
+    // Same in-place re-init as File > Open, but with an explicit column list over
+    // the data already resolved. Existing column objects are reused as they are, so
+    // a tree's first column keeps its render — and therefore its row toggles.
+    async function rebuildColumns(newColumns) {
+        const fresh = document.createElement('table');
+        fresh.id = tableId;
+        tableContainer.replaceWith(fresh);
+        return initTable({ ...config, data, columns: newColumns, title, collapsed: false, table: fresh });
+    }
+
+    // --- Columns picker: every leaf path found in the data, ticked for the columns
+    // on screen. Ticking one adds it as an ordinary column — deep fields work
+    // because a column key may be a path — and rebuilds the table. Paths with few
+    // distinct values get a checkbox filter, so a boolean lands as true/false
+    // checkboxes rather than a text box. ---
+    if (btnHost && !nested) {
+        const found = discoverPaths(data);
+        const distinct = new Map(found.map(d => [d.path, d.distinct]));
+        const shown = columns.map(c => c.key);
+        // Current columns first (a tree's name column is never a discovered leaf).
+        const paths = [...shown.filter(k => !distinct.has(k)), ...found.map(d => d.path)];
+
+        const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
+        const rows = buildColumnOptions(menu.dd, paths, new Set(shown), (path, checked) => {
+            const next = checked
+                ? [...columns, distinct.get(path) <= CATEGORY_MAX ? { key: path, filter: 'category' } : { key: path }]
+                : columns.filter(c => c.key !== path);
+            if (next.length) rebuildColumns(next);
+        });
+        menu.search.addEventListener('input', function() {
+            filterOptionRows(rows, paths, this.value);
         });
     }
 

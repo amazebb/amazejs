@@ -109,9 +109,23 @@ function walkPath(value, segs, i) {
     return value;
 }
 
+// How many items the key/path scans read. Records in JSON vary, so the first item
+// alone misses fields (all.json's head_dependencies); a sample catches them without
+// walking thousands of rows before the first paint.
+export const SAMPLE_SIZE = 50;
+
+// Every key seen across a sample of the items, in first-seen order.
+export function sampleKeys(items, sample = SAMPLE_SIZE) {
+    const keys = new Set();
+    items.slice(0, sample).forEach(item => {
+        if (isPlainObject(item)) Object.keys(item).forEach(k => keys.add(k));
+    });
+    return [...keys];
+}
+
 // Resolves column definitions, merging config with numeric-detection defaults.
 export function inferColumns(data, configCols) {
-    const base = configCols || Object.keys(data[0] || {}).map(key => ({ key }));
+    const base = configCols || sampleKeys(data).map(key => ({ key }));
     return base.map(col => {
         const isNumeric = data.every(item => {
             const v = getValue(item, col.key);
@@ -134,6 +148,51 @@ export function cellText(value) {
     if (Array.isArray(value)) return value.map(cellText).join(', ');
     if (isPlainObject(value)) return Object.entries(value).map(([k, v]) => `${k}: ${cellText(v)}`).join(', ');
     return String(value);
+}
+
+// A path with this few distinct values in the sample is worth a checkbox filter
+// rather than a text box — booleans, enums, taps.
+export const CATEGORY_MAX = 25;
+
+// Walks a sample of the items and returns every path worth offering as a column,
+// as { path, distinct }, in discovery order so top-level fields come first. That is
+// every leaf — ending at a scalar or an array of scalars — plus the containers
+// themselves, since an object or array of objects is a column too (it renders as an
+// object cell or a child table); containers report Infinity distinct values so they
+// never get a checkbox filter. Nested objects extend the path with '.', arrays of
+// objects with '[*]'. The caps keep deep data (all.json's bottle.files.*) from
+// producing an unusable list; the picker's search box covers the rest.
+export function discoverPaths(items, { sample = SAMPLE_SIZE, depth = 4, limit = 400 } = {}) {
+    // path -> the values sampled for it, or null for a container
+    const found = new Map();
+
+    const add = (path, seen) => {
+        if (!found.has(path) && found.size < limit) found.set(path, seen);
+        return found.get(path);
+    };
+
+    const addLeaf = (path, value) => {
+        const seen = add(path, new Set());
+        if (seen && seen.size <= CATEGORY_MAX) seen.add(cellText(value));
+    };
+
+    const walk = (obj, prefix, level) => {
+        Object.entries(obj).forEach(([k, v]) => {
+            const path = prefix + k;
+            if (isPlainObject(v)) {
+                add(path, null);
+                if (level < depth) walk(v, `${path}.`, level + 1);
+            } else if (Array.isArray(v) && v.some(isPlainObject)) {
+                add(path, null);
+                if (level < depth) v.filter(isPlainObject).forEach(el => walk(el, `${path}[*].`, level + 1));
+            } else {
+                addLeaf(path, v);
+            }
+        });
+    };
+
+    items.slice(0, sample).forEach(item => { if (isPlainObject(item)) walk(item, '', 0); });
+    return [...found].map(([path, seen]) => ({ path, distinct: seen ? seen.size : Infinity }));
 }
 
 // A cell's value as comparable text — the pairing of getValue and cellText that

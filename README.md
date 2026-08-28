@@ -9,6 +9,9 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - [Features](#features)
 - [Quick start](#quick-start)
   - [Explicit columns](#explicit-columns)
+  - [How columns are chosen](#how-columns-are-chosen)
+  - [Picking columns in the browser](#picking-columns-in-the-browser)
+  - [Deep fields](#deep-fields)
   - [Tree tables](#tree-tables)
 - [Theming](#theming)
 - [API](#api)
@@ -21,6 +24,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - **Filtering** — category (checkbox) and text filter dropdowns open on header hover; global search across configurable keys.
 - **Tree tables** — nested JSON (e.g. countries → states / timezones) is auto-detected and rendered as expandable rows with lazily built child tables, each with its own toolbar, filters, and settings.
 - **File menu** — open a local CSV/TSV/JSON file into the table, export the visible rows as CSV or JSON.
+- **Columns menu** — every field found in the data, however deeply nested, one tick away from becoming a sortable, filterable column.
 - **Settings** — per-table toggles for row numbers, column separators, and a frozen (sticky) toolbar.
 - **Theming** — a default light/dark theme ships built in; override CSS custom properties to restyle.
 
@@ -30,7 +34,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 <table id="myTable"></table>
 
 <script type="module">
-    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.1.0/src/index.js';
+    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
 
     initTable({
         data: ['data/items.json'],   // or pass an array of objects directly
@@ -44,7 +48,7 @@ Columns, title, and filters are inferred from the data. The component CSS — in
 ### Explicit columns
 
 ```js
-import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.1.0/src/index.js';
+import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
 
 initTable({
     data: items,
@@ -61,6 +65,84 @@ initTable({
     ],
 });
 ```
+
+### How columns are chosen
+
+Without explicit `columns`, the columns are read from the data itself:
+
+- Keys are the **union of the first 50 items'** keys, in first-seen order.
+- **Arrays of objects become expandable child tables**, not columns.
+- Everything else is a column, arrays of scalars included (they render as a value
+  list: first entry plus a `+N` popover).
+
+#### Where sampling falls down: ragged JSON
+
+Uniform data — a CSV or TSV, or a JSON array whose items all carry the same fields —
+is picked up perfectly: every column is found, no matter how many rows there are.
+
+The sample only matters for **ragged** data, where items don't share a shape. The
+classic source is a tool that omits fields it has nothing to say about:
+
+```
+brew info --installed --json=v2 > all.json
+```
+
+Every formula there carries `name`, `desc` and `versions`, but `head_dependencies`
+appears only on formulae that *have* a HEAD build, `oldnames` only on renamed ones,
+and casks use a different field set entirely. Scanning one item would miss most of
+that, which is why the scan reads 50 — but that is still a sample, and it has a hard
+edge:
+
+> **A field that first appears at item 51 or later is invisible** — not in the table,
+> and not in the Columns menu either, since path discovery reads the same 50 items.
+
+Three ways to deal with it, in order of effort:
+
+1. **Pass `columns` explicitly** for the fields you care about. Path keys mean a rare
+   deep field is one line whether it is top-level or buried:
+
+   ```js
+   import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
+
+   initTable({
+       data: ['all.json'],
+       tableId: 'brewTable',
+       dataKey: 'formulae',              // which array in the root object to table
+       searchKeys: ['name', 'desc'],
+       columns: [
+           { key: 'name', label: 'Name' },
+           { key: 'desc', label: 'Description' },
+           { key: 'versions.stable', label: 'Stable' },                 // nested object
+           { key: 'head_dependencies', label: 'HEAD deps' },            // rare, top-level
+           { key: 'installed[0].time', label: 'Installed', numeric: true },
+           { key: 'installed[*].installed_on_request',                  // rare, nested in an array
+             label: 'Requested', filter: 'category' },
+       ],
+   });
+   ```
+
+   Every key is a path: `.` steps into an object, `[0]` picks an element, and `[*]`
+   maps over the array so the filter means "any element matches". Listing a path
+   explicitly bypasses discovery entirely, so it works no matter where in the file
+   the field first appears. Note that passing `columns` also turns off automatic tree
+   mode — you get a flat table with exactly these columns, not expandable child rows.
+2. **Put a representative item first.** The scan is order-sensitive, so a data
+   generator that emits the richest record early solves it for free.
+3. **Raise the sample.** `SAMPLE_SIZE` in `src/model.js` is the single constant
+   behind key scanning and path discovery; the cost is a slower first paint on large
+   files.
+
+A useful sanity check when a field seems missing: open the **Columns** menu and
+search for it. If it isn't listed there either, it's outside the sample — not
+mis-rendered.
+
+### Picking columns in the browser
+
+Every table's toolbar has a **Columns** menu (behind the `⋯` overflow) listing every
+nested field found in the data. Search it, tick a path, and it becomes a column —
+sortable and filterable like any other, with no config. Fields with few distinct
+values arrive with checkbox filters, so a boolean like
+`installed[*].installed_on_request` is ready to filter on the spot.
 
 ### Deep fields
 

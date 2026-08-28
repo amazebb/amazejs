@@ -333,7 +333,55 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
+}
+
+// The Columns menu: a toolbar button plus the filter-dropdown shell, giving the
+// picker the same search box and checkbox rows as a column filter. The Show All /
+// Clear All actions are dropped — on deep data they would mean "add 400 columns".
+export function buildColumnsMenu(btnHost, id) {
+    const btn = document.createElement('button');
+    btn.className = 'atv-export-btn';
+    btn.textContent = 'Columns';
+    btnHost.appendChild(btn);
+
+    const dd = buildDropdown(id);
+    dd.querySelector('.filter-actions').remove();
+    const header = document.createElement('div');
+    header.className = 'aj-array-header';
+    header.textContent = 'Columns';
+    dd.prepend(header);
+    btnHost.appendChild(dd);
+
+    attachPopover(btn, dd, btn, { hover: true });
+    return { btn, dd, search: dd.querySelector('.filter-search') };
+}
+
+// One checkbox row per discovered path, ticked for the columns already shown.
+// onToggle(path, checked) rebuilds the table; returns the rows for search filtering.
+export function buildColumnOptions(dd, paths, active, onToggle) {
+    const container = dd.querySelector('.filter-options');
+    const rows = {};
+
+    paths.forEach(path => {
+        const row = document.createElement('div');
+        row.className = 'filter-row';
+        row.setAttribute('data-value', path.toLowerCase());
+
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = active.has(path);
+        cb.addEventListener('change', function() { onToggle(path, this.checked); });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(path));
+
+        row.appendChild(label);
+        container.appendChild(row);
+        rows[path] = row;
+    });
+
+    return rows;
 }
 
 function makeSettingsRow(container, label) {

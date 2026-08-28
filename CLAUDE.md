@@ -64,6 +64,46 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `badgePosition` | `'left'`, `'right'`, or `'none'` | `'left'` | `'left'` keeps the count badge in the title line; `'right'` moves it to the far end of the toolbar, after all buttons; `'none'` hides it. Cycled at runtime via the Settings menu button (Count on Left → Count on Right → Count None). |
 | `searchDebounce` | boolean or number | `true` (150ms) | `false` = no debounce |
 
+### Which columns show on first load
+
+With no explicit `columns`, the visible set is derived from the data, and three rules
+decide it — worth knowing, because a field can be present in the data yet absent from
+the table:
+
+1. **Keys come from a sample, not the whole set.** `sampleKeys` (model.js) unions the
+   keys of the first `SAMPLE_SIZE` (50) items, in first-seen order — records vary, so
+   the first item alone misses fields. `inferColumns` and tree mode's `getColumns`
+   both use it, and `discoverPaths` samples the same 50.
+   **Caveat: a field that first appears after item 50 is in neither the table nor the
+   Columns picker.** Raise `SAMPLE_SIZE`, or pass explicit `columns`, for data whose
+   shape varies that late.
+2. **Arrays of objects become child groups, not columns** (tree mode) — that is the
+   expandable nested table. A key counts as a group if *any* sampled item holds an
+   array of objects for it, so an empty array in the first item can't demote it.
+   Arrays of scalars (`oldnames`, `aliases`) are ordinary columns rendering as a
+   value list.
+3. **Everything else is a column**, in sampled-key order with `nameKey` pulled first.
+
+Anything left out is still one tick away in the Columns menu, which lists containers
+as well as leaves — provided it was in the sample.
+
+### Columns menu
+
+Non-nested tables get a **Columns** toolbar menu (next to File and Settings, behind
+the `⋯` overflow) listing every path `discoverPaths` finds in the data — leaves and
+their containers (an object or array of objects is a column too, reported with
+`distinct: Infinity` so it never gets a checkbox filter) — walked over the first
+`SAMPLE_SIZE` items, 4 levels deep, capped at 400 paths, with the dropdown's search
+box for the rest. Ticked rows are the columns on screen; ticking another adds
+it as an ordinary column keyed by its path and rebuilds the table in place
+(`rebuildColumns`, the same swap File > Open uses, reusing the existing column objects
+so a tree's first column keeps its render and its row toggles). A path with
+`distinct <= CATEGORY_MAX` (25) values in the sample gets `filter: 'category'`, so
+booleans and enums arrive as checkboxes instead of a text box. A rebuild resets the
+current filters, and the picked columns don't persist across a reload. Show All /
+Clear All are stripped from that dropdown — on deep data they would mean "add 400
+columns".
+
 ### Path keys
 
 Any key naming a field — `col.key`, `searchKeys`, `linkCell`'s two keys — may be a
@@ -113,7 +153,7 @@ Themeable variables:
 
 - No DOM access in `model.js` — keep it that way.
 - No business logic or state in `view.js` — it only builds/mutates DOM and returns references.
-- Every toolbar is a disclosure header line (`.aj-toggle` arrow + `.atv-title` + `.atv-count-badge` inside the clickable `.atv-title-wrap`) that collapses/expands its `.atv-table-container` (which wraps toolbar + table for every table, nested or not). Regular tables start expanded; tree child groups under an item with multiple groups start collapsed (`collapsed: true`), deferring the whole table build to first expand — this is how tree laziness works. An item with a single child group starts expanded (one click to reach the table). Every table (flat or nested) gets the full toolbar (File, Settings) behind the `⋯` overflow. Child tables live inside a single `aj-children-row` sibling `<tr>`; subsequent row toggles just show/hide it.
+- Every toolbar is a disclosure header line (`.aj-toggle` arrow + `.atv-title` + `.atv-count-badge` inside the clickable `.atv-title-wrap`) that collapses/expands its `.atv-table-container` (which wraps toolbar + table for every table, nested or not). Regular tables start expanded; tree child groups under an item with multiple groups start collapsed (`collapsed: true`), deferring the whole table build to first expand — this is how tree laziness works. An item with a single child group starts expanded (one click to reach the table). Every table (flat or nested) gets the full toolbar (File, Columns, Settings) behind the `⋯` overflow. Child tables live inside a single `aj-children-row` sibling `<tr>`; subsequent row toggles just show/hide it.
 - All table toolbars collapse the same way: only title + count badge show by default, with everything else (export, extra buttons, settings) inside `.atv-toolbar-more`. Revealed two ways: on hover devices, hovering `.atv-more-wrap` (the reserved space the hidden buttons occupy); on any device, clicking the `.atv-more-btn` ellipsis toggles `aria-expanded`. The `⋯` button sits *outside* `.atv-more-wrap` (but adjacent, for the `+ .atv-more-wrap` reveal selector) so hovering/clicking it never trips the hover-reveal — keeping the click a clean toggle that `:hover` can't fight. New toolbar items should be appended to the `btnHost` container in `buildToolbar` so they collapse automatically.
 - All dropdowns are nested in their trigger's DOM (filter dropdowns inside the `<th>`, array dropdowns inside the `<td>`, File/settings dropdowns in the toolbar) — never portalled to `<body>`. The native Popover API (`popover="auto"`) renders them in the top layer when open, and DOM nesting means File > Open can rebuild a table by replacing its container without leaking dropdowns. `attachPopover` (view.js) wires invoker buttons and keeps their `aria-expanded` in sync; with `{ hover: true }` (File/settings buttons and column-filter `<th>`s) the dropdown also opens on pointer-over and closes after a grace delay once the pointer leaves both invoker and dropdown (unless a text input inside is focused); moving onto a different column header closes it immediately. Column filter dropdowns have no trigger button: the `<th>` itself is the invoker — hover opens the filter, click sorts.
 - `.aj-rotate` is the reusable indicator-rotation utility: any element with the class spins its `::before`/`::after` arrow while `aria-expanded="true"` (angle via `--aj-rotate-angle`, default 180deg). Used by tree row toggles (`.aj-toggle`, 90deg); apply it to future toggling UI rather than writing new transitions.
