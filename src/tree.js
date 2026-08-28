@@ -15,8 +15,8 @@ export function isTreeData(data) {
 
 // Called by initTable when tree handling applies; rawData is already fetched.
 export async function initTree(config, rawData) {
-    const { key: rootKey, items: rootItems } = getRootItems(rawData, config.dataKey);
-    if (!rootItems?.length) return;
+    const rootGroups = getRootGroups(rawData, config.dataKey);
+    if (!rootGroups.length) return;
 
     // Settings threaded down to every nested level via the toggle metadata.
     // childOpts carries the parent's presentational options so child tables —
@@ -37,18 +37,48 @@ export async function initTree(config, rawData) {
             searchDebounce:  config.searchDebounce,
         },
     };
-    const rootCols = getColumns(rootItems, ctx, 0);
+    ensureToggleListener();
 
+    // A root object holding several arrays of objects (all.json's formulae + casks)
+    // is the same shape as an item with several child groups, so it gets the same
+    // treatment: one table per group, each with its own columns, filters and
+    // toolbar, and — as for multiple child groups — each starts as a collapsed
+    // disclosure line that builds on first expand. Merging them is not on: shared
+    // keys can differ in type between groups (all.json's `installed` is a child
+    // group in formulae and a plain string in casks).
+    if (rootGroups.length > 1) {
+        const anchor = config.table || document.getElementById(config.tableId);
+        const host = document.createElement('div');
+        anchor.replaceWith(host);
+        for (const group of rootGroups) buildRootTable(host, group, config, ctx);
+        return host;
+    }
+
+    const { key: rootKey, items: rootItems } = rootGroups[0];
     const rootTitle = config.title
         || (rootKey ? rootKey.toUpperCase() : '')
         || (isUrlData(config.data) ? titleFromUrl(config.data[0]) : '');
 
     // labelStyle is the table's one labelling rule, applied by inferColumns — so
     // columns added later from the Columns picker match (TAP, not Tap).
-    const table = await initTable({ ...config, data: rootItems, columns: rootCols, title: rootTitle, labelStyle: 'upper' });
+    return initTable({ ...config, data: rootItems, columns: getColumns(rootItems, ctx, 0), title: rootTitle, labelStyle: 'upper' });
+}
 
-    ensureToggleListener();
-    return table;
+// A root group is a full, non-nested table (its own scroll wrapper, no-results and
+// Columns menu), unlike the nested tables buildGroupTable makes for child rows.
+function buildRootTable(host, group, config, ctx) {
+    const table = document.createElement('table');
+    host.appendChild(table);
+    return initTable({
+        ...config,
+        table,
+        tableId:    undefined,
+        data:       group.items,
+        columns:    getColumns(group.items, ctx, 0),
+        title:      group.key.toUpperCase(),
+        labelStyle: 'upper',
+        collapsed:  true,
+    });
 }
 
 // One delegated click listener for every tree on the page — catches row toggles
@@ -70,12 +100,20 @@ function ensureToggleListener() {
     });
 }
 
-// Extracts the root array and its wrapper key (null when data is already an array):
-// explicit dataKey, or the first array property in a root object.
-function getRootItems(rawData, dataKey) {
-    if (Array.isArray(rawData)) return { key: null, items: rawData };
-    const key = dataKey || Object.keys(rawData).find(k => Array.isArray(rawData[k]));
-    return { key, items: key ? rawData[key] : null };
+// The root's groups, mirroring getChildGroups one level up: an explicit dataKey wins,
+// otherwise every array-of-objects property of the root object; a bare array is a
+// single unnamed group. Empty groups are dropped so they never render as a table
+// with no rows.
+function getRootGroups(rawData, dataKey) {
+    if (Array.isArray(rawData)) return rawData.length ? [{ key: null, items: rawData }] : [];
+    if (dataKey) return rawData[dataKey]?.length ? [{ key: dataKey, items: rawData[dataKey] }] : [];
+    const groups = Object.keys(rawData)
+        .filter(k => isObjectArray(rawData[k]))
+        .map(k => ({ key: k, items: rawData[k] }));
+    if (groups.length) return groups;
+    // No array of objects: fall back to the first array property, as before.
+    const first = Object.keys(rawData).find(k => rawData[k]?.length && Array.isArray(rawData[k]));
+    return first ? [{ key: first, items: rawData[first] }] : [];
 }
 
 // Returns every child group of an item — properties holding arrays of objects —

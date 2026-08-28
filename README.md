@@ -170,6 +170,12 @@ Pass nested data — a root wrapper object or items containing arrays of objects
 initTable({ data: { countries: [/* each may hold states: [...], timezones: [...] */] }, tableId: 'worldTable' });
 ```
 
+A root object holding **several** arrays gets one table per array, stacked and
+collapsed, each with its own columns and filters — so `brew info`'s `{ formulae, casks }`
+renders both. They are never merged into one table: the same key can hold different
+types in each array (`installed` is a list of objects for formulae, a version string
+for casks). Pass `dataKey` to table just one of them.
+
 ## Theming
 
 A complete light/dark default theme is built in — no CSS required. The defaults have zero specificity, so anything you define on `:root` wins automatically. Override only what you want to change:
