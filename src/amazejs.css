@@ -754,6 +754,19 @@ thead th.active {
 /* In the File menu the items are actions, not values — show a pointer */
 .atv-export-dd .aj-array-item { cursor: pointer; }
 
+/* Flash that marks the column the Columns picker just added, once it is scrolled
+   into view. Sits on the accent so it reads as "here", then fades back. */
+@keyframes aj-flash {
+    from { background: var(--accent); color: var(--bg); }
+    to   { background: var(--header-bg); color: var(--text); }
+}
+
+.aj-flash { animation: aj-flash 1.4s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+    .aj-flash { animation-duration: 0.01s; }
+}
+
 /* Object cells: key/value pairs from a nested record. The pair list is a
    two-column grid so keys align while values stay next to them; objectAlign
    flips the value column between left (default) and right. */

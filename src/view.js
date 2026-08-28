@@ -426,6 +426,16 @@ export function lockColumnWidths(table) {
     table.style.tableLayout = 'fixed';
 }
 
+// Points the eye at a column after a rebuild: scrolls it into view (a new column can
+// land off-screen on a wide table) and flashes its header.
+export function focusColumn(table, index) {
+    const th = table.querySelector(`th[data-col="${index}"]`);
+    if (!th) return;
+    th.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    th.classList.add('aj-flash');
+    th.addEventListener('animationend', () => th.classList.remove('aj-flash'), { once: true });
+}
+
 // Builds and inserts a no-results message after the table wrapper.
 // Returns the element for show/hide toggling.
 export function buildNoResults(tableWrap, message) {

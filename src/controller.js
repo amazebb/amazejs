@@ -5,7 +5,7 @@ import {
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
     attachPopover, ensureStyles, lockColumnWidths,
-    buildColumnsMenu, buildColumnOptions
+    buildColumnsMenu, buildColumnOptions, focusColumn
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -302,7 +302,10 @@ export async function initTable(config) {
             const next = checked
                 ? [...columns, added].sort((a, b) => rank(a) - rank(b))
                 : columns.filter(c => c.key !== path);
-            if (next.length) rebuildColumns(next);
+            if (!next.length) return;
+            rebuildColumns(next).then(fresh => {
+                if (checked) focusColumn(fresh, next.findIndex(c => c.key === path));
+            });
         });
         menu.search.addEventListener('input', function() {
             filterOptionRows(rows, paths, this.value);

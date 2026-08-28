@@ -105,7 +105,9 @@ into the dropdown's own (discovery) order on every change, so re-ticking one put
 back where it was rather than at the far end — except a tree's first column, which is
 pinned first because it carries the row-toggle render. Added columns carry no label of their
 own — `inferColumns` derives every missing one on the rebuild, so they match whatever
-the rest of the table uses. A rebuild resets the
+the rest of the table uses. After the rebuild `focusColumn` scrolls the new column
+into view (`th[data-col]`) and flashes its header with `.aj-flash`, since on a wide
+table it can land off-screen. A rebuild resets the
 current filters, and the picked columns don't persist across a reload. Show All /
 Clear All are stripped from that dropdown — on deep data they would mean "add 400
 columns".
