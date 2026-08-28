@@ -290,7 +290,22 @@ export async function initTable(config) {
 
     // --- Settings toggles ---
     if (settingsBtns) {
-        function applySticky(on) { toolbar.classList.toggle('atv-sticky', on); }
+        // Freezing the toolbar freezes the header row with it: the header pins at
+        // the toolbar's height, measured here since the toolbar's contents (title,
+        // buttons) size it.
+        function syncToolbarHeight() {
+            if (tableContainer.classList.contains('atv-sticky-head'))
+                tableContainer.style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
+            else tableContainer.style.removeProperty('--aj-toolbar-h');
+        }
+        function applySticky(on) {
+            toolbar.classList.toggle('atv-sticky', on);
+            tableContainer.classList.toggle('atv-sticky-head', on);
+            syncToolbarHeight();
+        }
+        // The toolbar sets the header's offset, and its height changes when its
+        // buttons wrap, so re-measure whenever it resizes.
+        new ResizeObserver(syncToolbarHeight).observe(toolbar);
 
         settingsBtns.rowNums.checked = rowNumbers;
         settingsBtns.borders.checked = bordered;

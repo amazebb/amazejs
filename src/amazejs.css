@@ -115,6 +115,24 @@
     background: var(--bg);
 }
 
+/* The header row pins directly under the frozen toolbar, whose measured height
+   the controller writes to --aj-toolbar-h. A sticky cell can only pin to the
+   page scroller if no ancestor between clips it, so .table-wrap's overflow is
+   dropped while frozen — a too-wide table then scrolls the page instead of the
+   wrapper. Lower z-index than the toolbar so the header slides under it. */
+.atv-table-container.atv-sticky-head > .table-wrap {
+    overflow: visible;
+}
+
+.atv-table-container.atv-sticky-head > .table-wrap > table > thead > tr > th {
+    position: sticky;
+    top: var(--aj-toolbar-h, 0px);
+    z-index: 4;
+    /* border-collapse hands cell borders to the table, which does not travel with
+       a sticky cell — repaint the header's bottom rule as an inset shadow. */
+    box-shadow: inset 0 -1px 0 var(--border);
+}
+
 /* Disclosure handle: toggle arrow + title. Clicking it collapses/expands the
    table container; it stays visible while everything else (.atv-toolbar-rest)
    hides on collapse. */

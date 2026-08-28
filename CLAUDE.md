@@ -55,7 +55,7 @@ The single entry point for both flat and tree tables. Tree mode engages automati
 | `striped` | boolean | `false` | |
 | `bordered` | boolean | `false` | |
 | `rowNumbers` | boolean | `false` | |
-| `stickyHeaders` | boolean | `true` | |
+| `stickyHeaders` | boolean | `true` | Freezes the toolbar at the top of the scroller and pins the table's header row directly beneath it (offset by `--aj-toolbar-h`, the toolbar's measured height). Toggled at runtime from the Settings menu. |
 | `showFilterRow` | boolean | `true` | |
 | `objectCell` | `'summary'`, `'lines'`, or `'table'` | `'summary'` | How a plain-object cell value (a nested record like `{stable, head}`) renders. `'summary'`: first pair inline + a `+N` badge opening a popover of all pairs; `'lines'`: one `key: value` per line; `'table'`: a bare striped key/value table in the cell. Per-column override via `col.objectCell`. Search, filters, sort and CSV export all use the flattened `"k: v, k: v"` text (`cellText`). |
 | `objectAlign` | `'left'` or `'right'` | `'left'` | Text alignment of the value column in `'summary'` and `'table'` object cells. Per-column override via `col.objectAlign`. |
