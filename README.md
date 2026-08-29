@@ -12,6 +12,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
   - [How columns are chosen](#how-columns-are-chosen)
   - [Picking columns in the browser](#picking-columns-in-the-browser)
   - [Deep fields](#deep-fields)
+  - [Formatting values](#formatting-values)
   - [Tree tables](#tree-tables)
 - [Theming](#theming)
 - [API](#api)
@@ -161,6 +162,33 @@ columns: [
 `[*]` maps over an array and yields every match, so filtering on it means "any
 element matches". Paths work anywhere a field is named, including `searchKeys` and
 `linkCell`.
+
+### Formatting values
+
+Raw values are rarely the readable ones — a Unix timestamp shows up as
+`1,783,669,613`. `formats` maps a column key to a display format:
+
+```js
+initTable({
+    data: ['all.json'],
+    formats: {
+        installed_time:        'datetime',   // casks store it here
+        'installed[0].time':   'datetime',   // formulae store it here
+        size:                  v => `${(v / 1e6).toFixed(1)} MB`,
+    },
+});
+```
+
+Built-ins are `'date'`, `'datetime'`, `'time'` and `'relative'` ("2 months ago"),
+all epoch-aware — numbers below `1e11` are read as seconds, above as milliseconds —
+plus any `(value, item) => string` function.
+
+The map is keyed by path, so it also applies to columns you add later from the
+**Columns** menu, which carry no config of their own. A format changes the cell, the
+CSV export, and the text/category filters and search — so you can search `2026` and
+find it — while **sorting and the Min/Max range keep the raw value**, leaving a date
+column in chronological order. For a single declared column, `{ key, format }` works
+the same way.
 
 ### Tree tables
 

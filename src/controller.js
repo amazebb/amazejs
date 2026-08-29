@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellValue, getValue, discoverPaths, CATEGORY_MAX } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, CATEGORY_MAX } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -40,6 +40,7 @@ export async function initTable(config) {
         stickyHeaders  = true,
         showFilterRow  = true,
         labelStyle,
+        formats,
         lockWidths     = true,
         objectCell     = 'summary',
         objectAlign    = 'left',
@@ -147,7 +148,9 @@ export async function initTable(config) {
     function buildTableUI() {
 
     // --- Model: resolve columns ---
-    const columns = inferColumns(data, config.columns, labelStyle);
+    const columns = inferColumns(data, config.columns, labelStyle, formats);
+    // Formats by key for the filter/search layers, which work from keys not columns.
+    const colFormats = Object.fromEntries(columns.filter(c => c.format).map(c => [c.key, c.format]));
 
     // --- View: build table content ---
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
@@ -169,7 +172,7 @@ export async function initTable(config) {
     filterDefs.forEach(def => {
         // Blank values are a real option: missing/empty cells get their own row so
         // they stay selectable instead of being silently filtered out.
-        const values = [...new Set(data.map(d => cellValue(d, def.key)))].sort();
+        const values = [...new Set(data.map(d => cellDisplay(d, columns[def.col])))].sort();
         filterState[def.key] = new Set(values);
         optionQuery[def.key] = '';
 
@@ -208,13 +211,13 @@ export async function initTable(config) {
     function refresh() {
         const query = effectiveSearchInput ? effectiveSearchInput.value : '';
         const activeState = narrowedFilterState();
-        visibleSet  = new Set(getVisible(sortedData, activeState, textFilterState, rangeState, query, searchKeys));
+        visibleSet  = new Set(getVisible(sortedData, activeState, textFilterState, rangeState, query, searchKeys, colFormats));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
         if (countBadge) countBadge.textContent = `${visibleSet.size} / ${data.length}`;
         if (noResults)  noResults.classList.toggle('show', visibleSet.size === 0);
 
-        const counts = computeCounts(data, activeState, textFilterState, rangeState, query, searchKeys);
+        const counts = computeCounts(data, activeState, textFilterState, rangeState, query, searchKeys, colFormats);
         filterDefs.forEach(def => {
             const ui = filterUI[def.key];
             updateFilterCounts(def, ui.values, counts[def.key] || {}, activeState[def.key], ui.rows, badgeAlwaysShow);

@@ -32,6 +32,7 @@ export async function initTree(config, rawData) {
             badgeAlwaysShow: config.badgeAlwaysShow,
             badgePosition:   config.badgePosition,
             lockWidths:      config.lockWidths,
+            formats:         config.formats,
             objectCell:      config.objectCell,
             objectAlign:     config.objectAlign,
             searchDebounce:  config.searchDebounce,

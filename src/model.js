@@ -127,7 +127,7 @@ export function sampleKeys(items, sample = SAMPLE_SIZE) {
 // Labels are derived here and nowhere else: every column that doesn't carry an
 // explicit one gets labelFor(key), uppercased when labelStyle is 'upper' (tree
 // tables). One rule, so any path that adds a column later matches the rest.
-export function inferColumns(data, configCols, labelStyle) {
+export function inferColumns(data, configCols, labelStyle, formats) {
     const base = configCols || sampleKeys(data).map(key => ({ key }));
     return base.map(col => {
         const isNumeric = data.every(item => {
@@ -135,7 +135,10 @@ export function inferColumns(data, configCols, labelStyle) {
             return !v || !isNaN(Number(v));
         });
         const label = labelStyle === 'upper' ? labelFor(col.key).toUpperCase() : labelFor(col.key);
-        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label, ...col };
+        // The formats map is keyed by path, so a column added later (the Columns
+        // picker) picks up its format without being listed in `columns`.
+        const format = formats?.[col.key];
+        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label, format, ...col };
     });
 }
 
@@ -206,11 +209,69 @@ export function cellValue(item, key) {
     return cellText(getValue(item, key));
 }
 
+// --- Column formats -------------------------------------------------------
+// A format turns a raw value into the text the reader sees. It applies to the
+// cell, CSV export, and the text/category filters and search — so what is on
+// screen is what you can search for — while sorting and the Min/Max range keep
+// using the raw value, leaving a date column in chronological order.
+//
+// Epoch numbers are read as seconds below 1e11 and milliseconds above, which
+// covers both conventions without a second name per format.
+function toDate(value) {
+    const n = Number(value);
+    if (Number.isNaN(n)) return null;
+    const d = new Date(Math.abs(n) < 1e11 ? n * 1000 : n);
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
+const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null; };
+
+const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
+                        ['day', 86400], ['hour', 3600], ['minute', 60]];
+
+const FORMATTERS = {
+    date:     asDate(d => d.toLocaleDateString()),
+    datetime: asDate(d => d.toLocaleString()),
+    time:     asDate(d => d.toLocaleTimeString()),
+    relative: asDate(d => {
+        const secs = (d.getTime() - Date.now()) / 1000;
+        const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s) || ['second', 1];
+        return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(Math.round(secs / size), unit);
+    }),
+};
+
+// Applies a column's format — a FORMATTERS name or a function(value, item). An
+// array maps through it, so a [*] path formats every match. Returns null when
+// there is no format, no value, or the value can't be formatted, letting callers
+// fall back to the plain text.
+export function applyFormat(value, format, item) {
+    if (!format || value == null || value === '') return null;
+    const fn = typeof format === 'function' ? format : FORMATTERS[format];
+    if (!fn) return null;
+    if (Array.isArray(value)) {
+        const parts = value.map(v => fn(v, item)).filter(v => v != null);
+        return parts.length ? parts.join(', ') : null;
+    }
+    return fn(value, item) ?? null;
+}
+
+// A cell's text as the reader sees it: the column's format when it has one and it
+// applies, else the plain value text.
+export function cellDisplay(item, col) {
+    return applyFormat(getValue(item, col.key), col.format, item) ?? cellValue(item, col.key);
+}
+
+// The same, for the filter/search layers, which know keys rather than columns.
+function displayText(item, key, formats) {
+    return applyFormat(getValue(item, key), formats?.[key], item) ?? cellValue(item, key);
+}
+
 // True when the item passes every text filter and the (lowercased) search query.
-function matchesTextAndSearch(item, textState, q, searchKeys) {
+// Both read the displayed text, so a formatted column is searchable as it reads.
+function matchesTextAndSearch(item, textState, q, searchKeys, formats) {
     const matchText = Object.entries(textState)
-        .every(([key, val]) => !val || cellValue(item, key).toLowerCase().includes(val.toLowerCase()));
-    const matchSearch = !q || searchKeys.some(k => cellValue(item, k).toLowerCase().includes(q));
+        .every(([key, val]) => !val || displayText(item, key, formats).toLowerCase().includes(val.toLowerCase()));
+    const matchSearch = !q || searchKeys.some(k => displayText(item, k, formats).toLowerCase().includes(q));
     return matchText && matchSearch;
 }
 
@@ -229,36 +290,37 @@ function matchesRange(item, rangeState) {
 }
 
 // All non-category filters: text + search + numeric range. Shared by getVisible
-// and computeCounts so category option counts reflect these filters too.
-function matchesNonCategory(item, textState, rangeState, q, searchKeys) {
-    return matchesTextAndSearch(item, textState, q, searchKeys) && matchesRange(item, rangeState);
+// and computeCounts so category option counts reflect these filters too. The range
+// stays on raw values — a formatted date still filters and sorts numerically.
+function matchesNonCategory(item, textState, rangeState, q, searchKeys, formats) {
+    return matchesTextAndSearch(item, textState, q, searchKeys, formats) && matchesRange(item, rangeState);
 }
 
 // Returns the subset of data items that match all active filters and the search query.
-export function getVisible(data, categoryState, textState, rangeState, query, searchKeys) {
+export function getVisible(data, categoryState, textState, rangeState, query, searchKeys, formats) {
     const q = query.toLowerCase();
     return data.filter(item =>
-        Object.entries(categoryState).every(([key, selected]) => selected.has(cellValue(item, key)))
-        && matchesNonCategory(item, textState, rangeState, q, searchKeys)
+        Object.entries(categoryState).every(([key, selected]) => selected.has(displayText(item, key, formats)))
+        && matchesNonCategory(item, textState, rangeState, q, searchKeys, formats)
     );
 }
 
 // Returns per-filter value counts, where each filter is counted against all OTHER
 // active filters + text filters + search (so the dropdown shows how many items each option would reveal).
-export function computeCounts(data, categoryState, textState, rangeState, query, searchKeys) {
+export function computeCounts(data, categoryState, textState, rangeState, query, searchKeys, formats) {
     const q = query.toLowerCase();
     const counts = {};
     Object.keys(categoryState).forEach(key => { counts[key] = {}; });
 
     data.forEach(item => {
-        if (!matchesNonCategory(item, textState, rangeState, q, searchKeys)) return;
+        if (!matchesNonCategory(item, textState, rangeState, q, searchKeys, formats)) return;
 
         Object.keys(categoryState).forEach(key => {
             const matchOthers = Object.entries(categoryState)
                 .filter(([k]) => k !== key)
-                .every(([k, selected]) => selected.has(cellValue(item, k)));
+                .every(([k, selected]) => selected.has(displayText(item, k, formats)));
             if (matchOthers) {
-                const val = cellValue(item, key);
+                const val = displayText(item, key, formats);
                 counts[key][val] = (counts[key][val] || 0) + 1;
             }
         });

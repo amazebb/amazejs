@@ -1,5 +1,5 @@
 // DOM rendering functions — no business logic or mutable state.
-import { cellText, cellValue, getValue, isPlainObject } from './model.js';
+import { cellText, cellValue, cellDisplay, applyFormat, getValue, isPlainObject } from './model.js';
 
 // Stylesheet injection, lazy and once, on the first initTable() (ensureStyles).
 // Raw/dev use loads the sibling amazejs.css via <link> (import.meta.url); the
@@ -618,8 +618,13 @@ export function buildRows(tbody, data, columns, objectCell = 'summary', objectAl
         columns.forEach(col => {
             const td = document.createElement('td');
             const value = getValue(item, col.key);
+            // A format wins over the array/object renderers: it is the column's
+            // stated way of reading its values, whatever shape they arrive in.
+            const formatted = applyFormat(value, col.format, item);
             if (col.render) {
                 td.appendChild(col.render(item));
+            } else if (formatted != null) {
+                td.textContent = formatted;
             } else if (Array.isArray(value)) {
                 renderArrayCell(td, value);
             } else if (isPlainObject(value)) {
@@ -750,7 +755,7 @@ export async function downloadCsv(columns, items, filename) {
     const header = columns.map(c => c.label);
     const rows = items.map(item =>
         columns.map(c => {
-            const v = cellValue(item, c.key);
+            const v = cellDisplay(item, c);
             return `"${v.replace(/"/g, '""')}"`;
         })
     );
