@@ -179,9 +179,21 @@ initTable({
 });
 ```
 
-Built-ins are `'date'`, `'datetime'`, `'time'` and `'relative'` ("2 months ago"),
-all epoch-aware — numbers below `1e11` are read as seconds, above as milliseconds —
-plus any `(value, item) => string` function.
+Built-ins, all epoch-aware (numbers below `1e11` are read as seconds, above as
+milliseconds):
+
+| format | output |
+|---|---|
+| `'date'` | `2026-07-10` |
+| `'datetime'` | `2026-07-10T17:46:53+10` (`+0530` where the zone has minutes) |
+| `'time'` | `17:46:53` |
+| `'relative'` | `2 months ago` |
+
+Dates render as ISO 8601 in local time, 24-hour, with a numeric UTC offset — so a
+timestamp says which clock produced it, and the text sorts and prefix-searches
+(`2026-07`) the same way the values order. For locale rendering instead, pass a
+function: `v => new Date(v * 1000).toLocaleString()`. Any
+`(value, item) => string` works.
 
 The map is keyed by path, so it also applies to columns you add later from the
 **Columns** menu, which carry no config of their own. A format changes the cell, the

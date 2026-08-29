@@ -229,10 +229,27 @@ const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
                         ['day', 86400], ['hour', 3600], ['minute', 60]];
 
+// The date formats are ISO 8601 in local time, 24-hour, with a numeric offset
+// (2026-07-07T13:48:31+1000) rather than locale strings: unambiguous about which
+// clock produced them, and text that sorts and prefix-searches ('2026-07') the way
+// the values themselves order. Locale rendering stays available as a function
+// format — `v => new Date(v * 1000).toLocaleString()`.
+const pad = n => String(n).padStart(2, '0');
+const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const isoTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+// ±hh, with the minutes only when the zone actually has them (+1000 → +10, but
+// +0530 keeps both) — ISO 8601's ±hh and ±hhmm forms.
+const isoOffset = d => {
+    const mins = -d.getTimezoneOffset(); // minutes east of UTC
+    const abs = Math.abs(mins);
+    const hh = `${mins < 0 ? '-' : '+'}${pad(Math.floor(abs / 60))}`;
+    return abs % 60 ? `${hh}${pad(abs % 60)}` : hh;
+};
+
 const FORMATTERS = {
-    date:     asDate(d => d.toLocaleDateString()),
-    datetime: asDate(d => d.toLocaleString()),
-    time:     asDate(d => d.toLocaleTimeString()),
+    date:     asDate(isoDate),
+    datetime: asDate(d => `${isoDate(d)}T${isoTime(d)}${isoOffset(d)}`),
+    time:     asDate(isoTime),
     relative: asDate(d => {
         const secs = (d.getTime() - Date.now()) / 1000;
         const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s) || ['second', 1];
