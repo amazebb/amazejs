@@ -153,7 +153,11 @@ export async function initTable(config) {
     const colFormats = Object.fromEntries(columns.filter(c => c.format).map(c => [c.key, c.format]));
 
     // --- View: build table content ---
-    const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, columns, tableId);
+    // A single row has nothing to filter down to, so the header is built
+    // sortable-only. Copies, so the column objects a rebuild reuses keep their
+    // filters for when the data is bigger.
+    const headerColumns = data.length > 1 ? columns : columns.map(c => ({ ...c, filter: false }));
+    const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, headerColumns, tableId);
     const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
     // Measured here, with every row still visible, so filters cannot reflow them.
