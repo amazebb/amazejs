@@ -4,21 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Testing / demo environment
 
-The demo lives in `demo/`: a single landing page (`index.html` / `app.js`) showing a flat table and a tree table, both zero-config. Data comes from `demo/data/flat.json` (array of objects) and `demo/data/tree.json` (root wrapper object). The demo imports `../src/index.js` directly — no build step.
+The demo lives in `docs/` (served as GitHub Pages): a single landing page (`index.html` / `app.js`) showing a flat table and a tree table, both zero-config. Data comes from `docs/data/flat.json` (array of objects) and `docs/data/tree.json` (root wrapper object). `docs/app.js` picks its library by hostname — `../dist/amazejs.js` on localhost, the CDN bundle pinned to a git tag in production — so **local testing runs the built bundle: `bun run build` before reloading**, or the page keeps the previous build.
 
 To serve it locally (required — ES modules and `fetch` need HTTP):
 ```
 python3 -m http.server 8000
-# then open http://localhost:8000/demo/
+# then open http://localhost:8000/docs/
 ```
 
-`../brewbar/docs/` (a sibling repo) is a real-world consumer, useful as a second test bed. Its pages import from `docs/amazejs.js`, a re-export shim — swap the commented line there to switch between the local library (`../../amazejs/src/index.js`, serve from the common parent dir) and the CDN (jsDelivr, pinned to a git tag).
+Safari caches ES modules across a normal reload even with Disable Caches on — Develop > Empty Caches (⌥⌘E) when a change doesn't show.
+
+`../brewbar/docs/` (a sibling repo) is a real-world consumer, useful as a second test bed. Its `app.js` switches the same way: `../../amazejs/dist/amazejs.js` on localhost (serve from the common parent dir), else the tagged CDN URL. Bump that pin on every amazejs release.
 
 ## What this is
 
-amazejs is a zero-dependency vanilla JS ES module library for interactive data tables. The `src/` files are plain `.js`/`.css` consumed directly by a browser via `<script type="module">` — this is the dev path (the demo imports `../src/index.js` raw, no build).
+amazejs is a zero-dependency vanilla JS ES module library for interactive data tables. The `src/` files are plain `.js`/`.css` consumed directly by a browser via `<script type="module">` — importing `src/index.js` raw needs no build.
 
-For CDN consumers there is **one** build: `bun run build` bundles `build/entry.js` into `dist/amazejs.js` — a single self-contained, minified ESM file with `amazejs.css` inlined as a `<style>`. Consumers pin `cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js`; after tagging a release, regenerate `dist/`, commit it, and purge that one jsDelivr path. There is no lint or test command.
+For CDN consumers there is **one** build: `bun run build` bundles `build/entry.js` into `dist/amazejs.js` — a single self-contained, minified ESM file with `amazejs.css` inlined as a `<style>`. Consumers pin an exact tag — `cdn.jsdelivr.net/gh/amazebb/amazejs@v0.16.0/dist/amazejs.js` — never `@latest`, which browsers cache for 7 days and no purge can clear. A release is: `bun run build`, commit `dist/`, tag `vX.Y.Z` (feat bumps the minor, fix the patch), push the branch and the tag (lightweight tags need `git push origin <tag>`; `--follow-tags` skips them), then bump the pin in `docs/app.js` and in `../brewbar/docs/app.js`. Each tag is a fresh immutable URL, so no purge is needed. There is no lint or test command.
 
 ## Architecture
 
