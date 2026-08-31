@@ -29,6 +29,8 @@
     --sort-icon: " ↕";
     --sort-icon-asc: " ↑";
     --sort-icon-desc: " ↓";
+    /* Outline, so a filtered column never reads as one of the filled sort arrows */
+    --filter-icon: "▽";
     --stripe-bg: var(--bg-subtle);
     --header-bg: var(--bg-hover);
 }
@@ -430,42 +432,57 @@ thead th.active {
     background: var(--accent-subtle);
 }
 
-/* Explicit filter trigger inside a filterable header. Mouse users open the
-   dropdown by hovering the th, so the button is hidden by default; it only
-   appears on touch devices (no hover / coarse pointer), where tap is the sole
-   gesture and it gives filtering a target distinct from the sort tap. Sized as
-   a comfortable tap chip and spaced clear of the sort ::after arrow so the two
-   regions don't collide ("Label  [⏷]  ↕"). */
-.atv-filter-btn { display: none; }
+/* Explicit filter trigger inside a filterable header, hidden by default: mouse
+   users open the dropdown by hovering the th. It appears in two cases — on touch
+   devices (no hover / coarse pointer), where tap is the sole gesture and it gives
+   filtering a target distinct from the sort tap, and on any device once this
+   column is filtering, where it doubles as the marker for which column that is. */
+.atv-filter-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin: 0 0 0 .35em;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    line-height: 1;
+    vertical-align: middle;
+    cursor: pointer;
+}
 
+.atv-filter-btn::before {
+    font-size: 12px;
+    content: "⏷";
+}
+
+/* Shown when this column is filtering, on every device, as the funnel it means:
+   the tint says something is filtered, the funnel says which columns. */
+thead th.active > .atv-filter-btn {
+    display: inline-flex;
+}
+
+thead th.active > .atv-filter-btn::before {
+    content: var(--filter-icon);
+}
+
+/* Touch: always there, and sized as a tap chip rather than the compact marker a
+   pointer gets, spaced clear of the sort ::after arrow ("Label  [⏷]  ↕"). */
 @media (hover: none), (pointer: coarse) {
     .atv-filter-btn {
         display: inline-flex;
-        align-items: center;
-        justify-content: center;
         min-width: 2em;
         min-height: 2em;
         margin: 0 .5em;
-        padding: 0;
-        border: 0;
-        background: none;
-        color: var(--text-muted);
-        font: inherit;
-        line-height: 1;
-        vertical-align: middle;
-        cursor: pointer;
     }
-    .atv-filter-btn::before {
-        content: "⏷";
-        font-size: 12px;
-    }
-    /* Open (the .aj-rotate utility flips the caret) or a filter applied:
-       accent the icon so a tapped/active filter reads clearly without any
-       button chrome. */
-    .atv-filter-btn[aria-expanded="true"],
-    thead th.active > .atv-filter-btn {
-        color: var(--accent);
-    }
+}
+
+/* Open (the .aj-rotate utility flips the caret) or a filter applied: accent the
+   icon so it reads clearly without any button chrome. */
+.atv-filter-btn[aria-expanded="true"],
+thead th.active > .atv-filter-btn {
+    color: var(--accent);
 }
 
 /* Filter dropdown — nested in its trigger's DOM; the Popover API renders it in

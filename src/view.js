@@ -716,7 +716,10 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
 
     const visibleTotal = values.filter(v => (counts[v] || 0) > 0).length;
     const visibleSelected = values.filter(v => (counts[v] || 0) > 0 && selected.has(v)).length;
-    const isFiltered = visibleSelected < visibleTotal;
+    // Whether this column filters anything is its own selection against its own
+    // values — not the visible counts, which another column's filter can zero out,
+    // taking the indicator off a column that is still filtering.
+    const isFiltered = selected.size < values.length;
     const th = document.getElementById(filterDef.thId);
     const badgeEl = document.querySelector(`#${filterDef.id} .filter-actions-badge`);
     th.classList.toggle('active', isFiltered);
