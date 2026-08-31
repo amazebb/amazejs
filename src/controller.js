@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, CATEGORY_MAX } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -153,10 +153,14 @@ export async function initTable(config) {
     const colFormats = Object.fromEntries(columns.filter(c => c.format).map(c => [c.key, c.format]));
 
     // --- View: build table content ---
-    // A single row has nothing to filter down to, so the header is built
-    // sortable-only. Copies, so the column objects a rebuild reuses keep their
-    // filters for when the data is bigger.
-    const headerColumns = data.length > 1 ? columns : columns.map(c => ({ ...c, filter: false }));
+    // The data decides each column's filter (filterFor): none when its values never
+    // differ — one row makes that true of every column — and checkboxes when they
+    // are few enough to list. Copies, so the column objects a rebuild reuses keep
+    // what they were configured with.
+    const headerColumns = columns.map(c => {
+        const filter = filterFor(data, c);
+        return filter === c.filter ? c : { ...c, filter };
+    });
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, headerColumns, tableId);
     const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');

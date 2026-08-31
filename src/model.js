@@ -278,6 +278,34 @@ export function cellDisplay(item, col) {
     return applyFormat(getValue(item, col.key), col.format, item) ?? cellValue(item, col.key);
 }
 
+// Rows scanned before a variance check gives up. Only a column whose values never
+// differ ever walks this far, so the cap costs nothing on ordinary data and bounds
+// the degenerate case: many constant columns over a very large set.
+export const VARIANCE_SCAN = 1000;
+
+// The filter a column earns from its data, walking the rows once: none when the
+// values never differ (nothing to narrow), checkboxes when the whole set is small
+// enough to list, else the configured filter. The walk stops as soon as the answer
+// is settled — a column with many values costs CATEGORY_MAX + 1 rows.
+//
+// Past the cap the scan is inconclusive: the unseen rows could hold any number of
+// values, so neither "constant" nor "small enough to list" can be concluded, and
+// the column keeps the filter it was configured with.
+export function filterFor(items, col, cap = VARIANCE_SCAN) {
+    if (!col.filter) return col.filter;
+    if (items.length < 2) return false;
+
+    const limit = Math.min(items.length, cap);
+    const seen = new Set();
+    for (let i = 0; i < limit && seen.size <= CATEGORY_MAX; i++) seen.add(cellDisplay(items[i], col));
+
+    if (items.length > cap) return col.filter;
+    if (seen.size < 2) return false;
+    // Only a text box is promoted: a range keeps its Min/Max, and an explicit
+    // 'category' is already what it wants to be.
+    return col.filter === 'text' && seen.size <= CATEGORY_MAX ? 'category' : col.filter;
+}
+
 // The same, for the filter/search layers, which know keys rather than columns.
 function displayText(item, key, formats) {
     return applyFormat(getValue(item, key), formats?.[key], item) ?? cellValue(item, key);
