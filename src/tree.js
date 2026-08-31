@@ -62,7 +62,15 @@ export async function initTree(config, rawData) {
 
     // labelStyle is the table's one labelling rule, applied by inferColumns — so
     // columns added later from the Columns picker match (TAP, not Tap).
-    return initTable({ ...config, data: rootItems, columns: getColumns(rootItems, ctx, 0), title: rootTitle, labelStyle: 'upper' });
+    const rootCtx = descend(ctx, rootKey);
+    return initTable({
+        ...config,
+        data:       rootItems,
+        columns:    getColumns(rootItems, rootCtx, 0),
+        formats:    rootCtx.childOpts.formats,
+        title:      rootTitle,
+        labelStyle: 'upper',
+    });
 }
 
 // A root group is a full, non-nested table (its own scroll wrapper, no-results and
@@ -70,16 +78,43 @@ export async function initTree(config, rawData) {
 function buildRootTable(host, group, config, ctx) {
     const table = document.createElement('table');
     host.appendChild(table);
+    const groupCtx = descend(ctx, group.key);
     return initTable({
         ...config,
         table,
         tableId:    undefined,
         data:       group.items,
-        columns:    getColumns(group.items, ctx, 0),
+        columns:    getColumns(group.items, groupCtx, 0),
+        formats:    groupCtx.childOpts.formats,
         title:      group.key.toUpperCase(),
         labelStyle: 'upper',
         collapsed:  true,
     });
+}
+
+// Formats are keyed by path from the point of view of the table they were written
+// for, but a group becomes its own table whose columns are keyed by the item's own
+// keys — 'installed[*].time' on the root is 'time' inside the INSTALLED table. So
+// on every descent the group's prefix ('k.', 'k[*].', 'k[3].') is stripped and the
+// remainder added; the original keys stay, letting the next level strip again.
+function formatsForGroup(formats, groupKey) {
+    if (!formats || !groupKey) return formats;
+    const esc = groupKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const prefix = new RegExp(`^${esc}(\\[(?:\\*|\\d+)\\])?\\.`);
+    const out = { ...formats };
+    Object.entries(formats).forEach(([key, format]) => {
+        const rest = key.replace(prefix, '');
+        if (rest !== key) out[rest] = format;
+    });
+    return out;
+}
+
+// The ctx a group's table (and, via getColumns' toggle metadata, everything under
+// it) runs with: the parent's, with the formats re-keyed one level down.
+function descend(ctx, groupKey) {
+    const formats = formatsForGroup(ctx.childOpts.formats, groupKey);
+    if (formats === ctx.childOpts.formats) return ctx;
+    return { ...ctx, childOpts: { ...ctx.childOpts, formats } };
 }
 
 // One delegated click listener for every tree on the page — catches row toggles
@@ -232,11 +267,12 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
 function buildGroupTable(container, group, ctx, depth, collapsed) {
     const table = document.createElement('table');
     container.appendChild(table);
+    const groupCtx = descend(ctx, group.key);
     initTable({
-        ...ctx.childOpts,
+        ...groupCtx.childOpts,
         table,
         data:      group.items,
-        columns:   getColumns(group.items, ctx, depth),
+        columns:   getColumns(group.items, groupCtx, depth),
         nested:    true,
         collapsed,
         labelStyle: 'upper',
