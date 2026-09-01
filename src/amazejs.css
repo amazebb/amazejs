@@ -291,7 +291,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
 }
 
-.atv-more-btn[aria-expanded="true"] + .atv-more-wrap .atv-toolbar-more,
+.atv-more-btn[aria-expanded="true"] ~ .atv-more-wrap .atv-toolbar-more,
 .atv-toolbar-more:has(:popover-open) {
     visibility: visible;
     opacity: 1;
@@ -336,25 +336,25 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     width: auto;
 }
 
-/* Raw-source toggle beside the title. ▤ (U+25A4) is a geometric-shapes glyph with no
-   emoji form, so it draws as a thin-line table on iOS as well as desktop; pressed, the
-   button says RAW instead, naming the view you are in. */
+/* Raw-source toggle: a word rather than a glyph — no icon reads as "the text behind
+   this table", and a word renders the same everywhere. It names the view you are in,
+   TABLE or RAW, so the two states are the same size and nothing shifts on the press. */
 .atv-source-btn {
     background: none;
     border: 0;
     padding: 0 6px;
-    margin-left: 4px;
+    margin: 0 4px;
     border-radius: var(--radius);
     color: var(--text-muted);
     font: inherit;
+    font-size: .85em;
+    font-weight: 600;
+    letter-spacing: .04em;
     line-height: 1.4;
     cursor: pointer;
 }
 
-.atv-source-btn::before {
-    content: "▤";
-    font-size: 1.2em;
-}
+.atv-source-btn::before { content: "TABLE"; }
 
 .atv-source-btn:hover {
     color: var(--accent);
@@ -366,12 +366,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     background: var(--accent-subtle);
 }
 
-.atv-source-btn[aria-pressed="true"]::before {
-    content: "RAW";
-    font-size: .85em;
-    font-weight: 600;
-    letter-spacing: .04em;
-}
+.atv-source-btn[aria-pressed="true"]::before { content: "RAW"; }
 
 /* The raw view: a text dump shown in place of the table. Built once and kept, so
    switching back and forth costs nothing. */

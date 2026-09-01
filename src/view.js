@@ -242,14 +242,6 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
         titleWrap.appendChild(titleEl);
     }
 
-    // Raw-source toggle, sitting with the title rather than in a menu: a table glyph
-    // at rest, the word RAW while the dump is showing, so the button says which of
-    // the two views you are looking at.
-    const sourceBtn = document.createElement('button');
-    sourceBtn.className = 'atv-source-btn';
-    sourceBtn.setAttribute('aria-pressed', 'false');
-    sourceBtn.setAttribute('aria-label', 'View source');
-    titleWrap.appendChild(sourceBtn);
 
     // Everything after the title collapses as one unit (see header comment).
     const rest = document.createElement('div');
@@ -264,12 +256,21 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     // trips the hover-reveal — it's a plain click toggle (aria-expanded). The
     // wrap holds only the menu; hovering the wrap (the reserved space where the
     // hidden buttons sit) is what reveals them on mouse. moreBtn stays adjacent
-    // to moreWrap for the `+ .atv-more-wrap` reveal selector.
+    // a preceding sibling of moreWrap for the `~ .atv-more-wrap` reveal selector.
     const moreBtn = document.createElement('button');
     moreBtn.className = 'atv-more-btn';
     moreBtn.setAttribute('aria-expanded', 'false');
     moreBtn.setAttribute('aria-label', 'More options');
     rest.appendChild(moreBtn);
+
+    // Raw-source toggle: the word TABLE at rest, RAW while the dump is showing, so it
+    // names the view you are in. It sits between the ⋯ and the menu wrap, always out —
+    // it is a view switch, not one of the menus the ⋯ hides.
+    const sourceBtn = document.createElement('button');
+    sourceBtn.className = 'atv-source-btn';
+    sourceBtn.setAttribute('aria-pressed', 'false');
+    sourceBtn.setAttribute('aria-label', 'View source');
+    rest.appendChild(sourceBtn);
 
     const moreWrap = document.createElement('div');
     moreWrap.className = 'atv-more-wrap';

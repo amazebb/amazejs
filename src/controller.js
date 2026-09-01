@@ -276,16 +276,14 @@ export async function initTable(config) {
         });
     }
 
-    // The raw-source toggle beside the title: swaps the table for a text dump of what
+    // The raw-source toggle, sitting just before the menu wrap: swaps the table for a text dump of what
     // the table is showing — the rows the filters left, in the shape the data arrived
     // in (CSV when the import was delimited, JSON otherwise). It tracks the filters
     // while open, so it reads as the same view the table does, not the untouched file.
     if (sourceBtn) {
         const raw = sourceText.get(data);
         const importedAsJson = !raw || /^\s*[[{]/.test(raw);
-        sourceBtn.addEventListener('click', e => {
-            // The title line is the disclosure handle; this button is not part of it.
-            e.stopPropagation();
+        sourceBtn.addEventListener('click', () => {
             const showing = tableContainer.classList.toggle('atv-source');
             if (showing && !sourcePre) sourcePre = buildSourceView(tableWrap || tableContainer);
             if (showing) renderSource();
