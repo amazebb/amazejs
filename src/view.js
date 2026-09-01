@@ -263,8 +263,8 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     moreBtn.setAttribute('aria-label', 'More options');
     rest.appendChild(moreBtn);
 
-    // Raw-source toggle: the word TABLE at rest, RAW while the dump is showing, so it
-    // names the view you are in. It sits between the ⋯ and the menu wrap, always out —
+    // Raw-source toggle: the word RAW at rest, TABLE while the dump is showing, so it
+    // names where the press goes. It sits between the ⋯ and the menu wrap, always out —
     // it is a view switch, not one of the menus the ⋯ hides.
     const sourceBtn = document.createElement('button');
     sourceBtn.className = 'atv-source-btn';

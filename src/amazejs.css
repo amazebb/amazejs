@@ -337,8 +337,8 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
 }
 
 /* Raw-source toggle: a word rather than a glyph — no icon reads as "the text behind
-   this table", and a word renders the same everywhere. It names the view you are in,
-   TABLE or RAW, so the two states are the same size and nothing shifts on the press. */
+   this table", and a word renders the same everywhere. It names the view the press
+   takes you to, RAW then TABLE, and is typed exactly like the title beside it. */
 .atv-source-btn {
     background: none;
     border: 0;
@@ -346,15 +346,15 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     margin: 0 4px;
     border-radius: var(--radius);
     color: var(--text-muted);
-    font: inherit;
-    font-size: .85em;
+    font-family: inherit;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: .04em;
-    line-height: 1.4;
+    letter-spacing: 0.06em;
+    line-height: inherit;
     cursor: pointer;
 }
 
-.atv-source-btn::before { content: "TABLE"; }
+.atv-source-btn::before { content: "RAW"; }
 
 .atv-source-btn:hover {
     color: var(--accent);
@@ -366,7 +366,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     background: var(--accent-subtle);
 }
 
-.atv-source-btn[aria-pressed="true"]::before { content: "RAW"; }
+.atv-source-btn[aria-pressed="true"]::before { content: "TABLE"; }
 
 /* The raw view: a text dump shown in place of the table. Built once and kept, so
    switching back and forth costs nothing. */
