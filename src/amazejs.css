@@ -130,6 +130,13 @@
    page scroller if no ancestor between clips it, so .table-wrap's overflow is
    dropped while frozen — a too-wide table then scrolls the page instead of the
    wrapper. Lower z-index than the toolbar so the header slides under it. */
+/* Frozen: the container grows with the table too, so the toolbar spans the whole
+   scrollable width and a sticky badge inside it has room to stay on screen. */
+.atv-table-container.atv-sticky-head {
+    width: fit-content;
+    min-width: 100%;
+}
+
 .atv-table-container.atv-sticky-head > .table-wrap {
     overflow: visible;
     /* No longer clipping, so the wrapper has to grow with a too-wide table —
@@ -190,9 +197,16 @@
     align-self: center;
 }
 
-/* badgePosition: 'right' — pushed to the end of the rest wrapper, past every button */
+/* badgePosition: 'right' — pushed to the end of the rest wrapper, past every button,
+   and stuck to the right edge of the screen rather than the far end of a table wider
+   than it: with the header frozen the page is the scroller, so the toolbar runs off
+   with the table and an end-aligned badge would ride off with it. */
 .atv-count-badge.atv-badge-right {
     margin-left: auto;
+    position: sticky;
+    /* 0, not an inset: any inset would pull the badge off the toolbar's end in the
+       ordinary case, where there is nothing to scroll past. */
+    right: 0;
 }
 
 /* badgePosition: 'none' — hide the count badge entirely */
