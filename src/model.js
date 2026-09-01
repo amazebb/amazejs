@@ -10,7 +10,7 @@ export function titleFromUrl(url) {
     return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
 }
 
-// The text each parsed data set came from, so File > View Source can show the file
+// The text each parsed data set came from, so the raw-source view knows the file
 // as it was imported rather than a re-serialization of the parse. Keyed by the parsed
 // value, so it is dropped with the data and no copy of a large file is held alive.
 export const sourceText = new WeakMap();

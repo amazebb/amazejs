@@ -336,8 +336,45 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     width: auto;
 }
 
-/* File > View Source: the imported text, shown in place of the table. Built once
-   and kept, so switching back and forth costs nothing. */
+/* Raw-source toggle beside the title. ▤ (U+25A4) is a geometric-shapes glyph with no
+   emoji form, so it draws as a thin-line table on iOS as well as desktop; pressed, the
+   button says RAW instead, naming the view you are in. */
+.atv-source-btn {
+    background: none;
+    border: 0;
+    padding: 0 6px;
+    margin-left: 4px;
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    font: inherit;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.atv-source-btn::before {
+    content: "▤";
+    font-size: 1.2em;
+}
+
+.atv-source-btn:hover {
+    color: var(--accent);
+    background: var(--bg-hover);
+}
+
+.atv-source-btn[aria-pressed="true"] {
+    color: var(--accent);
+    background: var(--accent-subtle);
+}
+
+.atv-source-btn[aria-pressed="true"]::before {
+    content: "RAW";
+    font-size: .85em;
+    font-weight: 600;
+    letter-spacing: .04em;
+}
+
+/* The raw view: a text dump shown in place of the table. Built once and kept, so
+   switching back and forth costs nothing. */
 .aj-source {
     display: none;
     margin: 0;

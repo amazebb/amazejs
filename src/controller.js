@@ -65,7 +65,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost, noResults, tableWrap;
+    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn, noResults, tableWrap;
 
     // Every table gets a container holding toolbar + table: it is the disclosure
     // target the toolbar collapses. Non-nested tables also get a scroll wrapper
@@ -91,7 +91,7 @@ export async function initTable(config) {
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no
     // tableWrap). File/Settings always sit behind the `⋯` overflow.
     if (config.showToolbar ?? true) {
-        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
     }
 
@@ -179,7 +179,7 @@ export async function initTable(config) {
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
     // --- State ---
-    // The source panel, built on the first File > View Source and refilled by refresh().
+    // The source panel, built on the first press of the raw toggle, refilled by refresh().
     let sourcePre = null;
     let renderSource = () => {};
     const filterState     = {};
@@ -274,18 +274,23 @@ export async function initTable(config) {
             downloadJson([...visibleSet], jsonFilename);
             fileBtns.dd.hidePopover();
         });
-        // View Source swaps the table for a text dump of what the table is showing —
-        // the rows the filters left, in the shape the data arrived in: CSV when the
-        // import was delimited, JSON otherwise. It tracks the filters while open, so
-        // it reads as the same view the table does, not as the untouched file.
+    }
+
+    // The raw-source toggle beside the title: swaps the table for a text dump of what
+    // the table is showing — the rows the filters left, in the shape the data arrived
+    // in (CSV when the import was delimited, JSON otherwise). It tracks the filters
+    // while open, so it reads as the same view the table does, not the untouched file.
+    if (sourceBtn) {
         const raw = sourceText.get(data);
         const importedAsJson = !raw || /^\s*[[{]/.test(raw);
-        fileBtns.source.addEventListener('click', () => {
-            fileBtns.dd.hidePopover();
+        sourceBtn.addEventListener('click', e => {
+            // The title line is the disclosure handle; this button is not part of it.
+            e.stopPropagation();
             const showing = tableContainer.classList.toggle('atv-source');
             if (showing && !sourcePre) sourcePre = buildSourceView(tableWrap || tableContainer);
             if (showing) renderSource();
-            fileBtns.source.textContent = showing ? 'View Table' : 'View Source';
+            sourceBtn.setAttribute('aria-pressed', String(showing));
+            sourceBtn.setAttribute('aria-label', showing ? 'View table' : 'View source');
         });
         renderSource = () => {
             if (!sourcePre) return;

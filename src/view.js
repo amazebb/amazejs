@@ -242,6 +242,15 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
         titleWrap.appendChild(titleEl);
     }
 
+    // Raw-source toggle, sitting with the title rather than in a menu: a table glyph
+    // at rest, the word RAW while the dump is showing, so the button says which of
+    // the two views you are looking at.
+    const sourceBtn = document.createElement('button');
+    sourceBtn.className = 'atv-source-btn';
+    sourceBtn.setAttribute('aria-pressed', 'false');
+    sourceBtn.setAttribute('aria-label', 'View source');
+    titleWrap.appendChild(sourceBtn);
+
     // Everything after the title collapses as one unit (see header comment).
     const rest = document.createElement('div');
     rest.className = 'atv-toolbar-rest';
@@ -292,11 +301,10 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
         const open = item('Open…');
         const csv = item('Export CSV');
         const json = item('Export JSON');
-        const source = item('View Source');
 
         attachPopover(fileBtn, dd, fileBtn, { hover: true });
 
-        fileBtns = { open, csv, json, source, dd };
+        fileBtns = { open, csv, json, dd };
     }
 
     const settingsBtn = document.createElement('button');
@@ -343,7 +351,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn,settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
 }
 
 // A plain toolbar button, appended wherever the host is up to — the controller adds
