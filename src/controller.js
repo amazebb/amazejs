@@ -1,11 +1,11 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
     attachPopover, ensureStyles, lockColumnWidths,
-    buildColumnsMenu, buildColumnOptions, focusColumn
+    buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -257,6 +257,18 @@ export async function initTable(config) {
             downloadJson([...visibleSet], jsonFilename);
             fileBtns.dd.hidePopover();
         });
+        // View Source swaps the table for the text it was built from — the imported
+        // file itself when there is one (fetched or opened), otherwise the data
+        // serialized as JSON, which is all an inline `data` array ever was.
+        let sourcePre = null;
+        fileBtns.source.addEventListener('click', () => {
+            fileBtns.dd.hidePopover();
+            const showing = tableContainer.classList.toggle('atv-source');
+            if (showing && !sourcePre)
+                sourcePre = buildSourceView(tableWrap || tableContainer,
+                    sourceText.get(data) ?? JSON.stringify(data, null, 2));
+            fileBtns.source.textContent = showing ? 'View Table' : 'View Source';
+        });
     }
 
     // File > Open: tears down everything this init built (toolbar and dropdowns
@@ -334,7 +346,7 @@ export async function initTable(config) {
                 const data = name.endsWith('.json') ? JSON.parse(text)
                     : name.endsWith('.tsv') ? parseTsv(text)
                     : parseCsv(text);
-                await rebuild(data, titleFromUrl(file.name));
+                await rebuild(rememberSource(data, text), titleFromUrl(file.name));
             } catch (err) {
                 alert(`Could not open ${file.name}: ${err.message}`);
             }

@@ -314,6 +314,23 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     width: auto;
 }
 
+/* File > View Source: the imported text, shown in place of the table. Built once
+   and kept, so switching back and forth costs nothing. */
+.aj-source {
+    display: none;
+    margin: 0;
+    padding: 12px 16px;
+    max-height: 70vh;
+    overflow: auto;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text);
+    tab-size: 2;
+}
+
+.atv-table-container.atv-source .aj-source { display: block; }
+.atv-table-container.atv-source table,
+.atv-table-container.atv-source .atv-no-results { display: none; }
+
 /* No results message */
 .atv-no-results {
     display: none;

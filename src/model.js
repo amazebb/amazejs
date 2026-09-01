@@ -10,12 +10,24 @@ export function titleFromUrl(url) {
     return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
 }
 
+// The text each parsed data set came from, so File > View Source can show the file
+// as it was imported rather than a re-serialization of the parse. Keyed by the parsed
+// value, so it is dropped with the data and no copy of a large file is held alive.
+export const sourceText = new WeakMap();
+
+// Remembers text against the data parsed out of it, and returns the data.
+export function rememberSource(data, text) {
+    if (data && typeof data === 'object') sourceText.set(data, text);
+    return data;
+}
+
 // Parses fetched text by the URL's extension: .json → JSON, .csv → CSV, else TSV.
 export function parseByUrl(url, text) {
     const ext = url.split(/[?#]/)[0].split('.').pop().toLowerCase();
-    if (ext === 'json') return JSON.parse(text);
-    if (ext === 'csv') return parseCsv(text);
-    return parseTsv(text);
+    const data = ext === 'json' ? JSON.parse(text)
+        : ext === 'csv' ? parseCsv(text)
+        : parseTsv(text);
+    return rememberSource(data, text);
 }
 
 // Fetches data from url, falling back to fallbackUrl if the first request fails.

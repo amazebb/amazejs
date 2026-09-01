@@ -292,10 +292,11 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
         const open = item('Open…');
         const csv = item('Export CSV');
         const json = item('Export JSON');
+        const source = item('View Source');
 
         attachPopover(fileBtn, dd, fileBtn, { hover: true });
 
-        fileBtns = { open, csv, json, dd };
+        fileBtns = { open, csv, json, source, dd };
     }
 
     const extraBtns = buttons.map(cfg => {
@@ -782,6 +783,18 @@ export async function downloadCsv(columns, items, filename) {
 export async function downloadJson(items, filename) {
     const blob = new Blob([JSON.stringify([...items], null, 2)], { type: 'application/json' });
     await saveFile(blob, filename, [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]);
+}
+
+// The raw-source panel: a text dump of the imported file, built once on the first
+// File > View Source and kept alongside the table, which CSS hides while the
+// container carries .atv-source. Text, not markup, so a file with tags in it shows
+// them as text.
+export function buildSourceView(host, text) {
+    const pre = document.createElement('pre');
+    pre.className = 'aj-source';
+    pre.textContent = text;
+    host.appendChild(pre);
+    return pre;
 }
 
 // Shows/hides option rows inside an open dropdown based on the search query.
