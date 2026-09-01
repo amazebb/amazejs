@@ -880,6 +880,13 @@ thead th.active > .atv-filter-btn {
 
 .aj-array-item:hover { background: var(--row-hover); }
 
+/* Rule dividing a menu's own items from the host's added ones */
+.aj-menu-sep {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--border-muted);
+}
+
 /* In the File menu the items are actions, not values — show a pointer */
 .atv-export-dd .aj-array-item { cursor: pointer; }
 

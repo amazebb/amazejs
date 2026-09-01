@@ -339,15 +339,30 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     // so it reads as the last entry — or becomes a toolbar button of its own. The
     // standalone ones are left for the controller to add once the Columns menu exists,
     // so extra buttons always follow every menu.
+    // One rule per menu, before the first host action lands in it, so the additions
+    // read as a group of their own rather than as more of the menu's own items.
+    const ruled = new Set();
+    const rule = (host, key) => {
+        if (ruled.has(key)) return;
+        ruled.add(key);
+        const sep = document.createElement('div');
+        sep.className = 'aj-menu-sep';
+        host.appendChild(sep);
+    };
+
     const extraBtns = buttons.map(cfg => {
         if (cfg.menu === 'file' && fileBtns) {
+            rule(fileBtns.dd, 'file');
             const el = document.createElement('div');
             el.className = 'aj-array-item';
             el.textContent = cfg.label;
             fileBtns.dd.appendChild(el);
             return el;
         }
-        if (cfg.menu === 'settings') return makeSettingsButton(settingsOpts, cfg.label);
+        if (cfg.menu === 'settings') {
+            rule(settingsOpts, 'settings');
+            return makeSettingsButton(settingsOpts, cfg.label);
+        }
         return null;
     });
 
