@@ -308,8 +308,8 @@ export async function initTable(config) {
         return initTable({
             ...config,
             data: newData, title: newTitle,
-            // New data, new shape: the old column order means nothing to it.
-            columns: undefined, dataKey: undefined, columnOrder: undefined,
+            // New data, new shape: the old column order and definitions mean nothing to it.
+            columns: undefined, dataKey: undefined, columnOrder: undefined, columnDefs: undefined,
             collapsed: false,
             table: fresh,
         });
@@ -318,11 +318,11 @@ export async function initTable(config) {
     // Same in-place re-init as File > Open, but with an explicit column list over
     // the data already resolved. Existing column objects are reused as they are, so
     // a tree's first column keeps its render — and therefore its row toggles.
-    async function rebuildColumns(newColumns, columnOrder) {
+    async function rebuildColumns(newColumns, columnOrder, columnDefs) {
         const fresh = document.createElement('table');
         fresh.id = tableId;
         tableContainer.replaceWith(fresh);
-        return initTable({ ...config, data, columns: newColumns, columnOrder, title, collapsed: false, table: fresh });
+        return initTable({ ...config, data, columns: newColumns, columnOrder, columnDefs, title, collapsed: false, table: fresh });
     }
 
     // --- Columns picker: every leaf path found in the data, ticked for the columns
@@ -359,10 +359,15 @@ export async function initTable(config) {
             return next;
         };
 
-        // No label on an added column: inferColumns derives it on the rebuild, in the
-        // table's own style.
-        const colFor = path => distinct.get(path) <= CATEGORY_MAX
-            ? { key: path, filter: 'category' } : { key: path };
+        // Every column object the table has held, by key, carried across rebuilds: a
+        // column ticked off and back on comes back as the column it was — its label,
+        // its render (brewbar's linkCell), its format — not a bare key. Only a key the
+        // table has never shown gets a fresh definition, and that one carries no label:
+        // inferColumns derives it on the rebuild, in the table's own style.
+        const columnDefs = config.columnDefs ?? new Map();
+        columns.forEach(c => columnDefs.set(c.key, c));
+        const colFor = path => columnDefs.get(path)
+            ?? (distinct.get(path) <= CATEGORY_MAX ? { key: path, filter: 'category' } : { key: path });
 
         const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
         const rows = buildColumnOptions(menu.dd, listOrder, new Set(shown), (path, checked) => {
@@ -370,15 +375,13 @@ export async function initTable(config) {
                 ? insert(columns, colFor(path))
                 : columns.filter(c => c.key !== path);
             if (!next.length) return;
-            rebuildColumns(next, baseOrder).then(fresh => {
+            rebuildColumns(next, baseOrder, columnDefs).then(fresh => {
                 if (checked) focusColumn(fresh, next.findIndex(c => c.key === path));
             });
         }, path => {
             // Only means only: one column, nothing kept alongside it — not even a tree's
-            // first column, whose row toggles go with it until it is ticked back on. A
-            // column already on screen is reused as it stands, so it keeps its render,
-            // label and format — the same reason rebuildColumns reuses column objects.
-            rebuildColumns([columns.find(c => c.key === path) ?? colFor(path)], baseOrder);
+            // first column, whose row toggles go with it until it is ticked back on.
+            rebuildColumns([colFor(path)], baseOrder, columnDefs);
         });
 
         // The badge counts ticked against listed, the same shape a filter's does.
@@ -404,14 +407,14 @@ export async function initTable(config) {
         menu.selAll.addEventListener('click', e => {
             e.preventDefault();
             const add = listed().filter(p => !shown.includes(p)).map(colFor);
-            if (add.length) rebuildColumns(add.reduce(insert, columns), baseOrder);
+            if (add.length) rebuildColumns(add.reduce(insert, columns), baseOrder, columnDefs);
         });
 
         menu.clrAll.addEventListener('click', e => {
             e.preventDefault();
             const drop = new Set(listed());
             const next = columns.filter(c => !drop.has(c.key));
-            rebuildColumns(next.length ? next : [columns[0]], baseOrder);
+            rebuildColumns(next.length ? next : [columns[0]], baseOrder, columnDefs);
         });
     }
 

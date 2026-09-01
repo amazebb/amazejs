@@ -111,9 +111,13 @@ picker never re-sorts it into the data's. The ranking is `columnOrder`: the tabl
 first stood, then every other discovered path — the order the dropdown lists in as well,
 so the picker reads as the table it is picking for — threaded through each rebuild (and cleared
 by File > Open, whose data has a shape of its own), so a column ticked off and back on
-returns to the slot it held rather than to wherever discovery would put it. Added columns carry no label of their
-own — `inferColumns` derives every missing one on the rebuild, so they match whatever
-the rest of the table uses. After the rebuild `focusColumn` scrolls the new column
+returns to the slot it held rather than to wherever discovery would put it. Column definitions are kept the same way: `columnDefs`, a
+key → column-object map threaded through each rebuild alongside `columnOrder`, so a
+column ticked off and back on returns as the column it was — brewbar's
+`{ key: 'name', label: 'Name', render: linkCell(...) }` keeps its link and its label.
+Only a key the table has never shown gets a fresh definition, and that one carries no
+label of its own — `inferColumns` derives every missing one on the rebuild, so it
+matches whatever the rest of the table uses. After the rebuild `focusColumn` scrolls the new column
 into view (`th[data-col]`) and flashes its header with `.aj-flash`, since on a wide
 table it can land off-screen. A rebuild resets the
 current filters, and the picked columns don't persist across a reload. The dropdown is
