@@ -39,7 +39,7 @@ export async function initTable(config) {
         searchDebounce = true,
         stickyHeaders  = true,
         showFilterRow  = true,
-        showButtons    = false,
+        showButtons    = true,
         labelStyle,
         formats,
         lockWidths     = true,
@@ -123,9 +123,10 @@ export async function initTable(config) {
         tableContainer.classList.toggle('atv-show-more', on);
         tableContainer.classList.toggle('atv-hide-more', !on);
     }
-    // Only an explicit choice is stamped: a table left alone inherits whatever the
-    // container above it says, which is how a tree's child tables follow the root.
-    if (showButtons) applyShowButtons(true);
+    // Buttons out by default; false is the old ⋯-only toolbar. Only a table told
+    // something is stamped — one left at the default inherits the container above it,
+    // which is how a tree's child tables follow the root.
+    if (config.showButtons !== undefined || showButtons) applyShowButtons(showButtons);
 
     const effectiveSearchInput = config.searchInputEl || null;
 

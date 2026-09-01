@@ -29,6 +29,7 @@ export async function initTree(config, rawData) {
             rowNumbers:      config.rowNumbers,
             stickyHeaders:   config.stickyHeaders,
             showFilterRow:   config.showFilterRow,
+            showButtons:     config.showButtons,
             badgeAlwaysShow: config.badgeAlwaysShow,
             badgePosition:   config.badgePosition,
             lockWidths:      config.lockWidths,
