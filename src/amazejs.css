@@ -204,9 +204,9 @@
 .atv-count-badge.atv-badge-right {
     margin-left: auto;
     position: sticky;
-    /* 0, not an inset: any inset would pull the badge off the toolbar's end in the
-       ordinary case, where there is nothing to scroll past. */
-    right: 0;
+    /* A character's breathing room from the edge, whether that edge is the toolbar's
+       end or the screen's — the same inset applies in both cases. */
+    right: 1ch;
 }
 
 /* badgePosition: 'none' — hide the count badge entirely */
