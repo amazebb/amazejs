@@ -5,7 +5,7 @@ import {
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
     attachPopover, ensureStyles, lockColumnWidths,
-    buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView
+    buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView, addToolbarButton
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -65,7 +65,7 @@ export async function initTable(config) {
     const tbody = document.createElement('tbody');
     table.append(thead, tbody);
 
-    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, btnHost, noResults, tableWrap;
+    let countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost, noResults, tableWrap;
 
     // Every table gets a container holding toolbar + table: it is the disclosure
     // target the toolbar collapses. Non-nested tables also get a scroll wrapper
@@ -91,7 +91,7 @@ export async function initTable(config) {
     // Toolbar for all tables unless suppressed; nested uses table as anchor (no
     // tableWrap). File/Settings always sit behind the `⋯` overflow.
     if (config.showToolbar ?? true) {
-        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn, toggleBtn, titleWrap, btnHost } =
+        ({ countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, settingsDd, moreBtn, toggleBtn, titleWrap, btnHost } =
             buildToolbar(tableWrap || table, !!effectiveExportFilename, buttons, title));
     }
 
@@ -366,9 +366,19 @@ export async function initTable(config) {
         input.click();
     }
 
+    // Extra buttons: the menu-placed ones already exist inside File or Settings; the
+    // rest become toolbar buttons here, after the Columns menu, so they always follow
+    // every menu. A menu item closes its dropdown before the handler runs, as the
+    // menu's own items do.
     if (extraBtns) {
         extraBtns.forEach((btn, i) => {
-            btn.addEventListener('click', () => buttons[i].onClick([...visibleSet], btn));
+            const cfg = buttons[i];
+            const el = btn || (extraBtns[i] = addToolbarButton(btnHost, cfg.label));
+            const dd = cfg.menu === 'file' ? fileBtns?.dd : cfg.menu === 'settings' ? settingsDd : null;
+            el.addEventListener('click', () => {
+                dd?.hidePopover();
+                cfg.onClick([...visibleSet], el);
+            });
         });
     }
 

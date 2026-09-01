@@ -299,14 +299,6 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
         fileBtns = { open, csv, json, source, dd };
     }
 
-    const extraBtns = buttons.map(cfg => {
-        const btn = document.createElement('button');
-        btn.className = 'atv-export-btn';
-        btn.textContent = cfg.label;
-        btnHost.appendChild(btn);
-        return btn;
-    });
-
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'atv-export-btn';
     settingsBtn.textContent = 'Settings';
@@ -334,8 +326,34 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
 
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
+    // A configured button either joins a menu — appended below that menu's own items,
+    // so it reads as the last entry — or becomes a toolbar button of its own. The
+    // standalone ones are left for the controller to add once the Columns menu exists,
+    // so extra buttons always follow every menu.
+    const extraBtns = buttons.map(cfg => {
+        if (cfg.menu === 'file' && fileBtns) {
+            const el = document.createElement('div');
+            el.className = 'aj-array-item';
+            el.textContent = cfg.label;
+            fileBtns.dd.appendChild(el);
+            return el;
+        }
+        if (cfg.menu === 'settings') return makeSettingsButton(settingsOpts, cfg.label);
+        return null;
+    });
+
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
+}
+
+// A plain toolbar button, appended wherever the host is up to — the controller adds
+// the configured ones after the Columns menu, so they sit past every menu.
+export function addToolbarButton(btnHost, label) {
+    const btn = document.createElement('button');
+    btn.className = 'atv-export-btn';
+    btn.textContent = label;
+    btnHost.appendChild(btn);
+    return btn;
 }
 
 // The Columns menu: a toolbar button plus the filter-dropdown shell, giving the
@@ -402,7 +420,7 @@ function makeSettingsRow(container, label) {
 
 // A settings row that is a single toggle button instead of a checkbox. State
 // lives in aria-pressed; the controller flips it and sets the label on click.
-function makeSettingsButton(container) {
+function makeSettingsButton(container, label = '') {
     const row = document.createElement('div');
     row.className = 'filter-row';
 
@@ -410,6 +428,7 @@ function makeSettingsButton(container) {
     btn.type = 'button';
     btn.className = 'atv-settings-btn';
     btn.setAttribute('aria-pressed', 'false');
+    if (label) btn.textContent = label;
 
     row.appendChild(btn);
     container.appendChild(row);
