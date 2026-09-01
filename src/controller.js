@@ -308,7 +308,8 @@ export async function initTable(config) {
         return initTable({
             ...config,
             data: newData, title: newTitle,
-            columns: undefined, dataKey: undefined,
+            // New data, new shape: the old column order means nothing to it.
+            columns: undefined, dataKey: undefined, columnOrder: undefined,
             collapsed: false,
             table: fresh,
         });
@@ -317,11 +318,11 @@ export async function initTable(config) {
     // Same in-place re-init as File > Open, but with an explicit column list over
     // the data already resolved. Existing column objects are reused as they are, so
     // a tree's first column keeps its render — and therefore its row toggles.
-    async function rebuildColumns(newColumns) {
+    async function rebuildColumns(newColumns, columnOrder) {
         const fresh = document.createElement('table');
         fresh.id = tableId;
         tableContainer.replaceWith(fresh);
-        return initTable({ ...config, data, columns: newColumns, title, collapsed: false, table: fresh });
+        return initTable({ ...config, data, columns: newColumns, columnOrder, title, collapsed: false, table: fresh });
     }
 
     // --- Columns picker: every leaf path found in the data, ticked for the columns
@@ -336,12 +337,23 @@ export async function initTable(config) {
         // Current columns first (a tree's name column is never a discovered leaf).
         const paths = [...shown.filter(k => !distinct.has(k)), ...found.map(d => d.path)];
 
-        // Discovery order is the order the table was built in, so sorting by it puts a
-        // re-ticked column back where it started instead of at the far end.
-        const order = new Map(paths.map((p, i) => [p, i]));
-        // The tree's first column carries the row-toggle render, so it stays first.
-        const pinned = columns[0]?.render ? columns[0].key : null;
-        const rank = col => col.key === pinned ? -1 : (order.get(col.key) ?? paths.length);
+        // The order columns belong in: the table as it stands, then everything else in
+        // discovery order. Carried across rebuilds (columnOrder), so a column ticked off
+        // and back on returns to the slot it held rather than to the data's idea of it —
+        // a configured table's order is the host's, and untouched by the picker.
+        const baseOrder = config.columnOrder
+            ?? [...shown, ...paths.filter(p => !shown.includes(p))];
+
+        // A newly ticked column lands before the first column that ranks after it, and
+        // only that one column moves — the rest keep the order they are in.
+        const order = new Map(baseOrder.map((p, i) => [p, i]));
+        const rankOf = key => order.has(key) ? order.get(key) : Infinity;
+        const insert = (cols, col) => {
+            const at = cols.findIndex(c => rankOf(c.key) > rankOf(col.key));
+            const next = [...cols];
+            next.splice(at === -1 ? next.length : at, 0, col);
+            return next;
+        };
 
         // No label on an added column: inferColumns derives it on the rebuild, in the
         // table's own style.
@@ -351,10 +363,10 @@ export async function initTable(config) {
         const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
         const rows = buildColumnOptions(menu.dd, paths, new Set(shown), (path, checked) => {
             const next = checked
-                ? [...columns, colFor(path)].sort((a, b) => rank(a) - rank(b))
+                ? insert(columns, colFor(path))
                 : columns.filter(c => c.key !== path);
             if (!next.length) return;
-            rebuildColumns(next).then(fresh => {
+            rebuildColumns(next, baseOrder).then(fresh => {
                 if (checked) focusColumn(fresh, next.findIndex(c => c.key === path));
             });
         }, path => {
@@ -362,7 +374,7 @@ export async function initTable(config) {
             // first column, whose row toggles go with it until it is ticked back on. A
             // column already on screen is reused as it stands, so it keeps its render,
             // label and format — the same reason rebuildColumns reuses column objects.
-            rebuildColumns([columns.find(c => c.key === path) ?? colFor(path)]);
+            rebuildColumns([columns.find(c => c.key === path) ?? colFor(path)], baseOrder);
         });
 
         // The badge counts ticked against listed, the same shape a filter's does.
@@ -388,14 +400,14 @@ export async function initTable(config) {
         menu.selAll.addEventListener('click', e => {
             e.preventDefault();
             const add = listed().filter(p => !shown.includes(p)).map(colFor);
-            if (add.length) rebuildColumns([...columns, ...add].sort((a, b) => rank(a) - rank(b)));
+            if (add.length) rebuildColumns(add.reduce(insert, columns), baseOrder);
         });
 
         menu.clrAll.addEventListener('click', e => {
             e.preventDefault();
             const drop = new Set(listed());
             const next = columns.filter(c => !drop.has(c.key));
-            rebuildColumns(next.length ? next : [columns[0]]);
+            rebuildColumns(next.length ? next : [columns[0]], baseOrder);
         });
     }
 

@@ -104,10 +104,13 @@ it as an ordinary column keyed by its path and rebuilds the table in place
 (`rebuildColumns`, the same swap File > Open uses, reusing the existing column objects
 so a tree's first column keeps its render and its row toggles). A path with
 `distinct <= CATEGORY_MAX` (25) values in the sample gets `filter: 'category'`, so
-booleans and enums arrive as checkboxes instead of a text box. Columns are re-sorted
-into the dropdown's own (discovery) order on every change, so re-ticking one puts it
-back where it was rather than at the far end — except a tree's first column, which is
-pinned first because it carries the row-toggle render. Added columns carry no label of their
+booleans and enums arrive as checkboxes instead of a text box. Ticking a column moves that column and nothing
+else: it is inserted before the first column ranking after it, and the columns already
+on screen keep the order they are in — a configured table's order is the host's, and the
+picker never re-sorts it into the data's. The ranking is `columnOrder`: the table as it
+first stood, then every other discovered path, threaded through each rebuild (and cleared
+by File > Open, whose data has a shape of its own), so a column ticked off and back on
+returns to the slot it held rather than to wherever discovery would put it. Added columns carry no label of their
 own — `inferColumns` derives every missing one on the rebuild, so they match whatever
 the rest of the table uses. After the rebuild `focusColumn` scrolls the new column
 into view (`th[data-col]`) and flashes its header with `.aj-flash`, since on a wide
