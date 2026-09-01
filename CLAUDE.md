@@ -112,9 +112,12 @@ own — `inferColumns` derives every missing one on the rebuild, so they match w
 the rest of the table uses. After the rebuild `focusColumn` scrolls the new column
 into view (`th[data-col]`) and flashes its header with `.aj-flash`, since on a wide
 table it can land off-screen. A rebuild resets the
-current filters, and the picked columns don't persist across a reload. Show All /
-Clear All are stripped from that dropdown — on deep data they would mean "add 400
-columns".
+current filters, and the picked columns don't persist across a reload. The dropdown is
+the full filter shell — search box, checkbox rows, and the Show All / Clear All footer
+with its `n/m` badge. Both actions work on the rows the **search has left listed**, never
+on all 400 paths: Show All adds every listed path not already shown, Clear All drops
+every listed one, keeping the first column so there is still a table to tick columns
+back onto.
 
 ### Path keys
 

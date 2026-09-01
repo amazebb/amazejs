@@ -380,9 +380,10 @@ export function addToolbarButton(btnHost, label) {
     return btn;
 }
 
-// The Columns menu: a toolbar button plus the filter-dropdown shell, giving the
-// picker the same search box and checkbox rows as a column filter. The Show All /
-// Clear All actions are dropped — on deep data they would mean "add 400 columns".
+// The Columns menu: a toolbar button plus the whole filter-dropdown shell — same
+// search box, checkbox rows, and Show All / Clear All footer with its count badge, so
+// the picker works exactly like a column filter. Show All acts on the rows the search
+// has left, which is what keeps it from meaning "add every path in the data".
 export function buildColumnsMenu(btnHost, id) {
     const btn = document.createElement('button');
     btn.className = 'atv-export-btn';
@@ -390,7 +391,6 @@ export function buildColumnsMenu(btnHost, id) {
     btnHost.appendChild(btn);
 
     const dd = buildDropdown(id);
-    dd.querySelector('.filter-actions').remove();
     const header = document.createElement('div');
     header.className = 'aj-array-header';
     header.textContent = 'Columns';
@@ -398,7 +398,13 @@ export function buildColumnsMenu(btnHost, id) {
     btnHost.appendChild(dd);
 
     attachPopover(btn, dd, btn, { hover: true });
-    return { btn, dd, search: dd.querySelector('.filter-search') };
+    return {
+        btn, dd,
+        search: dd.querySelector('.filter-search'),
+        selAll: dd.querySelector('.sel-all'),
+        clrAll: dd.querySelector('.clr-all'),
+        badge:  dd.querySelector('.filter-actions-badge'),
+    };
 }
 
 // One checkbox row per discovered path, ticked for the columns already shown.

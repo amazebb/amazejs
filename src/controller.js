@@ -343,20 +343,53 @@ export async function initTable(config) {
         const pinned = columns[0]?.render ? columns[0].key : null;
         const rank = col => col.key === pinned ? -1 : (order.get(col.key) ?? paths.length);
 
+        // No label on an added column: inferColumns derives it on the rebuild, in the
+        // table's own style.
+        const colFor = path => distinct.get(path) <= CATEGORY_MAX
+            ? { key: path, filter: 'category' } : { key: path };
+
         const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
         const rows = buildColumnOptions(menu.dd, paths, new Set(shown), (path, checked) => {
-            // No label here: inferColumns derives it on the rebuild, in the table's style.
-            const added = distinct.get(path) <= CATEGORY_MAX ? { key: path, filter: 'category' } : { key: path };
             const next = checked
-                ? [...columns, added].sort((a, b) => rank(a) - rank(b))
+                ? [...columns, colFor(path)].sort((a, b) => rank(a) - rank(b))
                 : columns.filter(c => c.key !== path);
             if (!next.length) return;
             rebuildColumns(next).then(fresh => {
                 if (checked) focusColumn(fresh, next.findIndex(c => c.key === path));
             });
         });
+
+        // The badge counts ticked against listed, the same shape a filter's does.
+        const listed = () => paths.filter(p => rows[p].style.display !== 'none');
+        function syncColumnsBadge() {
+            const on = listed().filter(p => shown.includes(p)).length;
+            menu.badge.textContent = '';
+            const badge = document.createElement('span');
+            badge.className = 'filter-badge';
+            badge.textContent = `${on}/${listed().length}`;
+            menu.badge.appendChild(badge);
+        }
+        syncColumnsBadge();
+
         menu.search.addEventListener('input', function() {
             filterOptionRows(rows, paths, this.value);
+            syncColumnsBadge();
+        });
+
+        // Show All / Clear All act on what the search has left listed, so they mean
+        // "these columns", never "every path in the data". Clear All keeps the first
+        // column: a table with no columns has nothing to tick them back on with.
+        menu.selAll.addEventListener('click', e => {
+            e.preventDefault();
+            const add = listed().filter(p => !shown.includes(p)).map(colFor);
+            if (add.length) rebuildColumns([...columns, ...add].sort((a, b) => rank(a) - rank(b)));
+        });
+
+        menu.clrAll.addEventListener('click', e => {
+            e.preventDefault();
+            const drop = new Set(listed());
+            const next = columns.filter(c => !drop.has(c.key));
+            rebuildColumns(next.length ? next : [columns[0]]);
         });
     }
 
