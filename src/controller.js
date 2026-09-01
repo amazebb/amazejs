@@ -343,6 +343,10 @@ export async function initTable(config) {
         // a configured table's order is the host's, and untouched by the picker.
         const baseOrder = config.columnOrder
             ?? [...shown, ...paths.filter(p => !shown.includes(p))];
+        // The dropdown lists in that same order — the columns as the table shows them,
+        // then the rest — so the picker reads as the table it is picking for. Anything
+        // discovered since the order was fixed goes on the end rather than being lost.
+        const listOrder = [...baseOrder, ...paths.filter(p => !baseOrder.includes(p))];
 
         // A newly ticked column lands before the first column that ranks after it, and
         // only that one column moves — the rest keep the order they are in.
@@ -361,7 +365,7 @@ export async function initTable(config) {
             ? { key: path, filter: 'category' } : { key: path };
 
         const menu = buildColumnsMenu(btnHost, `${tableId}_columns`);
-        const rows = buildColumnOptions(menu.dd, paths, new Set(shown), (path, checked) => {
+        const rows = buildColumnOptions(menu.dd, listOrder, new Set(shown), (path, checked) => {
             const next = checked
                 ? insert(columns, colFor(path))
                 : columns.filter(c => c.key !== path);
@@ -378,7 +382,7 @@ export async function initTable(config) {
         });
 
         // The badge counts ticked against listed, the same shape a filter's does.
-        const listed = () => paths.filter(p => rows[p].style.display !== 'none');
+        const listed = () => listOrder.filter(p => rows[p].style.display !== 'none');
         function syncColumnsBadge() {
             const on = listed().filter(p => shown.includes(p)).length;
             menu.badge.textContent = '';
@@ -390,7 +394,7 @@ export async function initTable(config) {
         syncColumnsBadge();
 
         menu.search.addEventListener('input', function() {
-            filterOptionRows(rows, paths, this.value);
+            filterOptionRows(rows, listOrder, this.value);
             syncColumnsBadge();
         });
 

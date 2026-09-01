@@ -108,7 +108,8 @@ booleans and enums arrive as checkboxes instead of a text box. Ticking a column 
 else: it is inserted before the first column ranking after it, and the columns already
 on screen keep the order they are in — a configured table's order is the host's, and the
 picker never re-sorts it into the data's. The ranking is `columnOrder`: the table as it
-first stood, then every other discovered path, threaded through each rebuild (and cleared
+first stood, then every other discovered path — the order the dropdown lists in as well,
+so the picker reads as the table it is picking for — threaded through each rebuild (and cleared
 by File > Open, whose data has a shape of its own), so a column ticked off and back on
 returns to the slot it held rather than to wherever discovery would put it. Added columns carry no label of their
 own — `inferColumns` derives every missing one on the rebuild, so they match whatever
