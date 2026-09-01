@@ -420,7 +420,13 @@ function makeSettingsButton(container) {
 // and squeezes the rest. Call once, with every row still visible.
 export function lockColumnWidths(table) {
     const cells = [...table.tHead.rows[0].cells];
+    // The row-number column is display:none until Settings turns it on. Measured in
+    // that state it locks at 0px and the numbers stay invisible once shown, so it is
+    // unhidden for the measurement and hidden again in the same frame.
+    const hidden = table.classList.contains('atv-hide-rownums');
+    if (hidden) table.classList.remove('atv-hide-rownums');
     const widths = cells.map(th => th.offsetWidth);
+    if (hidden) table.classList.add('atv-hide-rownums');
     if (!widths.some(w => w > 0)) return; // not laid out (hidden) — leave it auto
     cells.forEach((th, i) => { th.style.width = `${widths[i]}px`; });
     table.style.tableLayout = 'fixed';
