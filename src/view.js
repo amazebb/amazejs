@@ -407,30 +407,15 @@ export function buildColumnsMenu(btnHost, id) {
     };
 }
 
-// One checkbox row per discovered path, ticked for the columns already shown.
-// onToggle(path, checked) rebuilds the table; returns the rows for search filtering.
-export function buildColumnOptions(dd, paths, active, onToggle) {
+// One option row per discovered path, ticked for the columns already shown — the same
+// rows a column filter builds, Only button included. onToggle(path, checked) and
+// onOnly(path) rebuild the table; returns the rows for search filtering.
+export function buildColumnOptions(dd, paths, active, onToggle, onOnly) {
     const container = dd.querySelector('.filter-options');
     const rows = {};
-
     paths.forEach(path => {
-        const row = document.createElement('div');
-        row.className = 'filter-row';
-        row.setAttribute('data-value', path.toLowerCase());
-
-        const label = document.createElement('label');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = active.has(path);
-        cb.addEventListener('change', function() { onToggle(path, this.checked); });
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(path));
-
-        row.appendChild(label);
-        container.appendChild(row);
-        rows[path] = row;
+        rows[path] = makeOptionRow(container, path, active.has(path), onToggle, onOnly).row;
     });
-
     return rows;
 }
 
@@ -713,32 +698,39 @@ export function buildFilterOptions(filterId, values, onCheck, onOnly) {
     const rows = {}, checkboxes = {};
 
     values.forEach(v => {
-        const row = document.createElement('div');
-        row.className = 'filter-row';
-        row.setAttribute('data-value', v.toLowerCase());
-
-        const label = document.createElement('label');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = true;
-        cb.addEventListener('change', function() { onCheck(v, this.checked); });
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(v));
-
-        const onlyBtn = document.createElement('button');
-        onlyBtn.className = 'only-btn';
-        onlyBtn.textContent = 'Only';
-        onlyBtn.addEventListener('click', e => { e.preventDefault(); onOnly(v); });
-
-        row.appendChild(label);
-        row.appendChild(onlyBtn);
-        container.appendChild(row);
-
+        const { row, cb } = makeOptionRow(container, v, true, onCheck, onOnly);
         rows[v] = row;
         checkboxes[v] = cb;
     });
 
     return { rows, checkboxes };
+}
+
+// One dropdown option: a checkbox label plus the Only button the row reveals on hover.
+// The column filters and the Columns picker share it — the same UI either way, differing
+// only in what the callbacks do with the value.
+function makeOptionRow(container, value, checked, onCheck, onOnly) {
+    const row = document.createElement('div');
+    row.className = 'filter-row';
+    row.setAttribute('data-value', value.toLowerCase());
+
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.addEventListener('change', function() { onCheck(value, this.checked); });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode(value));
+
+    const onlyBtn = document.createElement('button');
+    onlyBtn.className = 'only-btn';
+    onlyBtn.textContent = 'Only';
+    onlyBtn.addEventListener('click', e => { e.preventDefault(); onOnly(value); });
+
+    row.appendChild(label);
+    row.appendChild(onlyBtn);
+    container.appendChild(row);
+    return { row, cb };
 }
 
 // Syncs checkbox checked state to match the current selected Set.

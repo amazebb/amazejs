@@ -357,6 +357,14 @@ export async function initTable(config) {
             rebuildColumns(next).then(fresh => {
                 if (checked) focusColumn(fresh, next.findIndex(c => c.key === path));
             });
+        }, path => {
+            // Only: this column alone — plus the pinned first column when it carries a
+            // tree's row-toggle render, which the table cannot lose.
+            const keep = pinned && pinned !== path ? [columns[0]] : [];
+            // A column already on screen is reused as it stands, so it keeps its render,
+            // label and format — the same reason rebuildColumns reuses column objects.
+            const only = columns.find(c => c.key === path) ?? colFor(path);
+            rebuildColumns([...keep, only]);
         });
 
         // The badge counts ticked against listed, the same shape a filter's does.

@@ -113,8 +113,12 @@ the rest of the table uses. After the rebuild `focusColumn` scrolls the new colu
 into view (`th[data-col]`) and flashes its header with `.aj-flash`, since on a wide
 table it can land off-screen. A rebuild resets the
 current filters, and the picked columns don't persist across a reload. The dropdown is
-the full filter shell — search box, checkbox rows, and the Show All / Clear All footer
-with its `n/m` badge. Both actions work on the rows the **search has left listed**, never
+the full filter shell, built from the same pieces — search box, option rows with their
+hover-revealed **Only** button (`makeOptionRow` in view.js builds a row for a column
+filter and for this picker alike; only the callbacks differ), and the Show All /
+Clear All footer with its `n/m` badge. Only means that column by itself, keeping the
+pinned first column when it carries a tree's row-toggle render, and reusing a column
+object already on screen so its render, label and format survive. Both actions work on the rows the **search has left listed**, never
 on all 400 paths: Show All adds every listed path not already shown, Clear All drops
 every listed one, keeping the first column so there is still a table to tick columns
 back onto.
