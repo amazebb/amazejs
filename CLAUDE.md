@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Testing / demo environment
 
-The demo lives in `docs/` (served as GitHub Pages): a single landing page (`index.html` / `app.js`) showing a flat table and a tree table, both zero-config. Data comes from `docs/data/flat.json` (array of objects) and `docs/data/tree.json` (root wrapper object). `docs/app.js` picks its library by hostname — `../dist/amazejs.js` on localhost, the CDN bundle pinned to a git tag in production — so **local testing runs the built bundle: `bun run build` before reloading**, or the page keeps the previous build.
+The demo lives in `docs/` (served as GitHub Pages): a single landing page (`index.html` / `app.js`) showing a flat table and a tree table, both zero-config. Data comes from `docs/data/flat.json` (array of objects) and `docs/data/tree.json` (root wrapper object). `docs/app.js` picks its library by hostname — the tagged CDN bundle only on `*.github.io`, `../dist/amazejs.js` everywhere else (localhost and any LAN address, so a phone or tablet pointed at the Mac's dev server gets the local build) — so **local testing runs the built bundle: `bun run build` before reloading**, or the page keeps the previous build.
 
 To serve it locally (required — ES modules and `fetch` need HTTP):
 ```
@@ -14,7 +14,7 @@ python3 -m http.server 8000
 
 Safari caches ES modules across a normal reload even with Disable Caches on — Develop > Empty Caches (⌥⌘E) when a change doesn't show.
 
-`../brewbar/docs/` (a sibling repo) is a real-world consumer, useful as a second test bed. Its `app.js` switches the same way: `../../amazejs/dist/amazejs.js` on localhost (serve from the common parent dir), else the tagged CDN URL. Bump that pin on every amazejs release.
+`../brewbar/docs/` (a sibling repo) is a real-world consumer, useful as a second test bed. Its `app.js` switches the same way: `../../amazejs/dist/amazejs.js` off GitHub Pages (serve from the common parent dir), else the tagged CDN URL. Bump that pin on every amazejs release.
 
 ## What this is
 
