@@ -3,7 +3,7 @@ import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
-    updateFilterCounts, filterOptionRows, downloadCsv, downloadJson,
+    updateFilterCounts, filterOptionRows, downloadCsv, downloadJson, toCsv,
     attachPopover, ensureStyles, lockColumnWidths,
     buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView, addToolbarButton
 } from './view.js';
@@ -179,6 +179,9 @@ export async function initTable(config) {
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
     // --- State ---
+    // The source panel, built on the first File > View Source and refilled by refresh().
+    let sourcePre = null;
+    let renderSource = () => {};
     const filterState     = {};
     const optionQuery     = {};
     const textFilterState = {};
@@ -233,6 +236,7 @@ export async function initTable(config) {
         visibleSet  = new Set(getVisible(sortedData, activeState, textFilterState, rangeState, query, searchKeys, colFormats));
 
         setRowVisibility(sortedData, visibleSet, rowMap);
+        if (tableContainer.classList.contains('atv-source')) renderSource();
         if (countBadge) countBadge.textContent = `${visibleSet.size} / ${data.length}`;
         if (noResults)  noResults.classList.toggle('show', visibleSet.size === 0);
 
@@ -270,18 +274,25 @@ export async function initTable(config) {
             downloadJson([...visibleSet], jsonFilename);
             fileBtns.dd.hidePopover();
         });
-        // View Source swaps the table for the text it was built from — the imported
-        // file itself when there is one (fetched or opened), otherwise the data
-        // serialized as JSON, which is all an inline `data` array ever was.
-        let sourcePre = null;
+        // View Source swaps the table for a text dump of what the table is showing —
+        // the rows the filters left, in the shape the data arrived in: CSV when the
+        // import was delimited, JSON otherwise. It tracks the filters while open, so
+        // it reads as the same view the table does, not as the untouched file.
+        const raw = sourceText.get(data);
+        const importedAsJson = !raw || /^\s*[[{]/.test(raw);
         fileBtns.source.addEventListener('click', () => {
             fileBtns.dd.hidePopover();
             const showing = tableContainer.classList.toggle('atv-source');
-            if (showing && !sourcePre)
-                sourcePre = buildSourceView(tableWrap || tableContainer,
-                    sourceText.get(data) ?? JSON.stringify(data, null, 2));
+            if (showing && !sourcePre) sourcePre = buildSourceView(tableWrap || tableContainer);
+            if (showing) renderSource();
             fileBtns.source.textContent = showing ? 'View Table' : 'View Source';
         });
+        renderSource = () => {
+            if (!sourcePre) return;
+            sourcePre.textContent = importedAsJson
+                ? JSON.stringify([...visibleSet], null, 2)
+                : toCsv(columns, [...visibleSet]);
+        };
     }
 
     // File > Open: tears down everything this init built (toolbar and dropdowns

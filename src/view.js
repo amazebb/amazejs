@@ -786,7 +786,7 @@ async function saveFile(blob, suggestedName, types) {
 }
 
 // Generates a CSV from visible items and saves it.
-export async function downloadCsv(columns, items, filename) {
+export function toCsv(columns, items) {
     const header = columns.map(c => c.label);
     const rows = items.map(item =>
         columns.map(c => {
@@ -794,8 +794,11 @@ export async function downloadCsv(columns, items, filename) {
             return `"${v.replace(/"/g, '""')}"`;
         })
     );
-    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
+    return [header, ...rows].map(r => r.join(',')).join('\n');
+}
+
+export async function downloadCsv(columns, items, filename) {
+    const blob = new Blob([toCsv(columns, items)], { type: 'text/csv' });
     await saveFile(blob, filename, [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }]);
 }
 
@@ -805,14 +808,13 @@ export async function downloadJson(items, filename) {
     await saveFile(blob, filename, [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]);
 }
 
-// The raw-source panel: a text dump of the imported file, built once on the first
-// File > View Source and kept alongside the table, which CSS hides while the
-// container carries .atv-source. Text, not markup, so a file with tags in it shows
-// them as text.
-export function buildSourceView(host, text) {
+// The raw-source panel: a text dump shown in place of the table, which CSS hides
+// while the container carries .atv-source. Built once and refilled by the controller
+// as the filters change. Text, not markup, so a file with tags in it shows them as
+// text.
+export function buildSourceView(host) {
     const pre = document.createElement('pre');
     pre.className = 'aj-source';
-    pre.textContent = text;
     host.appendChild(pre);
     return pre;
 }
