@@ -424,6 +424,11 @@ export function lockColumnWidths(table) {
     if (!widths.some(w => w > 0)) return; // not laid out (hidden) — leave it auto
     cells.forEach((th, i) => { th.style.width = `${widths[i]}px`; });
     table.style.tableLayout = 'fixed';
+    // A fixed table narrower than its columns shrinks every one of them proportionally,
+    // so a phone or a rotated tablet squeezes the locked widths and the nowrap header
+    // content (sort arrow, filter funnel) spills under the next cell. Hold the measured
+    // total as the min-width: the wrapper scrolls instead.
+    table.style.minWidth = `${widths.reduce((a, b) => a + b, 0)}px`;
 }
 
 // Points the eye at a column after a rebuild: scrolls it into view (a new column can

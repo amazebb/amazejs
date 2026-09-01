@@ -66,6 +66,10 @@
 .atv-table-container {
     font-family: var(--font, system-ui);
     color: var(--text);
+    /* Mobile Safari inflates text in narrow viewports after layout, which would
+       push header content past the widths lockColumnWidths measured. */
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
 }
 
 .atv-table-container :is(button, input) {
