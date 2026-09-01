@@ -252,25 +252,26 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     countBadge.className = 'atv-count-badge';
     rest.appendChild(countBadge);
 
-    // The ⋯ button sits OUTSIDE the hover wrap, so hovering/clicking it never
-    // trips the hover-reveal — it's a plain click toggle (aria-expanded). The
-    // wrap holds only the menu; hovering the wrap (the reserved space where the
-    // hidden buttons sit) is what reveals them on mouse. moreBtn stays adjacent
-    // a preceding sibling of moreWrap for the `~ .atv-more-wrap` reveal selector.
-    const moreBtn = document.createElement('button');
-    moreBtn.className = 'atv-more-btn';
-    moreBtn.setAttribute('aria-expanded', 'false');
-    moreBtn.setAttribute('aria-label', 'More options');
-    rest.appendChild(moreBtn);
-
     // Raw-source toggle: the word RAW at rest, TABLE while the dump is showing, so it
-    // names where the press goes. It sits between the ⋯ and the menu wrap, always out —
-    // it is a view switch, not one of the menus the ⋯ hides.
+    // names where the press goes. Always out — it is a view switch, not one of the menus
+    // the ⋯ hides — and ahead of the ⋯, which is where it reads as part of the toolbar
+    // rather than as something the ⋯ spilled out.
     const sourceBtn = document.createElement('button');
     sourceBtn.className = 'atv-source-btn';
     sourceBtn.setAttribute('aria-pressed', 'false');
     sourceBtn.setAttribute('aria-label', 'View source');
     rest.appendChild(sourceBtn);
+
+    // The ⋯ button sits OUTSIDE the hover wrap, so hovering/clicking it never
+    // trips the hover-reveal — it's a plain click toggle (aria-expanded). The
+    // wrap holds only the menu; hovering the wrap (the reserved space where the
+    // hidden buttons sit) is what reveals them on mouse. moreBtn stays adjacent
+    // to moreWrap for the `+ .atv-more-wrap` reveal selector.
+    const moreBtn = document.createElement('button');
+    moreBtn.className = 'atv-more-btn';
+    moreBtn.setAttribute('aria-expanded', 'false');
+    moreBtn.setAttribute('aria-label', 'More options');
+    rest.appendChild(moreBtn);
 
     const moreWrap = document.createElement('div');
     moreWrap.className = 'atv-more-wrap';

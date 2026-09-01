@@ -305,7 +305,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
 }
 
-.atv-more-btn[aria-expanded="true"] ~ .atv-more-wrap .atv-toolbar-more,
+.atv-more-btn[aria-expanded="true"] + .atv-more-wrap .atv-toolbar-more,
 .atv-toolbar-more:has(:popover-open) {
     visibility: visible;
     opacity: 1;
