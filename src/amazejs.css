@@ -278,14 +278,16 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     background: var(--accent-subtle);
 }
 
-/* Hidden until revealed; fades and slides in from the left */
+/* Hidden until revealed; fades and slides in from the left. The resting state comes
+   from inherited custom properties, so Show Toolbar Buttons is set on a container and
+   the nearest container wins — a nested table can dissent from its parent's choice. */
 .atv-toolbar-more {
     display: flex;
     gap: 8px;
     align-items: stretch;
-    visibility: hidden;
-    opacity: 0;
-    transform: translateX(-10px);
+    visibility: var(--aj-more-vis, hidden);
+    opacity: var(--aj-more-op, 0);
+    transform: translateX(var(--aj-more-x, -10px));
     transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
 }
 
@@ -296,6 +298,26 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     transform: translateX(0);
     transition: opacity 0.25s ease, transform 0.25s ease;
 }
+
+/* Settings > Show Toolbar Buttons: the menus stay out and the ⋯ that would reveal
+   them goes away. Set on the container, so every table inside one — a tree's child
+   groups as well as the root — follows it, until a nested container says otherwise. */
+.atv-show-more {
+    --aj-more-vis: visible;
+    --aj-more-op: 1;
+    --aj-more-x: 0px;
+}
+
+.atv-hide-more {
+    --aj-more-vis: hidden;
+    --aj-more-op: 0;
+    --aj-more-x: -10px;
+}
+
+/* Descendant, not child: a nested table under a showing container hides its own ⋯
+   too. The hide rule comes second, so an explicit dissent lower down wins on order. */
+.atv-show-more .atv-more-btn { display: none; }
+.atv-hide-more .atv-more-btn { display: revert; }
 
 /* Hover-reveal, mouse only: hovering the wrap (the reserved menu space) brings
    the buttons in. Gated to hover devices so a sticky tap-hover can't pin it. */

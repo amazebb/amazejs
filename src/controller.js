@@ -39,6 +39,7 @@ export async function initTable(config) {
         searchDebounce = true,
         stickyHeaders  = true,
         showFilterRow  = true,
+        showButtons    = false,
         labelStyle,
         formats,
         lockWidths     = true,
@@ -114,6 +115,17 @@ export async function initTable(config) {
         else rest.prepend(countBadge);
     }
     applyBadgePosition(badgePosition);
+
+    // Show Toolbar Buttons: the menus sit out permanently and the ⋯ disappears. On
+    // the container, so nested tables inside it follow — and applied here, before
+    // buildTableUI, so a collapsed table is already in the right mode when it opens.
+    function applyShowButtons(on) {
+        tableContainer.classList.toggle('atv-show-more', on);
+        tableContainer.classList.toggle('atv-hide-more', !on);
+    }
+    // Only an explicit choice is stamped: a table left alone inherits whatever the
+    // container above it says, which is how a tree's child tables follow the root.
+    if (showButtons) applyShowButtons(true);
 
     const effectiveSearchInput = config.searchInputEl || null;
 
@@ -379,6 +391,8 @@ export async function initTable(config) {
         // buttons wrap, so re-measure whenever it resizes.
         new ResizeObserver(syncToolbarHeight).observe(toolbar);
 
+        // Ticked when this table shows its buttons, inherited from an ancestor included.
+        settingsBtns.showMore.checked = showButtons || !!tableContainer.closest('.atv-show-more');
         settingsBtns.rowNums.checked = rowNumbers;
         settingsBtns.borders.checked = bordered;
         settingsBtns.sticky.checked  = stickyHeaders;
@@ -394,6 +408,9 @@ export async function initTable(config) {
         applySticky(stickyHeaders);
         if (!showFilterRow) rest.style.display = 'none';
 
+        settingsBtns.showMore.addEventListener('change', () => {
+            applyShowButtons(settingsBtns.showMore.checked);
+        });
         settingsBtns.rowNums.addEventListener('change', () => {
             table.classList.toggle('atv-hide-rownums', !settingsBtns.rowNums.checked);
         });

@@ -326,6 +326,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     settingsOpts.className = 'filter-options';
     settingsDd.appendChild(settingsOpts);
 
+    const showMoreCb = makeSettingsRow(settingsOpts, 'Show Toolbar Buttons');
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
     const stickyCb = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
@@ -334,7 +335,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
 }
 
 // The Columns menu: a toolbar button plus the filter-dropdown shell, giving the
