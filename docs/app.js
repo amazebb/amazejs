@@ -5,7 +5,7 @@
 // on the floating @latest URL. Bump this on every release.
 const src = !location.hostname.endsWith('github.io')
     ? '../dist/amazejs.js'
-    : 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.28.5/dist/amazejs.js';
+    : 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.28.6/dist/amazejs.js';
 const { initTable } = await import(src);
 
 initTable({
