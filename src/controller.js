@@ -164,8 +164,6 @@ export async function initTable(config) {
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, headerColumns, tableId);
     const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
-    // Measured here, with every row still visible, so filters cannot reflow them.
-    if (lockWidths) lockColumnWidths(table);
 
     // --- State ---
     const filterState     = {};
@@ -482,20 +480,24 @@ export async function initTable(config) {
     });
 
     // --- Sorting ---
+    const colDirs = {};
+
     function sortByCol(colIndex) {
         const col = columns[colIndex];
         if (!col) return;
 
-        sortState.dir = sortState.key === col.key ? sortState.dir * -1 : 1;
+        // Each column keeps the direction it was last sorted in: clicking the sorted
+        // column flips it, clicking another resumes where that column left off. Only
+        // .sorted moves, so switching columns never rewrites anyone else's chevron.
+        const last = colDirs[colIndex] || 1;
+        sortState.dir = sortState.key === col.key ? last * -1 : last;
         sortState.key = col.key;
+        colDirs[colIndex] = sortState.dir;
 
-        const dirClass = sortState.dir === 1 ? 'asc' : 'desc';
-        table.querySelectorAll('th.sortable').forEach(th => th.classList.remove('asc', 'desc'));
-        table.querySelector(`th[data-col="${colIndex}"]`)?.classList.add(dirClass);
-        [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {
-            if (def.col === colIndex)
-                document.getElementById(def.thId).classList.add(dirClass);
-        });
+        const th = table.querySelector(`th[data-col="${colIndex}"]`);
+        table.querySelectorAll('th.sorted').forEach(el => el.classList.remove('sorted'));
+        th?.classList.remove('asc', 'desc');
+        th?.classList.add(sortState.dir === 1 ? 'asc' : 'desc', 'sorted');
 
         sortedData = sortItems(data, col.key, sortState.dir, col.numeric);
         sortedData.forEach(item => tbody.appendChild(rowMap.get(item)));
@@ -511,6 +513,11 @@ export async function initTable(config) {
         th.classList.add('sortable');
         th.addEventListener('click', e => { if (e.target === th) sortByCol(def.col); });
     });
+
+    // Measured last, with every row visible and every header finished: filterable
+    // ths only just became .sortable, and a width locked before their ::after arrow
+    // exists is a width the arrow then overflows into the next column.
+    if (lockWidths) lockColumnWidths(table);
 
     refresh();
 

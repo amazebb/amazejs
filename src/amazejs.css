@@ -26,11 +26,15 @@
     --radius: 6px;
 
     /* Internal — derived from the theme; overridable but undocumented */
-    --sort-icon: " ↕";
-    --sort-icon-asc: " ↑";
-    --sort-icon-desc: " ↓";
+    /* U+FE0E (text variation selector) on every glyph that has an emoji form:
+       without it iOS draws ↕ as a colour emoji among the thin-line arrows. */
+    /* The neutral state is the two sorted arrows side by side, not ↕: same glyphs,
+       so it matches them in weight, size and baseline at any font-size. */
+    --sort-icon: " \2191\FE0E\2193\FE0E";
+    --sort-icon-asc: " \2191\FE0E";
+    --sort-icon-desc: " \2193\FE0E";
     /* Outline, so a filtered column never reads as one of the filled sort arrows */
-    --filter-icon: "▽";
+    --filter-icon: "\25BD\FE0E";
     --stripe-bg: var(--bg-subtle);
     --header-bg: var(--bg-hover);
 }
@@ -412,15 +416,25 @@ thead th:hover {
     background: var(--accent-subtle);
 }
 
+/* Sized in em off the header text, so the touch bump below is one variable and the
+   glyph tracks --font-size rather than sitting at a fixed pixel size. */
 th.sortable::after {
     content: var(--sort-icon);
-    font-size: 11px;
+    font-size: var(--aj-th-icon, .8em);
     color: var(--text-muted);
 }
 
-th.sortable.asc::after,
-th.sortable.desc::after {
+/* Only the column the table is sorted by is lit; the others keep the direction
+   they were last sorted in as a muted chevron, so switching columns leaves every
+   other header exactly as it was. */
+th.sortable.sorted::after {
     color: var(--accent);
+}
+
+/* The ↑↓ pair is wider than the single arrow it becomes, so it is tracked in tighter
+   and the column keeps the wider of the two widths either way. */
+th.sortable:not(.asc):not(.desc)::after {
+    letter-spacing: -.15em;
 }
 
 th.sortable.asc::after {
@@ -431,22 +445,21 @@ th.sortable.desc::after {
     content: var(--sort-icon-desc);
 }
 
-/* Filterable header with a filter applied */
-thead th.active {
-    background: var(--accent-subtle);
-}
 
 /* Explicit filter trigger inside a filterable header, hidden by default: mouse
    users open the dropdown by hovering the th. It appears in two cases — on touch
    devices (no hover / coarse pointer), where tap is the sole gesture and it gives
    filtering a target distinct from the sort tap, and on any device once this
-   column is filtering, where it doubles as the marker for which column that is. */
+   column is filtering, where it doubles as the marker for which column that is.
+   Invisible rather than display:none, so it holds its space in the column widths
+   lockColumnWidths measures and appearing later can't overflow the cell. */
 .atv-filter-btn {
-    display: none;
+    display: inline-flex;
+    visibility: hidden;
     align-items: center;
     justify-content: center;
     margin: 0 0 0 .35em;
-    padding: 0;
+    padding: .15em .35em;
     border: 0;
     background: none;
     color: var(--text-muted);
@@ -457,14 +470,18 @@ thead th.active {
 }
 
 .atv-filter-btn::before {
-    font-size: 12px;
+    font-size: var(--aj-th-icon, .8em);
     content: "⏷";
 }
 
-/* Shown when this column is filtering, on every device, as the funnel it means:
-   the tint says something is filtered, the funnel says which columns. */
+/* Shown when this column is filtering, on every device: the funnel alone says which
+   columns are filtering — no tint behind the label, which reads as hover and can't
+   name a column anyway. Accent-coloured on an accent chip so it carries on its own. */
 thead th.active > .atv-filter-btn {
-    display: inline-flex;
+    visibility: visible;
+    background: var(--accent-subtle);
+    border-radius: var(--radius);
+    color: var(--accent);
 }
 
 thead th.active > .atv-filter-btn::before {
@@ -474,8 +491,14 @@ thead th.active > .atv-filter-btn::before {
 /* Touch: always there, and sized as a tap chip rather than the compact marker a
    pointer gets, spaced clear of the sort ::after arrow ("Label  [⏷]  ↕"). */
 @media (hover: none), (pointer: coarse) {
+    /* Thumb-sized rather than pointer-sized: the sort chevron and the filter funnel
+       both grow to roughly half the header text's line, and the button becomes a chip. */
+    thead th {
+        --aj-th-icon: 1.4em;
+    }
+
     .atv-filter-btn {
-        display: inline-flex;
+        visibility: visible;
         min-width: 2em;
         min-height: 2em;
         margin: 0 .5em;
