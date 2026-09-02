@@ -21,11 +21,18 @@ function sidewaysScroller(el) {
     return null;
 }
 
-// The three custom properties a frozen table publishes on its container, and the
-// only channel between the measuring the controller does and the layout the
-// stylesheet owns: the scroller's visible width, how far the container sits inside
-// it, and the toolbar's measured height.
-const TOOLBAR_VARS = ['--aj-port-w', '--aj-port-inset', '--aj-toolbar-h'];
+// The custom properties a frozen table publishes on its container, and the only
+// channel between the measuring the controller does and the layout the stylesheet
+// owns: the scroller's visible width, how far the container sits inside it, that
+// same inset again once the table is wide enough to need it as trailing space, and
+// the toolbar's measured height.
+const TOOLBAR_VARS = ['--aj-port-w', '--aj-port-inset', '--aj-port-pad', '--aj-toolbar-h'];
+
+// The width a table has before it overflows: its host's content box.
+function hostContentWidth(host) {
+    const cs = getComputedStyle(host);
+    return host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+}
 
 // The box a frozen toolbar has to fill. Sticky pins it to the left edge of whatever
 // scrolls the table sideways, so its width has to be that scroller's: sized to its
@@ -47,6 +54,16 @@ function portBox(container, nested) {
     const left = scroller ? scroller.getBoundingClientRect().left + scroller.clientLeft : 0;
     const scrolled = scroller ? scroller.scrollLeft : window.scrollX;
     return { width, inset: container.getBoundingClientRect().left - left + scrolled };
+}
+
+// Whether the table is wider than the room its host gives it — the only case where
+// trailing space is scrollable rather than a bite out of the table's own width. The
+// padding is zeroed for the measurement so the answer never depends on the answer
+// last time: a table is width:100% of the box it lands in, so padding left in place
+// would shrink it towards fitting and flip the result back and forth.
+function overflowsHost(container, table, host) {
+    container.style.setProperty('--aj-port-pad', '0px');
+    return table.offsetWidth > hostContentWidth(host) + 1;
 }
 
 export async function initTable(config) {
@@ -541,8 +558,10 @@ export async function initTable(config) {
                 return;
             }
             const { width, inset } = portBox(tableContainer, nested);
+            const wide = inset > 0 && !!host && overflowsHost(tableContainer, table, host);
             style.setProperty('--aj-port-w', `${width}px`);
             style.setProperty('--aj-port-inset', `${inset}px`);
+            style.setProperty('--aj-port-pad', wide ? `${inset}px` : '0px');
             style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
         }
         function applySticky(on) {
