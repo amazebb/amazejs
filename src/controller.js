@@ -193,8 +193,19 @@ export async function initTable(config) {
 
     filterDefs.forEach(def => {
         // Blank values are a real option: missing/empty cells get their own row so
-        // they stay selectable instead of being silently filtered out.
-        const values = [...new Set(data.map(d => cellDisplay(d, columns[def.col])))].sort();
+        // they stay selectable instead of being silently filtered out. A numeric
+        // column promoted to checkboxes orders by the raw value it kept beside each
+        // display text — text order would put 10 before 2, and the separators the
+        // display carries make its own text unparseable.
+        const col = columns[def.col];
+        const raw = new Map();
+        data.forEach(d => {
+            const text = cellDisplay(d, col);
+            if (!raw.has(text)) raw.set(text, getValue(d, col));
+        });
+        const values = [...raw.keys()].sort(col.numeric
+            ? (a, b) => Number(raw.get(a)) - Number(raw.get(b))
+            : undefined);
         filterState[def.key] = new Set(values);
         optionQuery[def.key] = '';
 

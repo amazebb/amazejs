@@ -282,9 +282,13 @@ export function filterFor(items, col, cap = VARIANCE_SCAN) {
 
     if (items.length > cap) return col.filter;
     if (seen.size < 2) return false;
-    // Only a text box is promoted: a range keeps its Min/Max, and an explicit
+    // A text box and a numeric Min/Max are both promoted — 25 numbers are a list to
+    // tick, not a span to bound. A date range keeps its pickers (a calendar bounded
+    // by the column's own span reads better than checkboxes of days), and an explicit
     // 'category' is already what it wants to be.
-    return col.filter === 'text' && seen.size <= CATEGORY_MAX ? 'category' : col.filter;
+    const promotable = col.filter === 'text'
+        || (col.filter === 'range' && !isDateFormat(col.format));
+    return promotable && seen.size <= CATEGORY_MAX ? 'category' : col.filter;
 }
 
 // The same, for the filter/search layers, which know keys rather than columns.
