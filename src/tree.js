@@ -90,6 +90,9 @@ export async function initTree(config, rawData) {
     if (rootGroups.length > 1) {
         const anchor = config.table || document.getElementById(config.tableId);
         const host = document.createElement('div');
+        // Named so File > Open can find it: opening a file replaces the whole tree,
+        // not just the group whose menu was used (controller.js, rebuild).
+        host.className = 'aj-tree-host';
         anchor.replaceWith(host);
         for (const group of rootGroups) buildRootTable(host, group, config, ctx);
         return host;

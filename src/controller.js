@@ -362,7 +362,15 @@ export async function initTable(config) {
     async function rebuild(newData, newTitle) {
         const fresh = document.createElement('table');
         fresh.id = tableId;
-        tableContainer.replaceWith(fresh);
+        // A root object holding several arrays became one container per group inside a
+        // tree host, each with a File menu of its own. Opening a file from any of them
+        // replaces the whole tree — otherwise the groups whose menu was not used stay
+        // on screen beside the newly opened data. (rebuildColumns below stays with its
+        // own container: re-picking columns is that one group's business.)
+        const outgoing = tableContainer.parentElement?.classList.contains('aj-tree-host')
+            ? tableContainer.parentElement
+            : tableContainer;
+        outgoing.replaceWith(fresh);
         return initTable({
             ...config,
             data: newData, title: newTitle,
