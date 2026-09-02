@@ -332,7 +332,10 @@ export async function initTable(config) {
     // because a column key may be a path — and rebuilds the table. Paths with few
     // distinct values get a checkbox filter, so a boolean lands as true/false
     // checkboxes rather than a text box. ---
-    if (btnHost && !nested) {
+    // Every table with a toolbar gets one, nested child tables included: a group's
+    // table has its own data to pick columns from, and rebuildColumns replaces the
+    // container in place wherever it sits, a children cell as readily as the page.
+    if (btnHost) {
         const found = discoverPaths(data);
         const distinct = new Map(found.map(d => [d.path, d.distinct]));
         const shown = columns.map(c => c.key);

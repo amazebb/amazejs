@@ -95,8 +95,9 @@ as well as leaves — provided it was in the sample.
 
 ### Columns menu
 
-Non-nested tables get a **Columns** toolbar menu (next to File and Settings, behind
-the `⋯` overflow) listing every path `discoverPaths` finds in the data — leaves and
+Every table with a toolbar gets a **Columns** menu (next to File and Settings, behind
+the `⋯` overflow) — a tree's nested group tables included, each picking over its own
+group's data — listing every path `discoverPaths` finds in the data — leaves and
 their containers (an object or array of objects is a column too, reported with
 `distinct: Infinity` so it never gets a checkbox filter) — walked over the first
 `SAMPLE_SIZE` items, 4 levels deep, capped at 400 paths, with the dropdown's search
