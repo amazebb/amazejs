@@ -21,6 +21,34 @@ function sidewaysScroller(el) {
     return null;
 }
 
+// The three custom properties a frozen table publishes on its container, and the
+// only channel between the measuring the controller does and the layout the
+// stylesheet owns: the scroller's visible width, how far the container sits inside
+// it, and the toolbar's measured height.
+const TOOLBAR_VARS = ['--aj-port-w', '--aj-port-inset', '--aj-toolbar-h'];
+
+// The box a frozen toolbar has to fill. Sticky pins it to the left edge of whatever
+// scrolls the table sideways, so its width has to be that scroller's: sized to its
+// host's content box instead, it lands at the same left edge but stops short on the
+// right by the page's own inset, and rows scroll past in that strip above the bar.
+// The inset is scroll-invariant — how far in the container sits, whatever the page
+// happens to be scrolled to when this runs. A nested table is the exception: it
+// scrolls inside its parent's cell, not the page, so its box is that cell's content
+// width, sitting flush in it.
+function portBox(container, nested) {
+    const host = container.parentElement;
+    if (nested && host) {
+        const cs = getComputedStyle(host);
+        const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+        return { width: host.clientWidth - pad, inset: 0 };
+    }
+    const scroller = sidewaysScroller(container);
+    const width = scroller ? scroller.clientWidth : document.documentElement.clientWidth;
+    const left = scroller ? scroller.getBoundingClientRect().left + scroller.clientLeft : 0;
+    const scrolled = scroller ? scroller.scrollLeft : window.scrollX;
+    return { width, inset: container.getBoundingClientRect().left - left + scrolled };
+}
+
 export async function initTable(config) {
     ensureStyles();
     let data = config.data;
@@ -500,50 +528,22 @@ export async function initTable(config) {
 
     // --- Settings toggles ---
     if (settingsBtns) {
-        // Freezing the toolbar freezes the header row with it: the header pins at
-        // the toolbar's height, measured here since the toolbar's contents (title,
-        // buttons) size it. The width is set for the same reason the height is
-        // measured: a frozen container grows to a too-wide table, and a toolbar that
-        // grew with it could not stick sideways — it would have nowhere to travel — so
-        // it is held to the width the container would have had, its parent's, and
-        // sticks to the container's left edge while the table scrolls under it.
+        // Freezing the toolbar freezes the header row with it, and both need numbers
+        // only layout can give: how tall the toolbar's own contents make it, and the
+        // box it has to fill. The controller measures and publishes; every rule that
+        // consumes them lives in the stylesheet (.atv-toolbar.atv-sticky, and the
+        // header row's top offset).
         const host = tableContainer.parentElement;
         function syncToolbarBox() {
+            const style = tableContainer.style;
             if (!tableContainer.classList.contains('atv-sticky-head')) {
-                tableContainer.style.removeProperty('--aj-toolbar-h');
-                ['width', 'margin-left', 'padding-left'].forEach(p => toolbar.style.removeProperty(p));
+                TOOLBAR_VARS.forEach(v => style.removeProperty(v));
                 return;
             }
-            // A nested table scrolls inside its parent's cell rather than the page, so
-            // it keeps to the box its host gives it — clientWidth still carries the
-            // host's padding, which the container never had.
-            if (nested && host) {
-                const cs = getComputedStyle(host);
-                const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-                toolbar.style.width = `${host.clientWidth - pad}px`;
-                toolbar.style.removeProperty('margin-left');
-                toolbar.style.removeProperty('padding-left');
-                tableContainer.style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
-                return;
-            }
-            // The frozen toolbar has to cover the full width of whatever scrolls the
-            // table sideways, because sticky pins it to that scroller's left edge: a box
-            // sized to the host's content box lands there too, and so stops short on the
-            // right by exactly the page's own inset — the strip where rows scroll past
-            // above the bar. So it is pulled out to the scroller's edges with a negative
-            // margin and given the same amount back as padding: the background spans the
-            // screen while the title still lines up with the table beneath it.
-            const scroller = sidewaysScroller(tableContainer);
-            const port = scroller ? scroller.clientWidth : document.documentElement.clientWidth;
-            const portLeft = scroller ? scroller.getBoundingClientRect().left + scroller.clientLeft : 0;
-            const scrolled = scroller ? scroller.scrollLeft : window.scrollX;
-            // Scroll-invariant: how far the container sits inside the scroller, whatever
-            // the page has been scrolled to when this runs.
-            const inset = tableContainer.getBoundingClientRect().left - portLeft + scrolled;
-            toolbar.style.width = `${port}px`;
-            toolbar.style.marginLeft = `${-inset}px`;
-            toolbar.style.paddingLeft = `${inset}px`;
-            tableContainer.style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
+            const { width, inset } = portBox(tableContainer, nested);
+            style.setProperty('--aj-port-w', `${width}px`);
+            style.setProperty('--aj-port-inset', `${inset}px`);
+            style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
         }
         function applySticky(on) {
             toolbar.classList.toggle('atv-sticky', on);

@@ -118,17 +118,24 @@
     align-items: stretch;
 }
 
-/* Frozen: the toolbar pins to the top of the page and to the left of the container,
+/* Frozen: the toolbar pins to the top of the page and to the left of the scroller,
    so the title and the menus stay put while a table wider than the screen scrolls
    sideways under them. Sticking sideways needs a box narrower than what it sticks
-   within — the controller sets the width from the space the container would have had,
-   the container itself having grown to the table (see .atv-sticky-head below). */
+   within — the container has grown to the table (see .atv-sticky-head below) — and
+   that box is the scroller's, since that is where sticky lands it: --aj-port-w wide,
+   bled out to the scroller's edges by --aj-port-inset and given the same amount back
+   as padding, so the bar spans the screen while the title stays aligned with the
+   table under it. Both are published by syncToolbarBox (controller.js), which is the
+   only thing that measures; anything laid out from those numbers belongs here. */
 .atv-toolbar.atv-sticky {
     position: sticky;
     top: 0;
     left: 0;
     z-index: 5;
     background: var(--bg);
+    width: var(--aj-port-w, auto);
+    margin-left: calc(-1 * var(--aj-port-inset, 0px));
+    padding-left: var(--aj-port-inset, 0px);
 }
 
 /* The header row pins directly under the frozen toolbar, whose measured height
