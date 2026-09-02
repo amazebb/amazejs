@@ -4,6 +4,32 @@ import { isUrlData, titleFromUrl, sampleKeys, SAMPLE_SIZE } from './model.js';
 const btnMeta = new WeakMap();
 
 const isObjectArray = v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
+const isRecord = v => !!v && typeof v === 'object' && !Array.isArray(v);
+
+// Fields in common before a nested object counts as a node of the same kind as its
+// parent rather than a value of it. A field counts only when both sides hold a plain
+// value there — a name shared over containers says nothing about shape — and two is
+// the line that separates what actually occurs: solar-system's Mercury repeats the
+// Sun's naif/mass_kg/radius_km, while an AST node's data ({lineno, language}) repeats
+// nothing, a brew formula's versions repeats only the name `bottle` (a boolean against
+// an object), and its head_dependencies repeats a set of key names whose values are
+// arrays on both sides. Below the line the object stays an ordinary cell.
+const NODE_FIELDS_SHARED = 2;
+const isScalar = v => v === null || typeof v !== 'object';
+
+// The properties of an item that are child nodes: a single record repeating enough
+// of its parent's fields to be the same kind of thing. This is how a JSON tree that
+// nests by name (Sun → Earth → Moon) says what an array of children says elsewhere.
+function childNodeKeys(item) {
+    return Object.keys(item).filter(k => {
+        if (!isRecord(item[k])) return false;
+        let shared = 0;
+        for (const [ck, cv] of Object.entries(item[k])) {
+            if (isScalar(cv) && ck in item && isScalar(item[ck]) && ++shared >= NODE_FIELDS_SHARED) return true;
+        }
+        return false;
+    });
+}
 
 // True when resolved data needs tree handling: a root wrapper object
 // (e.g. { countries: [...] }) or items containing arrays of objects.
@@ -171,17 +197,30 @@ function getRootGroups(rawData, dataKey) {
 function groupAt(rawData, key) {
     const value = rawData[key];
     if (Array.isArray(value)) return value.length ? { key, items: value } : null;
-    if (!value || typeof value !== 'object') return null;
-    return Object.keys(value).length ? { key, items: [value] } : null;
+    if (!isRecord(value)) return null;
+    // The property name is the record's name — the same injection getChildGroups
+    // makes one level down, so the row carries what it was found under.
+    return Object.keys(value).length ? { key, items: [{ name: key, ...value }] } : null;
 }
 
-// Returns every child group of an item — properties holding arrays of objects —
-// optionally restricted to allowedKeys (from a levels override).
-function getChildGroups(item, allowedKeys) {
-    return Object.keys(item)
-        .filter(k => isObjectArray(item[k]))
-        .filter(k => !allowedKeys || allowedKeys.includes(k))
-        .map(k => ({ key: k, items: item[k] }));
+// Returns every child group of an item — properties holding arrays of objects, and
+// the child nodes named by property — optionally restricted to allowedKeys (from a
+// levels override). The named nodes merge into ONE group: the Sun's planets are a
+// table of eight rows, not eight tables of one. Each carries its property name as
+// `name` (its own wins if it has one), which is the column getColumns pulls first,
+// so the row that expands is the one bearing the name it was found under.
+function getChildGroups(item, allowedKeys, name) {
+    const keys = Object.keys(item).filter(k => !allowedKeys || allowedKeys.includes(k));
+    const groups = keys.filter(k => isObjectArray(item[k])).map(k => ({ key: k, items: item[k] }));
+    const allowed = new Set(keys);
+    const nodeKeys = childNodeKeys(item).filter(k => allowed.has(k));
+    if (nodeKeys.length) {
+        groups.push({
+            key: String(name ?? 'children'),
+            items: nodeKeys.map(k => ({ name: k, ...item[k] })),
+        });
+    }
+    return groups;
 }
 
 // Resolves which children keys are allowed for items at a given depth.
@@ -211,6 +250,7 @@ function getColumns(items, ctx, depth) {
     const groupKeys = new Set();
     items.slice(0, SAMPLE_SIZE).forEach(item => {
         Object.entries(item).forEach(([k, v]) => { if (isObjectArray(v)) groupKeys.add(k); });
+        childNodeKeys(item).forEach(k => groupKeys.add(k));
     });
     const keys = sampleKeys(items).filter(k => !groupKeys.has(k));
     if (keys.includes(nameKey)) {
@@ -223,7 +263,7 @@ function getColumns(items, ctx, depth) {
         const col = { key: k };
         if (i === 0) {
             col.render = item => {
-                const groups = getChildGroups(item, allowed);
+                const groups = getChildGroups(item, allowed, item[k]);
                 if (!groups.length) {
                     const frag = document.createDocumentFragment();
                     const leaf = document.createElement('span');
