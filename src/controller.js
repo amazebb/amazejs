@@ -461,20 +461,38 @@ export async function initTable(config) {
     if (settingsBtns) {
         // Freezing the toolbar freezes the header row with it: the header pins at
         // the toolbar's height, measured here since the toolbar's contents (title,
-        // buttons) size it.
-        function syncToolbarHeight() {
-            if (tableContainer.classList.contains('atv-sticky-head'))
-                tableContainer.style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
-            else tableContainer.style.removeProperty('--aj-toolbar-h');
+        // buttons) size it. The width is set for the same reason the height is
+        // measured: a frozen container grows to a too-wide table, and a toolbar that
+        // grew with it could not stick sideways — it would have nowhere to travel — so
+        // it is held to the width the container would have had, its parent's, and
+        // sticks to the container's left edge while the table scrolls under it.
+        const host = tableContainer.parentElement;
+        function syncToolbarBox() {
+            if (!tableContainer.classList.contains('atv-sticky-head')) {
+                tableContainer.style.removeProperty('--aj-toolbar-h');
+                toolbar.style.removeProperty('width');
+                return;
+            }
+            if (host) {
+                // The host's content box: clientWidth still carries its padding, which
+                // the container never had, and a toolbar that wide would hang off the
+                // right of the page.
+                const cs = getComputedStyle(host);
+                const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+                toolbar.style.width = `${host.clientWidth - pad}px`;
+            }
+            tableContainer.style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
         }
         function applySticky(on) {
             toolbar.classList.toggle('atv-sticky', on);
             tableContainer.classList.toggle('atv-sticky-head', on);
-            syncToolbarHeight();
+            syncToolbarBox();
         }
         // The toolbar sets the header's offset, and its height changes when its
-        // buttons wrap, so re-measure whenever it resizes.
-        new ResizeObserver(syncToolbarHeight).observe(toolbar);
+        // buttons wrap, so re-measure whenever it — or the space it is fitted to —
+        // resizes.
+        new ResizeObserver(syncToolbarBox).observe(toolbar);
+        if (host) new ResizeObserver(syncToolbarBox).observe(host);
 
         // Ticked when this table shows its buttons, inherited from an ancestor included.
         settingsBtns.showMore.checked = showButtons || !!tableContainer.closest('.atv-show-more');

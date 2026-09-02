@@ -118,9 +118,15 @@
     align-items: stretch;
 }
 
+/* Frozen: the toolbar pins to the top of the page and to the left of the container,
+   so the title and the menus stay put while a table wider than the screen scrolls
+   sideways under them. Sticking sideways needs a box narrower than what it sticks
+   within — the controller sets the width from the space the container would have had,
+   the container itself having grown to the table (see .atv-sticky-head below). */
 .atv-toolbar.atv-sticky {
     position: sticky;
     top: 0;
+    left: 0;
     z-index: 5;
     background: var(--bg);
 }
