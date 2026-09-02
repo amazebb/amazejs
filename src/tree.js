@@ -143,14 +143,36 @@ function ensureToggleListener() {
 // with no rows.
 function getRootGroups(rawData, dataKey) {
     if (Array.isArray(rawData)) return rawData.length ? [{ key: null, items: rawData }] : [];
-    if (dataKey) return rawData[dataKey]?.length ? [{ key: dataKey, items: rawData[dataKey] }] : [];
+    if (dataKey) {
+        const only = groupAt(rawData, dataKey);
+        return only ? [only] : [];
+    }
     const groups = Object.keys(rawData)
         .filter(k => isObjectArray(rawData[k]))
         .map(k => ({ key: k, items: rawData[k] }));
     if (groups.length) return groups;
     // No array of objects: fall back to the first array property, as before.
     const first = Object.keys(rawData).find(k => rawData[k]?.length && Array.isArray(rawData[k]));
-    return first ? [{ key: first, items: rawData[first] }] : [];
+    if (first) return [{ key: first, items: rawData[first] }];
+    // No array at all. A root property holding a single record is a one-row group
+    // (`{ meta: {...}, tree: {...} }`): the record's own arrays of objects are then
+    // ordinary child groups, so a tree whose root is one node — an AST, a profile —
+    // opens from that row like any other. Empty objects hold nothing to show.
+    const records = Object.keys(rawData)
+        .map(k => groupAt(rawData, k))
+        .filter(Boolean);
+    // Nothing but scalars: the root is itself the one record, so it becomes a
+    // one-row table rather than a blank page.
+    return records.length ? records : [{ key: null, items: [rawData] }];
+}
+
+// One group from a named root property: an array as itself, a single record wrapped
+// in a one-item array. Null when the property holds nothing worth a table.
+function groupAt(rawData, key) {
+    const value = rawData[key];
+    if (Array.isArray(value)) return value.length ? { key, items: value } : null;
+    if (!value || typeof value !== 'object') return null;
+    return Object.keys(value).length ? { key, items: [value] } : null;
 }
 
 // Returns every child group of an item — properties holding arrays of objects —
