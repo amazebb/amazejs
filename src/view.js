@@ -487,6 +487,17 @@ export function focusColumn(table, index) {
 
 // Builds and inserts a no-results message after the table wrapper.
 // Returns the element for show/hide toggling.
+// Replaces a table that never got its data with the reason why. The element is the
+// anchor the page already laid out, so the message lands where the table would have.
+export function buildLoadError(anchor, message) {
+    const el = document.createElement('div');
+    el.className = 'atv-load-error';
+    el.setAttribute('role', 'alert');
+    el.textContent = message;
+    anchor.replaceWith(el);
+    return el;
+}
+
 export function buildNoResults(tableWrap, message) {
     const el = document.createElement('div');
     el.className = 'atv-no-results';

@@ -25,9 +25,35 @@ export function rememberSource(data, text) {
     return data;
 }
 
+// Media types that are never a table, whatever the name says. Checked before the
+// content, since a declared type is the one thing that can't be a false positive.
+// application/octet-stream is not on the list: servers hand it out for anything they
+// don't recognise, .tsv included, so those are left to the content check.
+const BINARY_MIME = /^(image|audio|video|font|model)\/|^application\/(pdf|zip|gzip|x-gzip|x-tar|x-7z|wasm|.*\+zip)$/;
+
+// Bytes no delimited or JSON table holds: the C0 controls other than tab, newline and
+// carriage return, DEL, and U+FFFD — what a decoder leaves behind when the bytes were
+// never UTF-8. A prefix is enough; a binary format declares itself in its first bytes.
+const SNIFF = 4096;
+const BINARY_BYTES = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\uFFFD]/;
+
+// Why this content can't be tabled, or null when it can. One rule for both readers,
+// so a fetch and File > Open refuse the same files in the same words.
+export function unreadableReason(name, mimeType, text) {
+    const type = (mimeType || '').split(';')[0].trim().toLowerCase();
+    if (BINARY_MIME.test(type)) return `${name} is ${type}, which is not a table`;
+    if (BINARY_BYTES.test(text.slice(0, SNIFF))) return `${name} is not a text file`;
+    return null;
+}
+
 // Parses fetched text by the URL's extension: .json → JSON, .csv → CSV, else TSV.
-export function parseByUrl(url, text) {
-    const ext = url.split(/[?#]/)[0].split('.').pop().toLowerCase();
+// A response that isn't text at all is refused here rather than parsed into nonsense:
+// a JSON file throws on its own, but every byte is a valid CSV field.
+export function parseByUrl(url, text, mimeType) {
+    const path = url.split(/[?#]/)[0];
+    const reason = unreadableReason(path.split('/').pop() || path, mimeType, text);
+    if (reason) throw new Error(reason);
+    const ext = path.split('.').pop().toLowerCase();
     const data = ext === 'json' ? JSON.parse(text)
         : ext === 'csv' ? parseCsv(text)
         : parseTsv(text);
@@ -37,11 +63,11 @@ export function parseByUrl(url, text) {
 // Fetches data from url, falling back to fallbackUrl if the first request fails.
 export async function fetchData(url, fallbackUrl) {
     const res = await fetch(url);
-    if (res.ok) return parseByUrl(url, await res.text());
+    if (res.ok) return parseByUrl(url, await res.text(), res.headers.get('content-type'));
     if (!fallbackUrl) throw new Error(`Failed to load data from ${url}`);
     const fallbackRes = await fetch(fallbackUrl);
     if (!fallbackRes.ok) throw new Error(`Failed to load data from ${url} and ${fallbackUrl}`);
-    return parseByUrl(fallbackUrl, await fallbackRes.text());
+    return parseByUrl(fallbackUrl, await fallbackRes.text(), fallbackRes.headers.get('content-type'));
 }
 
 // Parses a TSV string into an array of objects keyed by the first-row headers.

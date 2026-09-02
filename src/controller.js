@@ -1,6 +1,6 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, unreadableReason, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
 import {
-    buildToolbar, buildNoResults,
+    buildToolbar, buildNoResults, buildLoadError,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson, toCsv,
@@ -15,7 +15,15 @@ export async function initTable(config) {
     ensureStyles();
     let data = config.data;
     if (isUrlData(data)) {
-        data = await fetchData(...data);
+        // A failed load is the page's problem, not an unhandled rejection: the reason
+        // (a 404, a PDF where a CSV was meant) takes the table's place and is logged.
+        try {
+            data = await fetchData(...data);
+        } catch (err) {
+            console.warn(`amazejs: ${err.message}`);
+            const anchor = config.table || document.getElementById(config.tableId);
+            return anchor ? buildLoadError(anchor, err.message) : null;
+        }
     }
 
     // Tree-shaped data is handled by tree.js, which calls back in here for each
@@ -446,6 +454,12 @@ export async function initTable(config) {
             if (!file) return;
             try {
                 const text = await file.text();
+                // accept= is a filter, not a guarantee — the dialog's All Files escape
+                // hatch and a renamed file both get here. Refuse what isn't text before
+                // parsing it: JSON throws on its own, but any byte is a valid CSV field,
+                // so a PNG would otherwise become a table of mojibake.
+                const reason = unreadableReason(file.name, file.type, text);
+                if (reason) throw new Error(reason);
                 const name = file.name.toLowerCase();
                 const data = name.endsWith('.json') ? JSON.parse(text)
                     : name.endsWith('.tsv') ? parseTsv(text)

@@ -418,6 +418,16 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     display: block;
 }
 
+/* Load failure, in place of the table that never got its data */
+.atv-load-error {
+    padding: 16px;
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius);
+    background: var(--accent-subtle);
+    color: var(--text);
+    font: 14px/1.5 var(--font);
+}
+
 /* Table wrapper */
 .table-wrap {
     border: 1px solid var(--border);
