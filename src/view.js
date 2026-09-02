@@ -25,13 +25,33 @@ export function ensureStyles() {
 }
 
 // Positions an open dd below anchor, clamped to the viewport edges.
+// Breathing room against the viewport edges, the gap between an anchor and its
+// dropdown, and the height below which flipping is not worth it — a dropdown that
+// can only show a line or two should scroll where it is.
+const EDGE = 8;
+const GAP = 4;
+const MIN_DD_HEIGHT = 120;
+
 function positionBelow(dd, anchor) {
     const rect = anchor.getBoundingClientRect();
-    dd.style.top = `${rect.bottom + 4}px`;
+    dd.style.maxHeight = '';
+    dd.style.top = `${rect.bottom + GAP}px`;
     dd.style.left = `${rect.left}px`;
     const r = dd.getBoundingClientRect();
-    if (r.right > window.innerWidth - 8) dd.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
-    if (r.left < 8) dd.style.left = '8px';
+    if (r.right > window.innerWidth - EDGE) dd.style.left = `${Math.max(EDGE, window.innerWidth - r.width - EDGE)}px`;
+    if (r.left < EDGE) dd.style.left = `${EDGE}px`;
+
+    // A popover sits in the top layer and is fixed, so anything past the viewport is
+    // gone rather than scrolled to: opened from the last row, an eighteen-pair cell
+    // would show one line. Below when it fits, above when there is more room there,
+    // and capped to whichever side it lands on so the remainder scrolls inside it.
+    // The cap only ever shrinks — the resting height stays the stylesheet's.
+    const below = window.innerHeight - rect.bottom - GAP - EDGE;
+    const above = rect.top - GAP - EDGE;
+    const flip = r.height > below && above > below;
+    const room = Math.max(flip ? above : below, MIN_DD_HEIGHT);
+    if (room < r.height) dd.style.maxHeight = `${room}px`;
+    if (flip) dd.style.top = `${Math.max(EDGE, rect.top - GAP - Math.min(r.height, room))}px`;
 }
 
 // Grace period before a hover-opened popover closes, long enough to cross the

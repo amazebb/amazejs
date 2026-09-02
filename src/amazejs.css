@@ -629,6 +629,10 @@ thead th.active > .atv-filter-btn {
     box-shadow: var(--dropdown-shadow);
     min-width: 240px;
     max-height: 360px;
+    /* positionBelow shrinks max-height to the room the dropdown lands in, so
+       whatever doesn't fit has to scroll rather than be cut off by the viewport. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .filter-search {
