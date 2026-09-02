@@ -148,6 +148,11 @@
 .atv-table-container.atv-sticky-head {
     width: fit-content;
     min-width: 100%;
+    /* Overflowing the host's content box means overflowing its right padding too, so
+       a too-wide table would run flush into the window edge while its left keeps the
+       page's inset. Carrying that inset as padding puts it back on the scrollable
+       side, and the table ends the same distance in at both edges. */
+    padding-right: var(--aj-port-inset, 0px);
 }
 
 .atv-table-container.atv-sticky-head > .table-wrap {
