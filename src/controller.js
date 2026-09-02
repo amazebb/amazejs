@@ -609,8 +609,23 @@ export async function initTable(config) {
         // same day keep that day; a number box yields the number itself.
         const parse = (v, edge) => def.date ? fromDateInput(v, edge)
             : (v.trim() === '' ? null : Number(v));
-        minInp.addEventListener('input', () => setRange({ min: parse(minInp.value, 'min') }));
-        maxInp.addEventListener('input', () => setRange({ max: parse(maxInp.value, 'max') }));
+        // min/max on a date input only steer the calendar — a typed year outside the
+        // column's span is still accepted — so the value is held to the span here.
+        // ISO 'YYYY-MM-DD' compares as text in date order, so these are plain compares.
+        const clamp = inp => !def.date || !inp.value || !inp.min ? inp.value
+            : inp.value < inp.min ? inp.min
+            : inp.value > inp.max ? inp.max
+            : inp.value;
+
+        minInp.addEventListener('input', () => setRange({ min: parse(clamp(minInp), 'min') }));
+        maxInp.addEventListener('input', () => setRange({ max: parse(clamp(maxInp), 'max') }));
+
+        // The box itself is corrected once the edit is committed (change, not input),
+        // so a year being typed digit by digit isn't rewritten mid-keystroke.
+        [minInp, maxInp].forEach(inp => inp.addEventListener('change', () => {
+            const fixed = clamp(inp);
+            if (fixed !== inp.value) inp.value = fixed;
+        }));
     });
 
     // --- Sorting ---
