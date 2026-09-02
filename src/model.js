@@ -1,5 +1,9 @@
 // Pure data functions — no DOM dependencies.
 
+import { DATE_FORMATTERS, isDateFormat, toTimestamp } from './dates.js';
+
+export { isDateFormat, toTimestamp, toDateInput, fromDateInput } from './dates.js';
+
 // True when data is the [url, fallbackUrl?] form accepted by initTable.
 export function isUrlData(data) {
     return Array.isArray(data) && typeof data[0] === 'string';
@@ -150,7 +154,12 @@ export function inferColumns(data, configCols, labelStyle, formats) {
         // The formats map is keyed by path, so a column added later (the Columns
         // picker) picks up its format without being listed in `columns`.
         const format = formats?.[col.key];
-        return { filter: isNumeric ? 'range' : 'text', numeric: isNumeric, label, format, ...col };
+        // A column formatted as a date filters as one, whatever its raw values are:
+        // epoch numbers would otherwise get a numeric Min/Max, and ISO strings a text
+        // box, neither of which is the column the reader is looking at.
+        const dated = isDateFormat(format ?? col.format);
+        const filter = dated || isNumeric ? 'range' : 'text';
+        return { filter, numeric: isNumeric, label, format, ...col };
     });
 }
 
@@ -224,50 +233,10 @@ export function cellValue(item, key) {
 // --- Column formats -------------------------------------------------------
 // A format turns a raw value into the text the reader sees. It applies to the
 // cell, CSV export, and the text/category filters and search — so what is on
-// screen is what you can search for — while sorting and the Min/Max range keep
-// using the raw value, leaving a date column in chronological order.
-//
-// Epoch numbers are read as seconds below 1e11 and milliseconds above, which
-// covers both conventions without a second name per format.
-function toDate(value) {
-    const n = Number(value);
-    if (Number.isNaN(n)) return null;
-    const d = new Date(Math.abs(n) < 1e11 ? n * 1000 : n);
-    return Number.isNaN(d.getTime()) ? null : d;
-}
-
-const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null; };
-
-const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
-                        ['day', 86400], ['hour', 3600], ['minute', 60]];
-
-// The date formats are ISO 8601 in local time, 24-hour, with a numeric offset
-// (2026-07-07T13:48:31+1000) rather than locale strings: unambiguous about which
-// clock produced them, and text that sorts and prefix-searches ('2026-07') the way
-// the values themselves order. Locale rendering stays available as a function
-// format — `v => new Date(v * 1000).toLocaleString()`.
-const pad = n => String(n).padStart(2, '0');
-const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const isoTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-// ±hh, with the minutes only when the zone actually has them (+1000 → +10, but
-// +0530 keeps both) — ISO 8601's ±hh and ±hhmm forms.
-const isoOffset = d => {
-    const mins = -d.getTimezoneOffset(); // minutes east of UTC
-    const abs = Math.abs(mins);
-    const hh = `${mins < 0 ? '-' : '+'}${pad(Math.floor(abs / 60))}`;
-    return abs % 60 ? `${hh}${pad(abs % 60)}` : hh;
-};
-
-const FORMATTERS = {
-    date:     asDate(isoDate),
-    datetime: asDate(d => `${isoDate(d)}T${isoTime(d)}${isoOffset(d)}`),
-    time:     asDate(isoTime),
-    relative: asDate(d => {
-        const secs = (d.getTime() - Date.now()) / 1000;
-        const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s) || ['second', 1];
-        return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(Math.round(secs / size), unit);
-    }),
-};
+// screen is what you can search for — while sorting keeps using the raw value,
+// leaving a date column in chronological order. The Min/Max range does too: on a
+// date column it compares timestamps behind two date pickers (see dates.js).
+const FORMATTERS = DATE_FORMATTERS;
 
 // Applies a column's format — a FORMATTERS name or a function(value, item). An
 // array maps through it, so a [*] path formats every match. Returns null when
@@ -337,11 +306,14 @@ function matchesTextAndSearch(item, textState, q, searchKeys, formats) {
 // numeric filter mode (Min/Max now, comparators/presets later) reduces to this
 // predicate, so it never has to change as new range UIs are added.
 function matchesRange(item, rangeState) {
-    return Object.entries(rangeState).every(([key, { min, max }]) => {
+    return Object.entries(rangeState).every(([key, { min, max, date }]) => {
         if (min == null && max == null) return true;
         const raw = getValue(item, key);
-        const v = Number(raw);
-        if (raw === '' || raw == null || Number.isNaN(v)) return false;
+        if (raw === '' || raw == null) return false;
+        // A date range holds timestamps and reads the value as an instant; a numeric
+        // one holds numbers. Either way both sides of the comparison are the same kind.
+        const v = date ? toTimestamp(raw) : Number(raw);
+        if (v == null || Number.isNaN(v)) return false;
         return (min == null || v >= min) && (max == null || v <= max);
     });
 }

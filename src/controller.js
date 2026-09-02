@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource, toTimestamp, toDateInput, fromDateInput } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -216,7 +216,9 @@ export async function initTable(config) {
     });
 
     textDefs.forEach(def => { textFilterState[def.key] = ''; });
-    rangeDefs.forEach(def => { rangeState[def.key] = { min: null, max: null }; });
+    // `date` travels with the state: matchesRange reads the value as an instant rather
+    // than a number when it is set.
+    rangeDefs.forEach(def => { rangeState[def.key] = { min: null, max: null, date: !!def.date }; });
 
     // Each category selection narrowed by its dropdown's option search, so typing
     // there filters the table too, not just the list of options.
@@ -572,23 +574,36 @@ export async function initTable(config) {
         attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
         dd.addEventListener('mouseenter', () => minInp.focus());
 
-        // Show the column's actual span as placeholders so the bounds are
-        // obvious, and widen both inputs to fit the longer number (digits in
-        // ch + room for padding and the number spinner).
-        const nums = data.map(d => Number(getValue(d, def.key))).filter(n => !Number.isNaN(n));
-        if (nums.length) {
-            minInp.placeholder = String(Math.min(...nums));
-            maxInp.placeholder = String(Math.max(...nums));
-            const chars = Math.max(minInp.placeholder.length, maxInp.placeholder.length, 2);
-            minInp.style.width = maxInp.style.width = `calc(${chars}ch + 2.5em)`;
+        // The column's actual span bounds the controls: on a date column it is the
+        // pickers' own min/max, so the calendar opens on the data's years and refuses
+        // days the column doesn't reach; on a numeric one it shows as the placeholders,
+        // with both inputs widened to fit the longer number (digits in ch + room for
+        // padding and the number spinner).
+        if (def.date) {
+            const stamps = data.map(d => toTimestamp(getValue(d, def.key))).filter(t => t != null);
+            if (stamps.length) {
+                minInp.min = maxInp.min = toDateInput(Math.min(...stamps));
+                minInp.max = maxInp.max = toDateInput(Math.max(...stamps));
+            }
+        } else {
+            const nums = data.map(d => Number(getValue(d, def.key))).filter(n => !Number.isNaN(n));
+            if (nums.length) {
+                minInp.placeholder = String(Math.min(...nums));
+                maxInp.placeholder = String(Math.max(...nums));
+                const chars = Math.max(minInp.placeholder.length, maxInp.placeholder.length, 2);
+                minInp.style.width = maxInp.style.width = `calc(${chars}ch + 2.5em)`;
+            }
         }
 
-        // Single point where range state is set — every numeric control (the
-        // inputs now, presets/slider later) funnels through here.
+        // Single point where range state is set — every control (the inputs now,
+        // presets/slider later) funnels through here.
         const setRange = patch => { Object.assign(rangeState[def.key], patch); refresh(); };
-        const parse = v => v.trim() === '' ? null : Number(v);
-        minInp.addEventListener('input', () => setRange({ min: parse(minInp.value) }));
-        maxInp.addEventListener('input', () => setRange({ max: parse(maxInp.value) }));
+        // A date box yields the day's first or last millisecond, so From and To on the
+        // same day keep that day; a number box yields the number itself.
+        const parse = (v, edge) => def.date ? fromDateInput(v, edge)
+            : (v.trim() === '' ? null : Number(v));
+        minInp.addEventListener('input', () => setRange({ min: parse(minInp.value, 'min') }));
+        maxInp.addEventListener('input', () => setRange({ max: parse(maxInp.value, 'max') }));
     });
 
     // --- Sorting ---

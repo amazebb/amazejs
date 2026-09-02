@@ -653,6 +653,13 @@ thead th.active > .atv-filter-btn {
     color: var(--text);
 }
 
+/* A date picker carries its own calendar button and a fixed YYYY-MM-DD field, so it
+   needs the width the number boxes don't. */
+.filter-range input[type="date"] {
+    width: auto;
+    min-width: 9.5em;
+}
+
 .filter-range input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-shadow);

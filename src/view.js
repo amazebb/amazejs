@@ -1,5 +1,6 @@
 // DOM rendering functions — no business logic or mutable state.
 import { cellText, cellValue, cellDisplay, applyFormat, getValue, isPlainObject } from './model.js';
+import { isDateFormat } from './dates.js';
 
 // Stylesheet injection, lazy and once, on the first initTable() (ensureStyles).
 // Raw/dev use loads the sibling amazejs.css via <link> (import.meta.url); the
@@ -537,8 +538,9 @@ export function buildHeader(thead, columns, tableId) {
                 filterDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildDropdown(filterId));
             } else if (col.filter === 'range') {
-                rangeDefs.push({ id: filterId, thId, key: col.key, col: i });
-                th.appendChild(buildRangeDropdown(filterId));
+                const dated = isDateFormat(col.format);
+                rangeDefs.push({ id: filterId, thId, key: col.key, col: i, date: dated });
+                th.appendChild(buildRangeDropdown(filterId, dated));
             } else {
                 textDefs.push({ id: filterId, thId, key: col.key, col: i });
                 th.appendChild(buildTextDropdown(filterId));
@@ -611,7 +613,9 @@ function buildTextDropdown(id) {
 // to the column's [min, max] range state. Future numeric controls (comparator
 // presets, a slider) can be appended here — they write the same range state, so
 // no surrounding code changes.
-function buildRangeDropdown(id) {
+// Two bounds on one row. A dated column gets the browser's own date pickers instead
+// of number boxes — the controller fills their min/max with the column's span.
+function buildRangeDropdown(id, dated) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown filter-range-dd';
     dd.id = id;
@@ -622,9 +626,9 @@ function buildRangeDropdown(id) {
 
     const min = document.createElement('input');
     min.className = 'filter-range-min';
-    min.type = 'number';
-    min.placeholder = 'Min';
-    min.setAttribute('aria-label', 'Minimum');
+    min.type = dated ? 'date' : 'number';
+    min.placeholder = dated ? 'From' : 'Min';
+    min.setAttribute('aria-label', dated ? 'From' : 'Minimum');
 
     const sep = document.createElement('span');
     sep.className = 'filter-range-sep';
@@ -632,9 +636,9 @@ function buildRangeDropdown(id) {
 
     const max = document.createElement('input');
     max.className = 'filter-range-max';
-    max.type = 'number';
-    max.placeholder = 'Max';
-    max.setAttribute('aria-label', 'Maximum');
+    max.type = dated ? 'date' : 'number';
+    max.placeholder = dated ? 'To' : 'Max';
+    max.setAttribute('aria-label', dated ? 'To' : 'Maximum');
 
     row.append(min, sep, max);
     dd.appendChild(row);
