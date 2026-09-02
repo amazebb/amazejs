@@ -582,8 +582,15 @@ export async function initTable(config) {
         if (def.date) {
             const stamps = data.map(d => toTimestamp(getValue(d, def.key))).filter(t => t != null);
             if (stamps.length) {
-                minInp.min = maxInp.min = toDateInput(Math.min(...stamps));
-                minInp.max = maxInp.max = toDateInput(Math.max(...stamps));
+                const lo = toDateInput(Math.min(...stamps));
+                const hi = toDateInput(Math.max(...stamps));
+                minInp.min = maxInp.min = lo;
+                minInp.max = maxInp.max = hi;
+                // Both boxes start filled with the span they bound — a date picker has
+                // no placeholder to say it with, and the pair reads as the range the
+                // column covers, ready to be narrowed from either end.
+                minInp.value = lo;
+                maxInp.value = hi;
             }
         } else {
             const nums = data.map(d => Number(getValue(d, def.key))).filter(n => !Number.isNaN(n));
