@@ -21,49 +21,25 @@ function sidewaysScroller(el) {
     return null;
 }
 
-// The custom properties a frozen table publishes on its container, and the only
+// The two custom properties a frozen table publishes on its container, and the only
 // channel between the measuring the controller does and the layout the stylesheet
-// owns: the scroller's visible width, how far the container sits inside it, that
-// same inset again once the table is wide enough to need it as trailing space, and
-// the toolbar's measured height.
-const TOOLBAR_VARS = ['--aj-port-w', '--aj-port-inset', '--aj-port-pad', '--aj-toolbar-h'];
+// owns: how far the page insets the container (which becomes the trailing space a
+// too-wide table would otherwise run out of), and the toolbar's measured height,
+// which the header row pins under. Everything else about the frozen layout is CSS —
+// keep it that way; a new number goes in here, not into an element's style.
+const TOOLBAR_VARS = ['--aj-port-inset', '--aj-toolbar-h'];
 
-// The width a table has before it overflows: its host's content box.
-function hostContentWidth(host) {
-    const cs = getComputedStyle(host);
-    return host.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-}
-
-// The box a frozen toolbar has to fill. Sticky pins it to the left edge of whatever
-// scrolls the table sideways, so its width has to be that scroller's: sized to its
-// host's content box instead, it lands at the same left edge but stops short on the
-// right by the page's own inset, and rows scroll past in that strip above the bar.
-// The inset is scroll-invariant — how far in the container sits, whatever the page
-// happens to be scrolled to when this runs. A nested table is the exception: it
-// scrolls inside its parent's cell, not the page, so its box is that cell's content
-// width, sitting flush in it.
-function portBox(container, nested) {
-    const host = container.parentElement;
-    if (nested && host) {
-        const cs = getComputedStyle(host);
-        const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
-        return { width: host.clientWidth - pad, inset: 0 };
-    }
+// How far the page insets the container: the gap on its left, which a table wide
+// enough to scroll past the host's content box needs repeating on its right. Read
+// against whatever scrolls the table sideways, and scroll-invariant — the same number
+// wherever the page happens to be scrolled to when this runs. A nested table scrolls
+// inside its parent's cell rather than the page and sits flush in it, so it has none.
+function pageInset(container, nested) {
+    if (nested) return 0;
     const scroller = sidewaysScroller(container);
-    const width = scroller ? scroller.clientWidth : document.documentElement.clientWidth;
     const left = scroller ? scroller.getBoundingClientRect().left + scroller.clientLeft : 0;
     const scrolled = scroller ? scroller.scrollLeft : window.scrollX;
-    return { width, inset: container.getBoundingClientRect().left - left + scrolled };
-}
-
-// Whether the table is wider than the room its host gives it — the only case where
-// trailing space is scrollable rather than a bite out of the table's own width. The
-// padding is zeroed for the measurement so the answer never depends on the answer
-// last time: a table is width:100% of the box it lands in, so padding left in place
-// would shrink it towards fitting and flip the result back and forth.
-function overflowsHost(container, table, host) {
-    container.style.setProperty('--aj-port-pad', '0px');
-    return table.offsetWidth > hostContentWidth(host) + 1;
+    return container.getBoundingClientRect().left - left + scrolled;
 }
 
 export async function initTable(config) {
@@ -174,7 +150,10 @@ export async function initTable(config) {
         if (!countBadge) return;
         countBadge.classList.toggle('atv-badge-none', pos === 'none');
         countBadge.classList.toggle('atv-badge-right', pos === 'right');
-        if (pos === 'right') rest.appendChild(countBadge);
+        // On the right it hangs off the toolbar itself rather than the pinned box of
+        // controls: the toolbar is the element that spans the whole scrollable width,
+        // so that is the only box a sticky badge has room to stay on screen within.
+        if (pos === 'right') toolbar.appendChild(countBadge);
         else rest.prepend(countBadge);
     }
     applyBadgePosition(badgePosition);
@@ -557,11 +536,7 @@ export async function initTable(config) {
                 TOOLBAR_VARS.forEach(v => style.removeProperty(v));
                 return;
             }
-            const { width, inset } = portBox(tableContainer, nested);
-            const wide = inset > 0 && !!host && overflowsHost(tableContainer, table, host);
-            style.setProperty('--aj-port-w', `${width}px`);
-            style.setProperty('--aj-port-inset', `${inset}px`);
-            style.setProperty('--aj-port-pad', wide ? `${inset}px` : '0px');
+            style.setProperty('--aj-port-inset', `${pageInset(tableContainer, nested)}px`);
             style.setProperty('--aj-toolbar-h', `${toolbar.offsetHeight}px`);
         }
         function applySticky(on) {

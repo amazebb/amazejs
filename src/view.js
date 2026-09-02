@@ -246,9 +246,17 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
 
+    // The controls ride in their own box so that, frozen, they are what sticks to the
+    // left of the screen while the bar itself spans the whole scrollable width. The
+    // bar cannot do both: an element that fills its containing block has nowhere to
+    // slide, and sticky would never move it.
+    const pin = document.createElement('div');
+    pin.className = 'atv-toolbar-pin';
+    toolbar.appendChild(pin);
+
     const titleWrap = document.createElement('div');
     titleWrap.className = 'atv-title-wrap';
-    toolbar.appendChild(titleWrap);
+    pin.appendChild(titleWrap);
 
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'aj-toggle aj-rotate';
@@ -267,7 +275,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     // Everything after the title collapses as one unit (see header comment).
     const rest = document.createElement('div');
     rest.className = 'atv-toolbar-rest';
-    toolbar.appendChild(rest);
+    pin.appendChild(rest);
 
     const countBadge = document.createElement('span');
     countBadge.className = 'atv-count-badge';

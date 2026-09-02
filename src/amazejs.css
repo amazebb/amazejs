@@ -108,6 +108,17 @@
     padding-bottom: 4px;
 }
 
+/* The title and everything after it. Frozen, this is the box that sticks to the left
+   of the screen (see .atv-toolbar.atv-sticky), so it takes only the width its
+   contents need — the bar behind it is what spans the table. */
+.atv-toolbar-pin {
+    display: flex;
+    flex: 1;
+    gap: 8px;
+    align-items: stretch;
+    min-width: 0;
+}
+
 /* Everything after the disclosure handle (count badge, File/Settings menus,
    extra buttons). flex:1 lets it fill the toolbar so a right-aligned badge
    reaches the far edge; collapsing the table hides this whole block. */
@@ -120,22 +131,26 @@
 
 /* Frozen: the toolbar pins to the top of the page and to the left of the scroller,
    so the title and the menus stay put while a table wider than the screen scrolls
-   sideways under them. Sticking sideways needs a box narrower than what it sticks
-   within — the container has grown to the table (see .atv-sticky-head below) — and
-   that box is the scroller's, since that is where sticky lands it: --aj-port-w wide,
-   bled out to the scroller's edges by --aj-port-inset and given the same amount back
-   as padding, so the bar spans the screen while the title stays aligned with the
-   table under it. Both are published by syncToolbarBox (controller.js), which is the
-   only thing that measures; anything laid out from those numbers belongs here. */
+   sideways under them. It simply fills the container, which has grown to the table
+   (see .atv-sticky-head below) — so the bar covers the full scrollable width and no
+   row can ever appear beside it, and a sticky child (the right-hand count badge) has
+   the whole width to stay on screen within. Sticking sideways needs no width of its
+   own: sticky holds the box's left edge at the scroller's while the container scrolls
+   on underneath. */
 .atv-toolbar.atv-sticky {
     position: sticky;
     top: 0;
-    left: 0;
     z-index: 5;
     background: var(--bg);
-    width: var(--aj-port-w, auto);
-    margin-left: calc(-1 * var(--aj-port-inset, 0px));
-    padding-left: var(--aj-port-inset, 0px);
+    width: 100%;
+}
+
+/* The controls are what sticks sideways: shrunk to their own width, they have room
+   to slide within the bar, which a box filling its containing block would not. */
+.atv-toolbar.atv-sticky > .atv-toolbar-pin {
+    position: sticky;
+    left: 0;
+    flex: 0 0 auto;
 }
 
 /* The header row pins directly under the frozen toolbar, whose measured height
@@ -150,12 +165,14 @@
     min-width: 100%;
     /* Overflowing the host's content box means overflowing its right padding too, so
        a too-wide table would run flush into the window edge while its left keeps the
-       page's inset. Carrying that inset as padding puts it back on the scrollable
-       side, and the table ends the same distance in at both edges. It is the inset
-       only while the table actually overflows (--aj-port-pad, set by the controller):
-       the box is border-box, so on a table that already fits the padding would eat
-       into its width instead of adding to the scroll. */
-    padding-right: var(--aj-port-pad, 0px);
+       page's inset. Carrying that inset as trailing padding puts it back on the
+       scrollable side and the table ends the same distance in at both edges — and
+       content-box is what makes it work unconditionally: the padding is added outside
+       the width, so a table that fits keeps its full width (the padding lands in the
+       host's own padding, scrolling nothing) and a table that doesn't gets the space
+       after it. Under border-box the same padding would bite into the width instead. */
+    box-sizing: content-box;
+    padding-right: var(--aj-port-inset, 0px);
 }
 
 .atv-table-container.atv-sticky-head > .table-wrap {
