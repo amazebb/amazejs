@@ -6,29 +6,42 @@ const btnMeta = new WeakMap();
 const isObjectArray = v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
 const isRecord = v => !!v && typeof v === 'object' && !Array.isArray(v);
 
-// Fields in common before a nested object counts as a node of the same kind as its
-// parent rather than a value of it. A field counts only when both sides hold a plain
-// value there — a name shared over containers says nothing about shape — and two is
-// the line that separates what actually occurs: solar-system's Mercury repeats the
-// Sun's naif/mass_kg/radius_km, while an AST node's data ({lineno, language}) repeats
-// nothing, a brew formula's versions repeats only the name `bottle` (a boolean against
-// an object), and its head_dependencies repeats a set of key names whose values are
-// arrays on both sides. Below the line the object stays an ordinary cell.
-const NODE_FIELDS_SHARED = 2;
-const isScalar = v => v === null || typeof v !== 'object';
+// A record's own key set, order-insensitive — its shape.
+const signature = obj => Object.keys(obj).sort().join(' ');
 
-// The properties of an item that are child nodes: a single record repeating enough
-// of its parent's fields to be the same kind of thing. This is how a JSON tree that
-// nests by name (Sun → Earth → Moon) says what an array of children says elsewhere.
-function childNodeKeys(item) {
-    return Object.keys(item).filter(k => {
-        if (!isRecord(item[k])) return false;
-        let shared = 0;
-        for (const [ck, cv] of Object.entries(item[k])) {
-            if (isScalar(cv) && ck in item && isScalar(item[ck]) && ++shared >= NODE_FIELDS_SHARED) return true;
-        }
-        return false;
-    });
+// True when an item nests by name: two or more of its record properties have the
+// same shape, of more than one field. One object property is a value (an AST node's
+// data, a formula's versions); a set of matching ones is a list of children written
+// as named properties, which is how Saturn holds its moons. The size floor keeps a
+// coincidence like a formula's urls and bottle — each a lone { stable } — from
+// reading as a pair.
+function nestsByName(item) {
+    const seen = new Set();
+    for (const v of Object.values(item)) {
+        if (!isRecord(v) || Object.keys(v).length < 2) continue;
+        const sig = signature(v);
+        if (seen.has(sig)) return true;
+        seen.add(sig);
+    }
+    return false;
+}
+
+// The keys a table's rows nest under, decided once for the whole table rather than
+// per item — the moons of Saturn are children whether or not Earth's lone Moon looks
+// like them. A table nests by name when any of its rows does; in one that does, a
+// record found under a key no other row carries is a child (its key is a name), while
+// a key every row repeats (versions, data) is a column. A table of one row — the
+// wrapper the Sun arrives in — has no repeats to weigh, so nestsByName decides alone.
+function nodeKeysFor(items) {
+    const sample = items.slice(0, SAMPLE_SIZE);
+    if (!sample.some(nestsByName)) return new Set();
+    const count = new Map();
+    sample.forEach(item => Object.keys(item).forEach(k => count.set(k, (count.get(k) || 0) + 1)));
+    const keys = new Set();
+    sample.forEach(item => Object.keys(item).forEach(k => {
+        if (isRecord(item[k]) && count.get(k) === 1) keys.add(k);
+    }));
+    return keys;
 }
 
 // True when resolved data needs tree handling: a root wrapper object
@@ -205,20 +218,17 @@ function groupAt(rawData, key) {
 
 // Returns every child group of an item — properties holding arrays of objects, and
 // the child nodes named by property — optionally restricted to allowedKeys (from a
-// levels override). The named nodes merge into ONE group: the Sun's planets are a
-// table of eight rows, not eight tables of one. Each carries its property name as
-// `name` (its own wins if it has one), which is the column getColumns pulls first,
-// so the row that expands is the one bearing the name it was found under.
-function getChildGroups(item, allowedKeys, name) {
+// levels override) and to the table's nodeKeys (from nodeKeysFor). The named nodes
+// merge into ONE group: the Sun's planets are a table of eight rows, not eight tables
+// of one. Each carries its property name as `name` (its own wins if it has one),
+// which is the column getColumns pulls first, so the row that expands is the one
+// bearing the name it was found under.
+function getChildGroups(item, allowedKeys, nodeKeys) {
     const keys = Object.keys(item).filter(k => !allowedKeys || allowedKeys.includes(k));
     const groups = keys.filter(k => isObjectArray(item[k])).map(k => ({ key: k, items: item[k] }));
-    const allowed = new Set(keys);
-    const nodeKeys = childNodeKeys(item).filter(k => allowed.has(k));
-    if (nodeKeys.length) {
-        groups.push({
-            key: String(name ?? 'children'),
-            items: nodeKeys.map(k => ({ name: k, ...item[k] })),
-        });
+    const named = keys.filter(k => nodeKeys?.has(k) && isRecord(item[k]));
+    if (named.length) {
+        groups.push({ key: 'children', named: true, items: named.map(k => ({ name: k, ...item[k] })) });
     }
     return groups;
 }
@@ -247,10 +257,10 @@ function getColumns(items, ctx, depth) {
     // empty array in the first one must not demote it to a column. Everything else
     // is an ordinary column, arrays of scalars (oldnames, aliases) included: they
     // render as a value list.
-    const groupKeys = new Set();
+    const nodeKeys = nodeKeysFor(items);
+    const groupKeys = new Set(nodeKeys);
     items.slice(0, SAMPLE_SIZE).forEach(item => {
         Object.entries(item).forEach(([k, v]) => { if (isObjectArray(v)) groupKeys.add(k); });
-        childNodeKeys(item).forEach(k => groupKeys.add(k));
     });
     const keys = sampleKeys(items).filter(k => !groupKeys.has(k));
     if (keys.includes(nameKey)) {
@@ -263,7 +273,7 @@ function getColumns(items, ctx, depth) {
         const col = { key: k };
         if (i === 0) {
             col.render = item => {
-                const groups = getChildGroups(item, allowed, item[k]);
+                const groups = getChildGroups(item, allowed, nodeKeys);
                 if (!groups.length) {
                     const frag = document.createDocumentFragment();
                     const leaf = document.createElement('span');
@@ -327,6 +337,11 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
 
 // Each group is a full nested table whose disclosure toolbar is its header line.
 // collapsed: true defers the table build to first expand (see controller.js).
+//
+// A named-node group is the exception: its key is the library's word, not the data's,
+// so a header line reading CHILDREN would only repeat the row already above it —
+// expanding the Sun shows the planets themselves. It keeps its toolbar only when it
+// is one of several groups, since a collapsed group has nothing else to open it.
 function buildGroupTable(container, group, ctx, depth, collapsed) {
     const table = document.createElement('table');
     container.appendChild(table);
@@ -338,6 +353,7 @@ function buildGroupTable(container, group, ctx, depth, collapsed) {
         columns:   getColumns(group.items, groupCtx, depth),
         nested:    true,
         collapsed,
+        showToolbar: !group.named || collapsed,
         labelStyle: 'upper',
         title:     group.key.toUpperCase(),
     });
