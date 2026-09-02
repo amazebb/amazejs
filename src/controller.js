@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource, toTimestamp, toDateInput, fromDateInput } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
 import {
     buildToolbar, buildNoResults,
     buildHeader, buildRows, buildFilterOptions,
@@ -196,16 +196,19 @@ export async function initTable(config) {
         // they stay selectable instead of being silently filtered out. A numeric
         // column promoted to checkboxes orders by the raw value it kept beside each
         // display text — text order would put 10 before 2, and the separators the
-        // display carries make its own text unparseable.
+        // display carries make its own text unparseable. A date-formatted column
+        // orders chronologically for the same reason: 'relative' and a function
+        // format have no order in their text at all.
         const col = columns[def.col];
         const raw = new Map();
         data.forEach(d => {
             const text = cellDisplay(d, col);
-            if (!raw.has(text)) raw.set(text, getValue(d, col));
+            if (!raw.has(text)) raw.set(text, getValue(d, col.key));
         });
-        const values = [...raw.keys()].sort(col.numeric
-            ? (a, b) => Number(raw.get(a)) - Number(raw.get(b))
-            : undefined);
+        const rank = isDateFormat(col.format) ? v => toTimestamp(raw.get(v))
+            : col.numeric ? v => Number(raw.get(v))
+            : null;
+        const values = [...raw.keys()].sort(rank ? (a, b) => rank(a) - rank(b) : undefined);
         filterState[def.key] = new Set(values);
         optionQuery[def.key] = '';
 
