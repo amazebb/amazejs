@@ -725,10 +725,17 @@ export async function initTable(config) {
         sortState.key = col.key;
         colDirs[colIndex] = sortState.dir;
 
+        // aria-sort marks the one column the table is ordered by, so the direction
+        // the ::after chevron shows is in the accessibility tree too; the headers
+        // that merely remember a direction carry no state.
         const th = table.querySelector(`th[data-col="${colIndex}"]`);
-        table.querySelectorAll('th.sorted').forEach(el => el.classList.remove('sorted'));
+        table.querySelectorAll('th.sorted').forEach(el => {
+            el.classList.remove('sorted');
+            el.removeAttribute('aria-sort');
+        });
         th?.classList.remove('asc', 'desc');
         th?.classList.add(sortState.dir === 1 ? 'asc' : 'desc', 'sorted');
+        th?.setAttribute('aria-sort', sortState.dir === 1 ? 'ascending' : 'descending');
 
         sortedData = sortItems(data, col.key, sortState.dir, col.numeric);
         sortedData.forEach(item => tbody.appendChild(rowMap.get(item)));

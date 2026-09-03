@@ -24,43 +24,18 @@ export function ensureStyles() {
     }
 }
 
-// Positions an open dd below anchor, clamped to the viewport edges.
-// Breathing room against the viewport edges, the gap between an anchor and its
-// dropdown, and the height below which flipping is not worth it — a dropdown that
-// can only show a line or two should scroll where it is.
-const EDGE = 8;
-const GAP = 4;
-const MIN_DD_HEIGHT = 120;
-
-function positionBelow(dd, anchor) {
-    const rect = anchor.getBoundingClientRect();
-    dd.style.maxHeight = '';
-    dd.style.top = `${rect.bottom + GAP}px`;
-    dd.style.left = `${rect.left}px`;
-    const r = dd.getBoundingClientRect();
-    if (r.right > window.innerWidth - EDGE) dd.style.left = `${Math.max(EDGE, window.innerWidth - r.width - EDGE)}px`;
-    if (r.left < EDGE) dd.style.left = `${EDGE}px`;
-
-    // A popover sits in the top layer and is fixed, so anything past the viewport is
-    // gone rather than scrolled to: opened from the last row, an eighteen-pair cell
-    // would show one line. Below when it fits, above when there is more room there,
-    // and capped to whichever side it lands on so the remainder scrolls inside it.
-    // The cap only ever shrinks — the resting height stays the stylesheet's.
-    const below = window.innerHeight - rect.bottom - GAP - EDGE;
-    const above = rect.top - GAP - EDGE;
-    const flip = r.height > below && above > below;
-    const room = Math.max(flip ? above : below, MIN_DD_HEIGHT);
-    if (room < r.height) dd.style.maxHeight = `${room}px`;
-    if (flip) dd.style.top = `${Math.max(EDGE, rect.top - GAP - Math.min(r.height, room))}px`;
-}
-
 // Grace period before a hover-opened popover closes, long enough to cross the
 // gap between the invoker button and the dropdown below it.
 const HOVER_CLOSE_DELAY = 300;
 
+// One name per anchored pair. Anchor names are dashed-idents resolved in tree
+// order, so they only have to be unique across the document.
+let anchorSeq = 0;
+
 // Wires button(s) to toggle dd via the native popovertarget invoker relationship,
-// so the browser handles toggling, light dismiss, and aria-expanded. Positioning
-// runs in a rAF from beforetoggle: the popover is measurable but not yet painted.
+// so the browser handles toggling, light dismiss, and aria-expanded, and names the
+// anchor the stylesheet positions dd against — placement, flipping and the height
+// cap are all CSS (see .filter-dropdown), so nothing here measures or repositions.
 // With hover: true the dropdown also opens on pointer-over and closes after a
 // grace delay once the pointer has left both the button and the dropdown.
 export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
@@ -69,10 +44,14 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
         btn.popoverTargetElement = dd;
         btn.setAttribute('aria-expanded', 'false');
     });
+
+    const name = `--aj-anchor-${++anchorSeq}`;
+    anchor.style.setProperty('anchor-name', name);
+    dd.style.setProperty('position-anchor', name);
+
     dd.addEventListener('beforetoggle', e => {
         const open = e.newState === 'open';
         invokers.forEach(btn => btn.setAttribute('aria-expanded', String(open)));
-        if (open) requestAnimationFrame(() => positionBelow(dd, anchor));
     });
 
     // Only wire hover-open on devices that actually hover. On touch the first

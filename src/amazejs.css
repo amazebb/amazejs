@@ -10,26 +10,26 @@
    rule like `:root { --accent: ... }` outranks these regardless of
    stylesheet load order. Defaults only fill the gaps the host left.
 
-   Both schemes live in one declaration via light-dark(), which resolves against
-   the *using* element's color-scheme — .atv-table-container declares
-   `light dark`, so the table follows the OS while the host page keeps whatever
-   scheme it set for itself. A host overriding a variable passes one colour and
-   it applies to both schemes, exactly as before. */
+   The two schemes are two blocks rather than one light-dark() per variable:
+   light-dark() resolves against the *using* element's color-scheme, which is the
+   container's — but the bundler downlevels it to a var toggle that only works
+   where color-scheme is declared, and declaring it on :root would hand the host
+   page a scheme it never asked for. */
 :where(:root) {
-    --text: light-dark(#1f2328, #e6edf3);
-    --text-muted: light-dark(#656d76, #8b949e);
-    --bg: light-dark(#ffffff, #0d1117);
-    --bg-subtle: light-dark(#f6f8fa, #161b22);
-    --bg-hover: light-dark(#e8ecf0, #1c2128);
-    --border: light-dark(#d0d7de, #30363d);
-    --border-muted: light-dark(#b0b8c1, #8b949e);
-    --accent: light-dark(#0969da, #58a6ff);
-    --accent-subtle: light-dark(#ddf4ff, #122d42);
-    --accent-border: light-dark(#54aeff, #58a6ff);
+    --text: #1f2328;
+    --text-muted: #656d76;
+    --bg: #ffffff;
+    --bg-subtle: #f6f8fa;
+    --bg-hover: #e8ecf0;
+    --border: #d0d7de;
+    --border-muted: #b0b8c1;
+    --accent: #0969da;
+    --accent-subtle: #ddf4ff;
+    --accent-border: #54aeff;
     /* Derived, so a host that sets only --accent gets a matching focus ring */
     --accent-shadow: color-mix(in srgb, var(--accent) 15%, transparent);
-    --row-hover: light-dark(#f0f4ff, #1c2128);
-    --dropdown-shadow: 0 8px 24px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4));
+    --row-hover: #f0f4ff;
+    --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     --radius: 6px;
 
     /* Internal — derived from the theme; overridable but undocumented */
@@ -44,6 +44,27 @@
     --filter-icon: "\25BD\FE0E";
     --stripe-bg: var(--bg-subtle);
     --header-bg: var(--bg-hover);
+    /* Dropdown placement: the gap between a trigger and its dropdown, and the
+       breathing room the dropdown keeps against the far viewport edges. */
+    --aj-dd-gap: 4px;
+    --aj-dd-edge: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :where(:root) {
+        --text: #e6edf3;
+        --text-muted: #8b949e;
+        --bg: #0d1117;
+        --bg-subtle: #161b22;
+        --bg-hover: #1c2128;
+        --border: #30363d;
+        --border-muted: #8b949e;
+        --accent: #58a6ff;
+        --accent-subtle: #122d42;
+        --accent-border: #58a6ff;
+        --row-hover: #1c2128;
+        --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
 }
 
 /* Self-sufficiency on a bare page: predictable sizing, a neutral system font
@@ -57,9 +78,10 @@
 }
 
 .atv-table-container {
-    /* What light-dark() above resolves against, and what tells the engine to draw
-       the native controls the table owns — checkboxes, the date pickers' calendar
-       fields — in the reader's scheme instead of always in light. */
+    /* Tells the engine to draw the native controls the table owns — checkboxes, the
+       date pickers' calendar fields — in the reader's scheme instead of always in
+       light. Scoped here rather than on :root, which would hand the host page a
+       scheme it never asked for. */
     color-scheme: light dark;
     font-family: var(--font, system-ui);
     color: var(--text);
@@ -444,8 +466,8 @@
 }
 
 /* Load failure, in place of the table that never got its data. It replaces the
-   original <table>, so it is the one piece of the component outside
-   .atv-table-container and has to declare the scheme light-dark() reads itself. */
+   original <table>, so it is the one piece of the component that lives outside
+   .atv-table-container and has to declare the scheme itself. */
 .atv-load-error {
     color-scheme: light dark;
     padding: 16px;
@@ -456,73 +478,76 @@
     font: 14px/1.5 var(--font);
 }
 
-/* Everything below is scoped to the component's own container so a host page's
-   tables are untouched. :where() carries zero specificity, so the scoping adds
-   nothing to these rules and their relative order still decides who wins. */
+/* The bare element selectors are nested inside the component's own container so a
+   host page's tables are untouched. :where() carries zero specificity, so the
+   scoping — and & standing in for it — adds nothing to these rules, and their
+   relative order still decides who wins. */
+:where(.atv-table-container) {
+    /* Table wrapper */
+    & .table-wrap {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow-x: auto;
+    }
 
-/* Table wrapper */
-:where(.atv-table-container) .table-wrap {
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow-x: auto;
-}
+    & table {
+        border-collapse: collapse;
+        table-layout: auto;
+        width: 100%;
+        min-width: 680px;
+        font-size: 14px;
+        counter-reset: row-num;
+    }
 
-:where(.atv-table-container) table {
-    border-collapse: collapse;
-    table-layout: auto;
-    width: 100%;
-    min-width: 680px;
-    font-size: 14px;
-    counter-reset: row-num;
-}
+    & th,
+    & td {
+        padding: 8px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
 
-:where(.atv-table-container) th,
-:where(.atv-table-container) td {
-    padding: 8px 16px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-}
+    & th {
+        background: var(--header-bg);
+        white-space: nowrap;
+        font-weight: 600;
+        transition: background 0.25s ease;
+    }
 
-:where(.atv-table-container) th {
-    background: var(--header-bg);
-    white-space: nowrap;
-    font-weight: 600;
-    transition: background 0.25s ease;
-}
+    & tr:last-child td {
+        border-bottom: none;
+    }
 
+    /* Wrapper rows holding expanded child tables are excluded so hovering a nested
+       row highlights only that row, not the whole expanded region. It has to outrank
+       the stripe rule below, which :where() keeps a class lighter than this one — so
+       the hover wins on specificity rather than on !important. */
+    & tbody tr:not(.aj-children-row):hover > td {
+        background: var(--row-hover);
+    }
 
-:where(.atv-table-container) tr:last-child td {
-    border-bottom: none;
-}
+    & tr.hidden {
+        display: none;
+    }
 
-/* Wrapper rows holding expanded child tables are excluded so hovering a nested
-   row highlights only that row, not the whole expanded region */
-:where(.atv-table-container) tbody tr:not(.aj-children-row):hover>td {
-    background: var(--row-hover) !important;
-}
+    /* Direct-child paths so a parent table's separators don't leak into nested
+       child tables — each table in tree view toggles only its own */
+    & table.atv-bordered > thead > tr > th:not(:last-child),
+    & table.atv-bordered > tbody > tr > td:not(:last-child) {
+        border-right: 1px solid var(--border);
+    }
 
-:where(.atv-table-container) tr.hidden {
-    display: none;
-}
+    & :where(table.atv-striped) > tbody > tr:nth-child(even of :not(.hidden)) > td {
+        background: var(--stripe-bg);
+    }
 
-/* Direct-child paths so a parent table's separators don't leak into nested
-   child tables — each table in tree view toggles only its own */
-:where(.atv-table-container) table.atv-bordered > thead > tr > th:not(:last-child),
-:where(.atv-table-container) table.atv-bordered > tbody > tr > td:not(:last-child) {
-    border-right: 1px solid var(--border);
-}
+    /* Row number column — CSS counters recount visible rows automatically */
+    & tbody > tr:not(.hidden):not(.aj-children-row) {
+        counter-increment: row-num;
+    }
 
-:where(.atv-table-container) table.atv-striped > tbody > tr:nth-child(even of :not(.hidden)) > td {
-    background: var(--stripe-bg);
-}
-
-/* Row number column — CSS counters recount visible rows automatically */
-:where(.atv-table-container) tbody > tr:not(.hidden):not(.aj-children-row) {
-    counter-increment: row-num;
-}
-
-:where(.atv-table-container) tbody > tr:not(.hidden) > td.atv-row-num::before {
-    content: counter(row-num);
+    & tbody > tr:not(.hidden) > td.atv-row-num::before {
+        content: counter(row-num);
+    }
 }
 
 .atv-row-num {
@@ -534,48 +559,42 @@
     user-select: none;
 }
 
-/* Sortable column headers */
-:where(.atv-table-container) th.sortable {
-    cursor: pointer;
-    user-select: none;
-}
+:where(.atv-table-container) {
+    /* Hovered and filter-applied headers share the accent tint; the transition on
+       th fades it in and out. No [aria-expanded] tint: the dropdown is a DOM child
+       of the th, so :hover already holds while the pointer is inside it — and
+       tinting the open state would lag the pointer by the hover-close grace delay
+       when moving to a non-filterable header. */
+    & thead th:hover {
+        background: var(--accent-subtle);
+    }
 
-/* Hovered and filter-applied headers share the accent tint; the transition on
-   th fades it in and out. No [aria-expanded] tint: the dropdown is a DOM child
-   of the th, so :hover already holds while the pointer is inside it — and
-   tinting the open state would lag the pointer by the hover-close grace delay
-   when moving to a non-filterable header. */
-:where(.atv-table-container) thead th:hover {
-    background: var(--accent-subtle);
-}
+    /* Sortable column headers */
+    & th.sortable {
+        cursor: pointer;
+        user-select: none;
 
-/* Sized in em off the header text, so the touch bump below is one variable and the
-   glyph tracks --font-size rather than sitting at a fixed pixel size. */
-:where(.atv-table-container) th.sortable::after {
-    content: var(--sort-icon);
-    font-size: var(--aj-th-icon, .8em);
-    color: var(--text-muted);
-}
+        /* Sized in em off the header text, so the touch bump below is one variable
+           and the glyph tracks --font-size rather than a fixed pixel size. */
+        &::after {
+            content: var(--sort-icon);
+            font-size: var(--aj-th-icon, .8em);
+            color: var(--text-muted);
+        }
 
-/* Only the column the table is sorted by is lit; the others keep the direction
-   they were last sorted in as a muted chevron, so switching columns leaves every
-   other header exactly as it was. */
-:where(.atv-table-container) th.sortable.sorted::after {
-    color: var(--accent);
-}
+        /* Only the column the table is sorted by is lit; the others keep the
+           direction they were last sorted in as a muted chevron, so switching
+           columns leaves every other header exactly as it was. */
+        &.sorted::after { color: var(--accent); }
 
-/* The ↑↓ pair is wider than the single arrow it becomes, so it is tracked in tighter
-   and the column keeps the wider of the two widths either way. */
-:where(.atv-table-container) th.sortable:not(.asc):not(.desc)::after {
-    letter-spacing: -.15em;
-}
+        /* The ↑↓ pair is wider than the single arrow it becomes, so it is tracked in
+           tighter and the column keeps the wider of the two widths either way. */
+        &:not(.asc):not(.desc)::after { letter-spacing: -.15em; }
 
-:where(.atv-table-container) th.sortable.asc::after {
-    content: var(--sort-icon-asc);
-}
+        &.asc::after { content: var(--sort-icon-asc); }
 
-:where(.atv-table-container) th.sortable.desc::after {
-    content: var(--sort-icon-desc);
+        &.desc::after { content: var(--sort-icon-desc); }
+    }
 }
 
 
@@ -650,10 +669,25 @@
 
 /* Filter dropdown — nested in its trigger's DOM; the Popover API renders it in
    the top layer when open. Resets undo inherited th styles (bold, nowrap). */
+/* Placement is CSS anchor positioning: attachPopover pairs each dropdown with its
+   trigger by anchor-name, and the area below the trigger becomes this box's
+   containing block — so `inset: auto` puts it under the trigger's inline-start
+   edge, the margins are the gap to the trigger and the breathing room at the far
+   edges, and 100% in max-height below is the room on that side. A popover is fixed
+   and in the top layer, so what the viewport cuts off is gone rather than scrolled
+   to: the fallbacks flip it to whichever side has more room, and the height cap
+   leaves the remainder to scroll inside it. */
 .filter-dropdown {
     position: fixed;
     inset: auto;
-    margin: 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    /* Try the roomier side first rather than only on overflow: capped to its area
+       (see max-height) the dropdown never overflows, so nothing else would ever
+       trigger the flip and a dropdown opened from the last row would sit in the
+       sliver below it. */
+    position-try-order: most-block-size;
+    margin: var(--aj-dd-gap) var(--aj-dd-edge) var(--aj-dd-edge) 0;
     padding: 0;
     font-weight: normal;
     white-space: normal;
@@ -663,9 +697,11 @@
     border-radius: 8px;
     box-shadow: var(--dropdown-shadow);
     min-width: 240px;
-    max-height: 360px;
-    /* positionBelow shrinks max-height to the room the dropdown lands in, so
-       whatever doesn't fit has to scroll rather than be cut off by the viewport. */
+    /* The room the dropdown landed in, less its own margins (percentages resolve
+       against the area, which does not know about them), never taller than the
+       resting height and never squeezed below the floor — a dropdown that can only
+       show a line or two is worse than one that overflows a little. */
+    max-height: clamp(120px, calc(100% - var(--aj-dd-gap) - var(--aj-dd-edge)), 360px);
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -848,7 +884,8 @@
 
 /* Nested child table container */
 .aj-children-cell {
-    padding: 0 0 0 24px !important;
+    /* A class already outranks the `td` padding rule — no !important needed. */
+    padding: 0 0 0 24px;
     border-left: 3px solid var(--accent-border);
 }
 
