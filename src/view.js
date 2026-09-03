@@ -531,7 +531,7 @@ export function buildHeader(thead, columns, tableId) {
 
     columns.forEach((col, i) => {
         const th = document.createElement('th');
-        th.setAttribute('data-col', i);
+        th.dataset.col = i;
 
         if (col.filter === 'category' || col.filter === 'text' || col.filter === 'range') {
             // Keyed by column index, not by col.key: a path key ('installed[*].time')
@@ -667,10 +667,14 @@ function buildRangeDropdown(id, dated) {
 // separators (27400013 -> "27,400,013"), preserving decimals. Opt out per column
 // with `separator: false` (years, IDs, zips). Sort/filter read the raw data, so
 // this never affects them.
+// Built once rather than per cell: Number.prototype.toLocaleString with options
+// constructs a formatter on every call, and this runs for every numeric cell.
+const NUMBER_FORMAT = new Intl.NumberFormat(undefined, { maximumFractionDigits: 20 });
+
 function formatCell(value, col) {
     if (col.numeric && col.separator !== false && value !== '' && value != null
         && !Number.isNaN(Number(value))) {
-        return Number(value).toLocaleString(undefined, { maximumFractionDigits: 20 });
+        return NUMBER_FORMAT.format(Number(value));
     }
     return value ?? '';
 }

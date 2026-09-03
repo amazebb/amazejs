@@ -265,11 +265,8 @@ function getColumns(items, ctx, depth) {
     items.slice(0, SAMPLE_SIZE).forEach(item => {
         Object.entries(item).forEach(([k, v]) => { if (isObjectArray(v)) groupKeys.add(k); });
     });
-    const keys = sampleKeys(items).filter(k => !groupKeys.has(k));
-    if (keys.includes(nameKey)) {
-        keys.splice(keys.indexOf(nameKey), 1);
-        keys.unshift(nameKey);
-    }
+    let keys = sampleKeys(items).filter(k => !groupKeys.has(k));
+    if (keys.includes(nameKey)) keys = [nameKey, ...keys.filter(k => k !== nameKey)];
 
     const colCount = keys.length;
     return keys.map((k, i) => {

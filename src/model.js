@@ -386,23 +386,22 @@ export function computeCounts(data, categoryState, textState, rangeState, query,
     return counts;
 }
 
-// Returns a new sorted array, leaving the original untouched.
+// Returns a new sorted array, leaving the original untouched. Each row's sort key is
+// resolved once and carried through the sort rather than recomputed on every
+// comparison — getValue walks a path and cellValue flattens and lowercases, which is
+// n log n of that work when the answer never changes for a row.
 export function sortItems(data, key, dir, numeric = false) {
-    return [...data].sort((a, b) => {
-        if (numeric) return (Number(getValue(a, key)) - Number(getValue(b, key))) * dir;
-        const aVal = cellValue(a, key).toLowerCase();
-        const bVal = cellValue(b, key).toLowerCase();
-        if (aVal < bVal) return -dir;
-        if (aVal > bVal) return dir;
-        return 0;
-    });
+    const keyOf = numeric ? item => Number(getValue(item, key)) : item => cellValue(item, key).toLowerCase();
+    return data.map(item => [keyOf(item), item])
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0) * dir)
+        .map(([, item]) => item);
 }
 
 // Default label for a path key: its last named segment, so
 // 'installed[*].installed_on_request' reads as "Installed_on_request".
 function labelFor(key) {
     const named = parsePath(key).filter(s => s !== '*' && !/^\d+$/.test(s));
-    return capitalize(named[named.length - 1] || key);
+    return capitalize(named.at(-1) || key);
 }
 
 function capitalize(str) {

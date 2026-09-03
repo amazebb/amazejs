@@ -555,8 +555,9 @@ export async function initTable(config) {
         // The toolbar sets the header's offset, and its height changes when its
         // buttons wrap, so re-measure whenever it — or the space it is fitted to —
         // resizes.
-        new ResizeObserver(syncToolbarBox).observe(toolbar);
-        if (host) new ResizeObserver(syncToolbarBox).observe(host);
+        const resize = new ResizeObserver(syncToolbarBox);
+        resize.observe(toolbar);
+        if (host) resize.observe(host);
 
         // Ticked when this table shows its buttons, inherited from an ancestor included.
         settingsBtns.showMore.checked = showButtons || !!tableContainer.closest('.atv-show-more');
@@ -664,8 +665,10 @@ export async function initTable(config) {
         if (def.date) {
             const stamps = data.map(d => toTimestamp(getValue(d, def.key))).filter(t => t != null);
             if (stamps.length) {
-                const lo = toDateInput(Math.min(...stamps));
-                const hi = toDateInput(Math.max(...stamps));
+                // reduce, not Math.min(...stamps): a spread of a column's every value
+                // is an argument list, and a long enough one overflows the stack.
+                const lo = toDateInput(stamps.reduce((a, b) => Math.min(a, b)));
+                const hi = toDateInput(stamps.reduce((a, b) => Math.max(a, b)));
                 minInp.min = maxInp.min = lo;
                 minInp.max = maxInp.max = hi;
                 // Both boxes start filled with the span they bound — a date picker has
@@ -677,8 +680,8 @@ export async function initTable(config) {
         } else {
             const nums = data.map(d => Number(getValue(d, def.key))).filter(n => !Number.isNaN(n));
             if (nums.length) {
-                minInp.placeholder = String(Math.min(...nums));
-                maxInp.placeholder = String(Math.max(...nums));
+                minInp.placeholder = String(nums.reduce((a, b) => Math.min(a, b)));
+                maxInp.placeholder = String(nums.reduce((a, b) => Math.max(a, b)));
                 const chars = Math.max(minInp.placeholder.length, maxInp.placeholder.length, 2);
                 minInp.style.width = maxInp.style.width = `calc(${chars}ch + 2.5em)`;
             }
@@ -743,7 +746,7 @@ export async function initTable(config) {
     }
 
     table.querySelectorAll('th.sortable').forEach(th => {
-        th.addEventListener('click', () => sortByCol(parseInt(th.getAttribute('data-col'))));
+        th.addEventListener('click', () => sortByCol(+th.dataset.col));
     });
 
     [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {

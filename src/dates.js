@@ -24,6 +24,10 @@ const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
                         ['day', 86400], ['hour', 3600], ['minute', 60]];
 
+// Built once: an Intl formatter costs far more to construct than to call, and this
+// one runs per cell.
+const RELATIVE_FORMAT = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
 // The date formats are ISO 8601 in local time, 24-hour, with a numeric offset
 // (2026-07-07T13:48:31+1000) rather than locale strings: unambiguous about which
 // clock produced them, and text that sorts and prefix-searches ('2026-07') the way
@@ -48,7 +52,7 @@ export const DATE_FORMATTERS = {
     relative: asDate(d => {
         const secs = (d.getTime() - Date.now()) / 1000;
         const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s) || ['second', 1];
-        return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(Math.round(secs / size), unit);
+        return RELATIVE_FORMAT.format(Math.round(secs / size), unit);
     }),
 };
 
