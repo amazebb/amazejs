@@ -8,21 +8,28 @@
 
 /* Default theme — wrapped in :where() so it has ZERO specificity: any host
    rule like `:root { --accent: ... }` outranks these regardless of
-   stylesheet load order. Defaults only fill the gaps the host left. */
+   stylesheet load order. Defaults only fill the gaps the host left.
+
+   Both schemes live in one declaration via light-dark(), which resolves against
+   the *using* element's color-scheme — .atv-table-container declares
+   `light dark`, so the table follows the OS while the host page keeps whatever
+   scheme it set for itself. A host overriding a variable passes one colour and
+   it applies to both schemes, exactly as before. */
 :where(:root) {
-    --text: #1f2328;
-    --text-muted: #656d76;
-    --bg: #ffffff;
-    --bg-subtle: #f6f8fa;
-    --bg-hover: #e8ecf0;
-    --border: #d0d7de;
-    --border-muted: #b0b8c1;
-    --accent: #0969da;
-    --accent-subtle: #ddf4ff;
-    --accent-border: #54aeff;
-    --accent-shadow: rgba(9, 105, 218, 0.15);
-    --row-hover: #f0f4ff;
-    --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --text: light-dark(#1f2328, #e6edf3);
+    --text-muted: light-dark(#656d76, #8b949e);
+    --bg: light-dark(#ffffff, #0d1117);
+    --bg-subtle: light-dark(#f6f8fa, #161b22);
+    --bg-hover: light-dark(#e8ecf0, #1c2128);
+    --border: light-dark(#d0d7de, #30363d);
+    --border-muted: light-dark(#b0b8c1, #8b949e);
+    --accent: light-dark(#0969da, #58a6ff);
+    --accent-subtle: light-dark(#ddf4ff, #122d42);
+    --accent-border: light-dark(#54aeff, #58a6ff);
+    /* Derived, so a host that sets only --accent gets a matching focus ring */
+    --accent-shadow: color-mix(in srgb, var(--accent) 15%, transparent);
+    --row-hover: light-dark(#f0f4ff, #1c2128);
+    --dropdown-shadow: 0 8px 24px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4));
     --radius: 6px;
 
     /* Internal — derived from the theme; overridable but undocumented */
@@ -39,24 +46,6 @@
     --header-bg: var(--bg-hover);
 }
 
-@media (prefers-color-scheme: dark) {
-    :where(:root) {
-        --text: #e6edf3;
-        --text-muted: #8b949e;
-        --bg: #0d1117;
-        --bg-subtle: #161b22;
-        --bg-hover: #1c2128;
-        --border: #30363d;
-        --border-muted: #8b949e;
-        --accent: #58a6ff;
-        --accent-subtle: #122d42;
-        --accent-border: #58a6ff;
-        --accent-shadow: rgba(88, 166, 255, 0.15);
-        --row-hover: #1c2128;
-        --dropdown-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-}
-
 /* Self-sufficiency on a bare page: predictable sizing, a neutral system font
    (set --font to integrate with the host's typography), and form elements
    inheriting it — all scoped to the component so host styles outside the
@@ -68,6 +57,10 @@
 }
 
 .atv-table-container {
+    /* What light-dark() above resolves against, and what tells the engine to draw
+       the native controls the table owns — checkboxes, the date pickers' calendar
+       fields — in the reader's scheme instead of always in light. */
+    color-scheme: light dark;
     font-family: var(--font, system-ui);
     color: var(--text);
     /* Mobile Safari inflates text in narrow viewports after layout, which would
@@ -293,8 +286,8 @@
 
 /* Direct-child paths so a parent table's class can't hide a nested child
    table's row numbers — each table in tree view toggles only its own */
-table.atv-hide-rownums > thead > tr > th.atv-row-num,
-table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
+:where(.atv-table-container) table.atv-hide-rownums > thead > tr > th.atv-row-num,
+:where(.atv-table-container) table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
 
 /* Ellipsis overflow button + its menu. The button sits outside .atv-more-wrap,
    so the wrap (the reserved space where the hidden File/Settings sit) is the
@@ -317,7 +310,7 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     border-radius: var(--radius);
 }
 
-.atv-more-btn::before { content: "⋯"; }
+.atv-more-btn::before { content: "⋯" / ""; }
 
 .atv-more-btn:hover {
     color: var(--accent);
@@ -450,8 +443,11 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     display: block;
 }
 
-/* Load failure, in place of the table that never got its data */
+/* Load failure, in place of the table that never got its data. It replaces the
+   original <table>, so it is the one piece of the component outside
+   .atv-table-container and has to declare the scheme light-dark() reads itself. */
 .atv-load-error {
+    color-scheme: light dark;
     padding: 16px;
     border: 1px solid var(--accent-border);
     border-radius: var(--radius);
@@ -460,14 +456,18 @@ table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
     font: 14px/1.5 var(--font);
 }
 
+/* Everything below is scoped to the component's own container so a host page's
+   tables are untouched. :where() carries zero specificity, so the scoping adds
+   nothing to these rules and their relative order still decides who wins. */
+
 /* Table wrapper */
-.table-wrap {
+:where(.atv-table-container) .table-wrap {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow-x: auto;
 }
 
-table {
+:where(.atv-table-container) table {
     border-collapse: collapse;
     table-layout: auto;
     width: 100%;
@@ -476,14 +476,14 @@ table {
     counter-reset: row-num;
 }
 
-th,
-td {
+:where(.atv-table-container) th,
+:where(.atv-table-container) td {
     padding: 8px 16px;
     text-align: left;
     border-bottom: 1px solid var(--border);
 }
 
-th {
+:where(.atv-table-container) th {
     background: var(--header-bg);
     white-space: nowrap;
     font-weight: 600;
@@ -491,37 +491,37 @@ th {
 }
 
 
-tr:last-child td {
+:where(.atv-table-container) tr:last-child td {
     border-bottom: none;
 }
 
 /* Wrapper rows holding expanded child tables are excluded so hovering a nested
    row highlights only that row, not the whole expanded region */
-tbody tr:not(.aj-children-row):hover>td {
+:where(.atv-table-container) tbody tr:not(.aj-children-row):hover>td {
     background: var(--row-hover) !important;
 }
 
-tr.hidden {
+:where(.atv-table-container) tr.hidden {
     display: none;
 }
 
 /* Direct-child paths so a parent table's separators don't leak into nested
    child tables — each table in tree view toggles only its own */
-table.atv-bordered > thead > tr > th:not(:last-child),
-table.atv-bordered > tbody > tr > td:not(:last-child) {
+:where(.atv-table-container) table.atv-bordered > thead > tr > th:not(:last-child),
+:where(.atv-table-container) table.atv-bordered > tbody > tr > td:not(:last-child) {
     border-right: 1px solid var(--border);
 }
 
-table.atv-striped > tbody > tr:nth-child(even of :not(.hidden)) > td {
+:where(.atv-table-container) table.atv-striped > tbody > tr:nth-child(even of :not(.hidden)) > td {
     background: var(--stripe-bg);
 }
 
 /* Row number column — CSS counters recount visible rows automatically */
-tbody > tr:not(.hidden):not(.aj-children-row) {
+:where(.atv-table-container) tbody > tr:not(.hidden):not(.aj-children-row) {
     counter-increment: row-num;
 }
 
-tbody > tr:not(.hidden) > td.atv-row-num::before {
+:where(.atv-table-container) tbody > tr:not(.hidden) > td.atv-row-num::before {
     content: counter(row-num);
 }
 
@@ -535,7 +535,7 @@ tbody > tr:not(.hidden) > td.atv-row-num::before {
 }
 
 /* Sortable column headers */
-th.sortable {
+:where(.atv-table-container) th.sortable {
     cursor: pointer;
     user-select: none;
 }
@@ -545,13 +545,13 @@ th.sortable {
    of the th, so :hover already holds while the pointer is inside it — and
    tinting the open state would lag the pointer by the hover-close grace delay
    when moving to a non-filterable header. */
-thead th:hover {
+:where(.atv-table-container) thead th:hover {
     background: var(--accent-subtle);
 }
 
 /* Sized in em off the header text, so the touch bump below is one variable and the
    glyph tracks --font-size rather than sitting at a fixed pixel size. */
-th.sortable::after {
+:where(.atv-table-container) th.sortable::after {
     content: var(--sort-icon);
     font-size: var(--aj-th-icon, .8em);
     color: var(--text-muted);
@@ -560,21 +560,21 @@ th.sortable::after {
 /* Only the column the table is sorted by is lit; the others keep the direction
    they were last sorted in as a muted chevron, so switching columns leaves every
    other header exactly as it was. */
-th.sortable.sorted::after {
+:where(.atv-table-container) th.sortable.sorted::after {
     color: var(--accent);
 }
 
 /* The ↑↓ pair is wider than the single arrow it becomes, so it is tracked in tighter
    and the column keeps the wider of the two widths either way. */
-th.sortable:not(.asc):not(.desc)::after {
+:where(.atv-table-container) th.sortable:not(.asc):not(.desc)::after {
     letter-spacing: -.15em;
 }
 
-th.sortable.asc::after {
+:where(.atv-table-container) th.sortable.asc::after {
     content: var(--sort-icon-asc);
 }
 
-th.sortable.desc::after {
+:where(.atv-table-container) th.sortable.desc::after {
     content: var(--sort-icon-desc);
 }
 
@@ -602,23 +602,26 @@ th.sortable.desc::after {
     cursor: pointer;
 }
 
+/* The `/ ""` is the glyph's alternative text: these buttons already carry an
+   aria-label, so the decorative character is left out of the accessibility tree
+   instead of being announced as "down-pointing triangle". */
 .atv-filter-btn::before {
     font-size: var(--aj-th-icon, .8em);
-    content: "⏷";
+    content: "⏷" / "";
 }
 
 /* Shown when this column is filtering, on every device: the funnel alone says which
    columns are filtering — no tint behind the label, which reads as hover and can't
    name a column anyway. Accent-coloured on an accent chip so it carries on its own. */
-thead th.active > .atv-filter-btn {
+:where(.atv-table-container) thead th.active > .atv-filter-btn {
     visibility: visible;
     background: var(--accent-subtle);
     border-radius: var(--radius);
     color: var(--accent);
 }
 
-thead th.active > .atv-filter-btn::before {
-    content: var(--filter-icon);
+:where(.atv-table-container) thead th.active > .atv-filter-btn::before {
+    content: var(--filter-icon) / "";
 }
 
 /* Touch: always there, and sized as a tap chip rather than the compact marker a
@@ -626,7 +629,7 @@ thead th.active > .atv-filter-btn::before {
 @media (hover: none), (pointer: coarse) {
     /* Thumb-sized rather than pointer-sized: the sort chevron and the filter funnel
        both grow to roughly half the header text's line, and the button becomes a chip. */
-    thead th {
+    :where(.atv-table-container) thead th {
         --aj-th-icon: 1.4em;
     }
 
@@ -641,7 +644,7 @@ thead th.active > .atv-filter-btn::before {
 /* Open (the .aj-rotate utility flips the caret) or a filter applied: accent the
    icon so it reads clearly without any button chrome. */
 .atv-filter-btn[aria-expanded="true"],
-thead th.active > .atv-filter-btn {
+:where(.atv-table-container) thead th.active > .atv-filter-btn {
     color: var(--accent);
 }
 
@@ -889,7 +892,7 @@ thead th.active > .atv-filter-btn {
 
 /* Arrow rendered from aria-expanded (the toggle's single source of truth),
    rotated to ▼ by the .aj-rotate utility when expanded */
-.aj-toggle::before { content: "▶"; }
+.aj-toggle::before { content: "▶" / ""; }
 
 .aj-leaf {
     display: inline-block;
