@@ -320,66 +320,78 @@ function displayText(item, key, formats) {
     return applyFormat(getValue(item, key), formats?.[key], item) ?? cellValue(item, key);
 }
 
-// True when the item passes every text filter and the (lowercased) search query.
-// Both read the displayed text, so a formatted column is searchable as it reads.
-function matchesTextAndSearch(item, textState, q, searchKeys, formats) {
-    const matchText = Object.entries(textState)
-        .every(([key, val]) => !val || displayText(item, key, formats).toLowerCase().includes(val.toLowerCase()));
-    const matchSearch = !q || searchKeys.some(k => displayText(item, k, formats).toLowerCase().includes(q));
-    return matchText && matchSearch;
+// The non-category filters as they will actually be applied, resolved once per pass
+// rather than per row: the entries walks, the lowercased needles, and — the part that
+// pays — dropping the filters that aren't filtering, so an empty text box or an
+// unbounded range costs nothing per row instead of a test on every one.
+function prepare(textState, rangeState, query, searchKeys, formats) {
+    return {
+        text: Object.entries(textState).filter(([, v]) => v).map(([key, v]) => [key, v.toLowerCase()]),
+        ranges: Object.entries(rangeState).filter(([, r]) => r.min != null || r.max != null),
+        q: query.toLowerCase(),
+        searchKeys, formats,
+    };
 }
 
-// True when the item's numeric value falls within every active [min, max] range.
-// Each range bound is a number or null (unbounded); both null = inactive. Every
-// numeric filter mode (Min/Max now, comparators/presets later) reduces to this
-// predicate, so it never has to change as new range UIs are added.
-function matchesRange(item, rangeState) {
-    return Object.entries(rangeState).every(([key, { min, max, date }]) => {
-        if (min == null && max == null) return true;
+// All non-category filters: text + search + numeric range. Shared by getVisible and
+// computeCounts so category option counts reflect these filters too. Text and search
+// read the displayed text, so a formatted column filters as it reads; a range stays on
+// the raw values, so a formatted date still filters chronologically. Every numeric
+// filter mode (Min/Max now, comparators/presets later) reduces to the same [min, max]
+// predicate, so this never has to change as new range UIs are added.
+function matchesNonCategory(item, { text, ranges, q, searchKeys, formats }) {
+    for (const [key, needle] of text) {
+        if (!displayText(item, key, formats).toLowerCase().includes(needle)) return false;
+    }
+    for (const [key, { min, max, date }] of ranges) {
         const raw = getValue(item, key);
         if (raw === '' || raw == null) return false;
         // A date range holds timestamps and reads the value as an instant; a numeric
         // one holds numbers. Either way both sides of the comparison are the same kind.
         const v = date ? toTimestamp(raw) : Number(raw);
         if (v == null || Number.isNaN(v)) return false;
-        return (min == null || v >= min) && (max == null || v <= max);
-    });
-}
-
-// All non-category filters: text + search + numeric range. Shared by getVisible
-// and computeCounts so category option counts reflect these filters too. The range
-// stays on raw values — a formatted date still filters and sorts numerically.
-function matchesNonCategory(item, textState, rangeState, q, searchKeys, formats) {
-    return matchesTextAndSearch(item, textState, q, searchKeys, formats) && matchesRange(item, rangeState);
+        if ((min != null && v < min) || (max != null && v > max)) return false;
+    }
+    return !q || searchKeys.some(k => displayText(item, k, formats).toLowerCase().includes(q));
 }
 
 // Returns the subset of data items that match all active filters and the search query.
 export function getVisible(data, categoryState, textState, rangeState, query, searchKeys, formats) {
-    const q = query.toLowerCase();
+    const active = prepare(textState, rangeState, query, searchKeys, formats);
+    const cats = Object.entries(categoryState);
     return data.filter(item =>
-        Object.entries(categoryState).every(([key, selected]) => selected.has(displayText(item, key, formats)))
-        && matchesNonCategory(item, textState, rangeState, q, searchKeys, formats)
+        cats.every(([key, selected]) => selected.has(displayText(item, key, formats)))
+        && matchesNonCategory(item, active)
     );
 }
 
 // Returns per-filter value counts, where each filter is counted against all OTHER
 // active filters + text filters + search (so the dropdown shows how many items each option would reveal).
 export function computeCounts(data, categoryState, textState, rangeState, query, searchKeys, formats) {
-    const q = query.toLowerCase();
+    const active = prepare(textState, rangeState, query, searchKeys, formats);
+    const cats = Object.entries(categoryState);
     const counts = {};
-    Object.keys(categoryState).forEach(key => { counts[key] = {}; });
+    cats.forEach(([key]) => { counts[key] = {}; });
+
+    // Each column's display text, and whether the column's own selection holds it,
+    // once per row and shared across the columns: a count is "every OTHER column
+    // matches", which tested per column walks the whole state again for each of them.
+    // Two arrays reused down the rows — one row's working space, not one set per row.
+    const texts = new Array(cats.length);
+    const misses = new Array(cats.length);
 
     data.forEach(item => {
-        if (!matchesNonCategory(item, textState, rangeState, q, searchKeys, formats)) return;
+        if (!matchesNonCategory(item, active)) return;
 
-        Object.keys(categoryState).forEach(key => {
-            const matchOthers = Object.entries(categoryState)
-                .filter(([k]) => k !== key)
-                .every(([k, selected]) => selected.has(displayText(item, k, formats)));
-            if (matchOthers) {
-                const val = displayText(item, key, formats);
-                counts[key][val] = (counts[key][val] || 0) + 1;
-            }
+        let missed = 0;
+        cats.forEach(([key, selected], i) => {
+            texts[i] = displayText(item, key, formats);
+            misses[i] = selected.has(texts[i]) ? 0 : 1;
+            missed += misses[i];
+        });
+        // Every other column matches exactly when this one accounts for every miss.
+        cats.forEach(([key], i) => {
+            if (missed === misses[i]) counts[key][texts[i]] = (counts[key][texts[i]] || 0) + 1;
         });
     });
 

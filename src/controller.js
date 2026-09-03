@@ -217,6 +217,15 @@ export async function initTable(config) {
         return filter === c.filter ? c : { ...c, filter };
     });
     const { filterDefs, textDefs, rangeDefs } = buildHeader(thead, headerColumns, tableId);
+    // The header's own elements, resolved once. refresh() marks every filtering column
+    // on each keystroke and updateFilterCounts writes each dropdown's badge, so an id
+    // lookup per column per pass is a lookup per column too many. (badgeEl is null on
+    // the text and range dropdowns, which have no footer badge.)
+    [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {
+        def.th = document.getElementById(def.thId);
+        def.dd = document.getElementById(def.id);
+        def.badgeEl = def.dd.querySelector('.filter-actions-badge');
+    });
     const rowMap = buildRows(tbody, data, columns, objectCell, objectAlign);
     if (!rowNumbers) table.classList.add('atv-hide-rownums');
 
@@ -255,7 +264,7 @@ export async function initTable(config) {
         optionQuery[def.key] = '';
 
         const { rows, checkboxes } = buildFilterOptions(
-            def.id, values,
+            def.dd, values,
             (v, checked) => {
                 if (checked) filterState[def.key].add(v);
                 else filterState[def.key].delete(v);
@@ -304,11 +313,11 @@ export async function initTable(config) {
             updateFilterCounts(def, ui.values, counts[def.key] || {}, activeState[def.key], ui.rows, badgeAlwaysShow);
         });
         textDefs.forEach(def => {
-            document.getElementById(def.thId).classList.toggle('active', !!textFilterState[def.key]);
+            def.th.classList.toggle('active', !!textFilterState[def.key]);
         });
         rangeDefs.forEach(def => {
             const { min, max } = rangeState[def.key];
-            document.getElementById(def.thId).classList.toggle('active', min != null || max != null);
+            def.th.classList.toggle('active', min != null || max != null);
         });
     }
 
@@ -595,8 +604,7 @@ export async function initTable(config) {
 
     // --- Dropdown management ---
     filterDefs.forEach(def => {
-        const th     = document.getElementById(def.thId);
-        const dd     = document.getElementById(def.id);
+        const { th, dd } = def;
         const search = dd.querySelector('.filter-search');
 
         attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
@@ -635,8 +643,7 @@ export async function initTable(config) {
     });
 
     textDefs.forEach(def => {
-        const th    = document.getElementById(def.thId);
-        const dd    = document.getElementById(def.id);
+        const { th, dd } = def;
         const input = dd.querySelector('.filter-search');
 
         attachPopover([th, th.querySelector('.atv-filter-btn')], dd, th, { hover: true });
@@ -649,8 +656,7 @@ export async function initTable(config) {
     });
 
     rangeDefs.forEach(def => {
-        const th     = document.getElementById(def.thId);
-        const dd     = document.getElementById(def.id);
+        const { th, dd } = def;
         const minInp = dd.querySelector('.filter-range-min');
         const maxInp = dd.querySelector('.filter-range-max');
 
@@ -749,10 +755,9 @@ export async function initTable(config) {
         th.addEventListener('click', () => sortByCol(+th.dataset.col));
     });
 
-    [...filterDefs, ...textDefs, ...rangeDefs].forEach(def => {
-        const th = document.getElementById(def.thId);
+    [...filterDefs, ...textDefs, ...rangeDefs].forEach(({ th, col }) => {
         th.classList.add('sortable');
-        th.addEventListener('click', e => { if (e.target === th) sortByCol(def.col); });
+        th.addEventListener('click', e => { if (e.target === th) sortByCol(col); });
     });
 
     // Measured last, with every row visible and every header finished: filterable

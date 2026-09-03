@@ -720,8 +720,8 @@ export function buildRows(tbody, data, columns, objectCell = 'summary', objectAl
 // Builds the checkbox option rows inside a filter dropdown.
 // onCheck(value, checked) and onOnly(value) are controller-provided callbacks.
 // Returns { rows, checkboxes } for later updates.
-export function buildFilterOptions(filterId, values, onCheck, onOnly) {
-    const container = document.querySelector(`#${filterId} .filter-options`);
+export function buildFilterOptions(dd, values, onCheck, onOnly) {
+    const container = dd.querySelector('.filter-options');
     const rows = {}, checkboxes = {};
 
     values.forEach(v => {
@@ -801,8 +801,7 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
     // values — not the visible counts, which another column's filter can zero out,
     // taking the indicator off a column that is still filtering.
     const isFiltered = selected.size < values.length;
-    const th = document.getElementById(filterDef.thId);
-    const badgeEl = document.querySelector(`#${filterDef.id} .filter-actions-badge`);
+    const { th, badgeEl } = filterDef;
     th.classList.toggle('active', isFiltered);
     badgeEl.textContent = '';
     if (isFiltered || badgeAlwaysShow) {
