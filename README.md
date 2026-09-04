@@ -36,7 +36,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 <table id="myTable"></table>
 
 <script type="module">
-    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.0/dist/amazejs.js';
+    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.1/dist/amazejs.js';
 
     initTable({
         data: ['data/items.json'],   // or pass an array of objects directly
@@ -52,7 +52,7 @@ Pin an exact tag, as above. `@latest` is cached by browsers for seven days and n
 ### Explicit columns
 
 ```js
-import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.0/dist/amazejs.js';
+import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.1/dist/amazejs.js';
 
 initTable({
     data: items,
@@ -106,7 +106,7 @@ Three ways to deal with it, in order of effort:
    deep field is one line whether it is top-level or buried:
 
    ```js
-   import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.0/dist/amazejs.js';
+   import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.38.1/dist/amazejs.js';
 
    initTable({
        data: ['all.json'],
