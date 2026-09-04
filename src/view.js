@@ -221,8 +221,8 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 // controller toggles the table container via toggleBtn/titleWrap.
 // The toolbar is just two parts: the disclosure handle (toggle + title) and a
 // single `rest` wrapper holding everything after the title (count badge, File/
-// Settings menus, extra buttons). Collapsing the table — and showFilterRow:false
-// — hide `rest` as one unit, leaving only the handle. The rest's buttons always
+// Settings menus, extra buttons). Collapsing the table — and
+// showToolbarControls:false — hide `rest` as one unit, leaving only the handle. The rest's buttons always
 // sit behind a `⋯` overflow (moreBtn), revealed on hover/click via CSS — same
 // for flat and nested tables.
 export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {

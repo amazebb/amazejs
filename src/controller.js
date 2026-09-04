@@ -70,7 +70,7 @@ function pageInset(container, nested) {
  * @property {boolean} [bordered]
  * @property {boolean} [rowNumbers]
  * @property {boolean} [stickyHeaders]
- * @property {boolean} [showFilterRow]
+ * @property {boolean} [showToolbarControls] false leaves only the disclosure handle and title.
  * @property {boolean} [showButtons]                false leaves the toolbar menus permanently out.
  * @property {Record<string, Format>} [formats]     Display formats by column key (a path).
  * @property {'upper'} [labelStyle]                 The table's one labelling rule.
@@ -129,7 +129,7 @@ export async function initTable(config) {
         buttons        = [],
         searchDebounce = true,
         stickyHeaders  = true,
-        showFilterRow  = true,
+        showToolbarControls = true,
         showButtons    = true,
         labelStyle,
         formats,
@@ -641,7 +641,7 @@ export async function initTable(config) {
         };
         setBadgeState(badgeState);
         applySticky(stickyHeaders);
-        if (!showFilterRow) rest.style.display = 'none';
+        if (!showToolbarControls) rest.style.display = 'none';
 
         settingsBtns.showMore.addEventListener('change', () => {
             applyShowButtons(settingsBtns.showMore.checked);
