@@ -36,14 +36,17 @@ export function titleFromUrl(url) {
     return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
 }
 
-// The text each parsed data set came from, so the raw-source view knows the file
-// as it was imported rather than a re-serialization of the parse. Keyed by the parsed
-// value, so it is dropped with the data and no copy of a large file is held alive.
+// What each parsed data set was imported from — the text as it arrived, and the format
+// it was read as — so the raw-source view shows the file rather than a re-serialization
+// of the parse, and the header toggle can read the same text a second time. Keyed by
+// the parsed value, so it is dropped with the data and no copy of a large file is
+// held alive.
+/** @type {WeakMap<object, { text: string, format: string }>} */
 export const sourceText = new WeakMap();
 
-// Remembers text against the data parsed out of it, and returns the data.
-export function rememberSource(data, text) {
-    if (data && typeof data === 'object') sourceText.set(data, text);
+// Remembers the text and format against the data parsed out of them, and returns the data.
+export function rememberSource(data, text, format) {
+    if (data && typeof data === 'object') sourceText.set(data, { text, format });
     return data;
 }
 
@@ -106,19 +109,31 @@ export function formatFor(name, mimeType, text) {
 // Parses fetched text into rows. A response that isn't text at all is refused here
 // rather than parsed into nonsense: a JSON file throws on its own, but every byte is a
 // valid CSV field.
-export function parseByUrl(url, text, mimeType) {
+/**
+ * @param {string} url
+ * @param {string} text
+ * @param {string | null} mimeType
+ * @param {'auto' | boolean} [headerRow]
+ */
+export function parseByUrl(url, text, mimeType, headerRow = 'auto') {
     const path = url.split(/[?#]/)[0];
     const name = path.split('/').pop() || path;
     const reason = unreadableReason(name, mimeType, text);
     if (reason) throw new Error(reason);
-    return rememberSource(parseAs(formatFor(name, mimeType, text), text), text);
+    const format = formatFor(name, mimeType, text);
+    return rememberSource(parseAs(format, text, headerRow), text, format);
 }
 
-// One format name to one parser, so both readers turn text into rows the same way.
-export function parseAs(format, text) {
+/**
+ * One format name to one parser, so both readers turn text into rows the same way.
+ * @param {string} format
+ * @param {string} text
+ * @param {'auto' | boolean} [headerRow]
+ */
+export function parseAs(format, text, headerRow = 'auto') {
     return format === 'json' ? JSON.parse(text)
-        : format === 'csv' ? parseCsv(text)
-            : parseTsv(text);
+        : format === 'csv' ? parseCsv(text, headerRow)
+            : parseTsv(text, headerRow);
 }
 
 // A response carrying a body. Status 0 is not a failure: custom schemes — an Electrobun
@@ -133,36 +148,86 @@ function delivered(res) {
  * Fetches data from url, falling back to fallbackUrl if the first request fails.
  * @param {string} url
  * @param {string} [fallbackUrl]
+ * @param {'auto' | boolean} [headerRow]
  */
-export async function fetchData(url, fallbackUrl) {
+export async function fetchData(url, fallbackUrl, headerRow = 'auto') {
     const res = await fetch(url);
-    if (delivered(res)) return parseByUrl(url, await res.text(), res.headers.get('content-type'));
+    if (delivered(res)) return parseByUrl(url, await res.text(), res.headers.get('content-type'), headerRow);
     if (!fallbackUrl) throw new Error(`Failed to load data from ${url}`);
     const fallbackRes = await fetch(fallbackUrl);
     if (!delivered(fallbackRes)) throw new Error(`Failed to load data from ${url} and ${fallbackUrl}`);
-    return parseByUrl(fallbackUrl, await fallbackRes.text(), fallbackRes.headers.get('content-type'));
+    return parseByUrl(fallbackUrl, await fallbackRes.text(), fallbackRes.headers.get('content-type'), headerRow);
+}
+
+// A value a delimited file can only be carrying as data, not as a column's name.
+const looksLikeData = v => v !== '' && (!isNaN(Number(v)) || toTimestamp(v) != null);
+
+// Whether the first row names the columns or is one more row of data. Delimited files
+// say nothing about this, and reading a data row as the header costs a row and labels
+// the columns with values — so the first row is weighed against the rest, per column:
+// a column whose body is uniformly numbers or dates has a header if its first cell
+// isn't one, and is all data if it is. A first row that repeats a value is data too;
+// names have to be distinct to key a record by.
+//
+// Undecided means header, which is what nearly every delimited file has and what this
+// has always assumed. A file of nothing but strings gives the test no signal at all —
+// that is the case the Settings toggle exists for.
+export function hasHeaderRow(rows) {
+    if (rows.length < 2) return true;
+    const [first, ...body] = rows;
+    if (new Set(first).size < first.length) return false;
+
+    let data = false;
+    for (let i = 0; i < first.length; i++) {
+        if (!body.every(r => looksLikeData(r[i]))) continue;
+        if (!looksLikeData(first[i])) return true;
+        data = true;
+    }
+    return !data;
+}
+
+// The name given to the nth column of a headerless file.
+const generatedKey = i => `col${i + 1}`;
+
+// True when these records were keyed by generated names rather than by a header row —
+// what the Settings toggle reads to know which way it currently sits. The convention
+// lives here, beside the code that applies it.
+export function hasGeneratedHeaders(data) {
+    const keys = Object.keys(data?.[0] ?? {});
+    return keys.length > 0 && keys.every((k, i) => k === generatedKey(i));
+}
+
+// Rows of cells to records. Without a header the columns are named col1..colN, and
+// only the keys are made up: inferColumns derives every label through the one rule
+// labelFor gives it, so they read as the table's own ('Col1', or 'COL1' in a tree).
+function toRecords(rows, headerRow) {
+    if (!rows.length) return [];
+    const header = headerRow === 'auto' ? hasHeaderRow(rows) : headerRow !== false;
+    const width = rows.reduce((w, r) => Math.max(w, r.length), 0);
+    const names = header ? rows[0] : Array.from({ length: width }, (_, i) => generatedKey(i));
+    return rows.slice(header ? 1 : 0)
+        .map(r => Object.fromEntries(names.map((h, i) => [h, r[i] ?? ''])));
 }
 
 /**
- * Parses a TSV string into an array of objects keyed by the first-row headers.
+ * Parses a TSV string into an array of objects. headerRow: 'auto' weighs the first row
+ * against the rest (hasHeaderRow), true and false say outright.
  * @param {string} text
+ * @param {'auto' | boolean} [headerRow]
  */
-export function parseTsv(text) {
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 2) return [];
-    const headers = lines[0].split('\t').map(h => h.trim());
-    return lines.slice(1).map(line => {
-        const parts = line.split('\t');
-        /** @type {Record<string, string>} */
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = (parts[i] || '').trim(); });
-        return obj;
-    });
+export function parseTsv(text, headerRow = 'auto') {
+    const rows = text.split('\n').filter(l => l.trim())
+        .map(line => line.split('\t').map(c => c.trim()));
+    return toRecords(rows, headerRow);
 }
 
-// Parses a CSV string (quoted fields, "" escapes, CRLF) into an array of
-// objects keyed by the first-row headers. Round-trips the CSV we export.
-export function parseCsv(text) {
+/**
+ * Parses a CSV string (quoted fields, "" escapes, CRLF) into an array of objects.
+ * Round-trips the CSV we export. headerRow is as parseTsv's.
+ * @param {string} text
+ * @param {'auto' | boolean} [headerRow]
+ */
+export function parseCsv(text, headerRow = 'auto') {
     const rows = [];
     let row = [], field = '', inQuotes = false;
     for (let i = 0; i < text.length; i++) {
@@ -185,10 +250,7 @@ export function parseCsv(text) {
     }
     if (field !== '' || row.length) { row.push(field); rows.push(row); }
 
-    const records = rows.filter(r => r.length > 1 || r[0] !== '');
-    const headers = records.shift();
-    if (!headers) return [];
-    return records.map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ''])));
+    return toRecords(rows.filter(r => r.length > 1 || r[0] !== ''), headerRow);
 }
 
 // Column keys are paths: a plain key, or dotted segments with array indices and

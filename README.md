@@ -10,6 +10,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - [Quick start](#quick-start)
   - [Explicit columns](#explicit-columns)
   - [How columns are chosen](#how-columns-are-chosen)
+  - [CSVs without a header row](#csvs-without-a-header-row)
   - [Picking columns in the browser](#picking-columns-in-the-browser)
   - [Deep fields](#deep-fields)
   - [Formatting values](#formatting-values)
@@ -27,7 +28,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - **Tree tables** — nested JSON (e.g. countries → states / timezones) is auto-detected and rendered as expandable rows with lazily built child tables, each with its own toolbar, filters, and settings.
 - **File menu** — open a local CSV/TSV/JSON file into the table, export the visible rows as CSV or JSON.
 - **Columns menu** — every field found in the data, however deeply nested, one tick away from becoming a sortable, filterable column.
-- **Settings** — per-table toggles for row numbers, column separators, a frozen (sticky) toolbar, where the count badge sits, and whether the toolbar buttons stay out.
+- **Settings** — per-table toggles for row numbers, column separators, a frozen (sticky) toolbar, where the count badge sits, whether the toolbar buttons stay out, and whether a CSV's first row is a header.
 - **Theming** — a default light/dark theme ships built in; override CSS custom properties to restyle.
 
 ## Quick start
@@ -138,6 +139,23 @@ Three ways to deal with it, in order of effort:
 A useful sanity check when a field seems missing: open the **Columns** menu and
 search for it. If it isn't listed there either, it's outside the sample — not
 mis-rendered.
+
+### CSVs without a header row
+
+A delimited file doesn't say whether its first line names the columns or is just more
+data, so amazejs works it out: where a column's values are consistently numbers or
+dates and the first row's cell isn't, that row is a header. Get it wrong and you lose a
+row and label the columns with values, which is what used to happen to every headerless
+file.
+
+Headerless columns are named `Col1`, `Col2`, … and behave like any others. When the
+data gives the guess nothing to go on — every column a plain string — flip
+**Settings > First Row is Header**; the file is re-read the other way and the column
+types and filters are worked out again. Or say so up front:
+
+```js
+initTable({ data: ['scan.csv'], headerRow: false });   // 'auto' (default), true, false
+```
 
 ### Picking columns in the browser
 
@@ -260,6 +278,7 @@ Available variables: `--bg`, `--bg-subtle`, `--bg-hover`, `--text`, `--text-mute
 | `lockWidths` | `true` | Freeze column widths from the full data set so filtering doesn't reflow them |
 | `objectCell` | `'summary'` | How nested-object values render: `'summary'`, `'lines'` or `'table'` |
 | `objectAlign` | `'left'` | Alignment of object-cell values: `'left'` or `'right'` |
+| `headerRow` | `'auto'` | Whether a CSV/TSV's first row names the columns; `true`/`false` to say outright |
 | `collapsed` | `false` | Start as a collapsed disclosure line; table builds on first expand |
 | `levels` | auto | Tree-mode per-depth overrides, or `false` to force a flat table |
 

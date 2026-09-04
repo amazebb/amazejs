@@ -345,6 +345,10 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     const rowNumsCb = makeSettingsRow(settingsOpts, 'Row Numbers');
     const bordersCb = makeSettingsRow(settingsOpts, 'Column Separators');
     const stickyCb = makeSettingsRow(settingsOpts, 'Freeze Toolbar');
+    // Only a delimited import can be read either way, so the controller shows this row
+    // when there is text behind the table and hides it otherwise.
+    const headerCb = makeSettingsRow(settingsOpts, 'First Row is Header');
+    showSettingsRow(headerCb, false);
     const badgeRightToggle = makeSettingsButton(settingsOpts);
 
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
@@ -381,7 +385,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn, settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn, settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb, header: headerCb } };
 }
 
 // A plain toolbar button, appended wherever the host is up to — the controller adds
@@ -433,6 +437,14 @@ export function buildColumnOptions(dd, paths, active, onToggle, onOnly) {
         rows[path] = makeOptionRow(container, path, active.has(path), onToggle, onOnly).row;
     });
     return rows;
+}
+
+// Shows or hides the settings row a checkbox sits in — for an option that doesn't
+// apply to every table, like reading the first row as a header, which only a
+// delimited import can be asked about.
+export function showSettingsRow(cb, on) {
+    const row = /** @type {HTMLElement} */ (cb.closest('.filter-row'));
+    row.hidden = !on;
 }
 
 function makeSettingsRow(container, label) {

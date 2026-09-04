@@ -1,11 +1,12 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, formatFor, parseAs, cellDisplay, getValue, discoverPaths, filterFor, unreadableReason, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, formatFor, parseAs, hasGeneratedHeaders, cellDisplay, getValue, discoverPaths, filterFor, unreadableReason, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
 import {
     buildToolbar, buildNoResults, buildLoadError,
     buildHeader, buildRows, buildFilterOptions,
     syncCheckboxes, setRowVisibility,
     updateFilterCounts, filterOptionRows, downloadCsv, downloadJson, toCsv,
     attachPopover, ensureStyles, lockColumnWidths,
-    buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView, addToolbarButton
+    buildColumnsMenu, buildColumnOptions, focusColumn, buildSourceView, addToolbarButton,
+    showSettingsRow
 } from './view.js';
 import { initTree, isTreeData } from './tree.js';
 
@@ -80,6 +81,7 @@ function pageInset(container, nested) {
  * @property {boolean} [badgeAlwaysShow]
  * @property {'left' | 'right' | 'none'} [badgePosition]
  * @property {boolean | number} [searchDebounce]    true is 150ms; false is none.
+ * @property {'auto' | boolean} [headerRow]         Whether a CSV/TSV's first row names the columns; 'auto' weighs it against the rest.
  *
  * Threaded through a rebuild rather than passed by a host: the column order the table
  * first stood in, and the definitions of every column it has shown, so a column ticked
@@ -101,7 +103,7 @@ export async function initTable(config) {
         // A failed load is the page's problem, not an unhandled rejection: the reason
         // (a 404, a PDF where a CSV was meant) takes the table's place and is logged.
         try {
-            data = await fetchData(data[0], data[1]);
+            data = await fetchData(data[0], data[1], config.headerRow ?? 'auto');
         } catch (err) {
             console.warn(`amazejs: ${err.message}`);
             const anchor = config.table || document.getElementById(config.tableId ?? '');
@@ -136,6 +138,7 @@ export async function initTable(config) {
         lockWidths = true,
         objectCell = 'summary',
         objectAlign = 'left',
+        headerRow = 'auto',
         collapsed = false
     } = config;
 
@@ -406,8 +409,8 @@ export async function initTable(config) {
         // the import was delimited, JSON otherwise). It tracks the filters while open, so
         // it reads as the same view the table does, not the untouched file.
         if (sourceBtn) {
-            const raw = sourceText.get(data);
-            const importedAsJson = !raw || /^\s*[[{]/.test(raw);
+            // Data passed in as an array never had a file, and reads back as JSON.
+            const importedAsJson = (sourceText.get(data)?.format ?? 'json') === 'json';
             sourceBtn.addEventListener('click', () => {
                 const showing = tableContainer.classList.toggle('atv-source');
                 if (showing && !sourcePre) sourcePre = buildSourceView(tableWrap || tableContainer);
@@ -426,7 +429,7 @@ export async function initTable(config) {
         // File > Open: tears down everything this init built (toolbar and dropdowns
         // are nested in the container DOM, so removing it removes them too) and
         // re-inits in place with columns re-inferred from the opened data.
-        async function rebuild(newData, newTitle) {
+        async function rebuild(newData, newTitle, extra = {}) {
             const fresh = document.createElement('table');
             fresh.id = tableId;
             // A root object holding several arrays became one container per group inside a
@@ -445,6 +448,7 @@ export async function initTable(config) {
                 columns: undefined, dataKey: undefined, columnOrder: undefined, columnDefs: undefined,
                 collapsed: false,
                 table: fresh,
+                ...extra,
             });
         }
 
@@ -569,8 +573,9 @@ export async function initTable(config) {
                     // so a PNG would otherwise become a table of mojibake.
                     const reason = unreadableReason(file.name, file.type, text);
                     if (reason) throw new Error(reason);
-                    const data = parseAs(formatFor(file.name, file.type, text), text);
-                    await rebuild(rememberSource(data, text), titleFromUrl(file.name));
+                    const format = formatFor(file.name, file.type, text);
+                    const data = parseAs(format, text, headerRow);
+                    await rebuild(rememberSource(data, text, format), titleFromUrl(file.name));
                 } catch (err) {
                     alert(`Could not open ${file.name}: ${err.message}`);
                 }
@@ -650,6 +655,22 @@ export async function initTable(config) {
                 table.classList.toggle('atv-bordered', settingsBtns.borders.checked);
             });
             settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
+
+            // First Row is Header: only a delimited import can be read both ways, so the
+            // row shows just for those. Flipping it re-parses the text the import was
+            // kept as — not the rows on screen, which have already lost or gained one —
+            // and rebuilds, so the recovered row gets its say in which columns are
+            // numeric and which filters they earn.
+            const source = sourceText.get(data);
+            if (source && source.format !== 'json') {
+                showSettingsRow(settingsBtns.header, true);
+                settingsBtns.header.checked = !hasGeneratedHeaders(data);
+                settingsBtns.header.addEventListener('change', () => {
+                    const on = settingsBtns.header.checked;
+                    const reparsed = parseAs(source.format, source.text, on);
+                    rebuild(rememberSource(reparsed, source.text, source.format), title, { headerRow: on });
+                });
+            }
             settingsBtns.badgeRight.addEventListener('click', () => {
                 const next = BADGE_CYCLE[badgeState];
                 setBadgeState(next);
