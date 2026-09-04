@@ -162,7 +162,7 @@
 
 /* The controls are what sticks sideways: shrunk to their own width, they have room
    to slide within the bar, which a box filling its containing block would not. */
-.atv-toolbar.atv-sticky > .atv-toolbar-pin {
+.atv-toolbar.atv-sticky>.atv-toolbar-pin {
     position: sticky;
     left: 0;
     flex: 0 0 auto;
@@ -190,7 +190,7 @@
     padding-right: var(--aj-port-inset, 0px);
 }
 
-.atv-table-container.atv-sticky-head > .table-wrap {
+.atv-table-container.atv-sticky-head>.table-wrap {
     overflow: visible;
     /* No longer clipping, so the wrapper has to grow with a too-wide table —
        otherwise its right border cuts a vertical rule across the middle of it. */
@@ -198,7 +198,7 @@
     min-width: 100%;
 }
 
-.atv-table-container.atv-sticky-head > .table-wrap > table > thead > tr > th {
+.atv-table-container.atv-sticky-head>.table-wrap>table>thead>tr>th {
     position: sticky;
     top: var(--aj-toolbar-h, 0px);
     z-index: 4;
@@ -219,9 +219,13 @@
     user-select: none;
 }
 
-.atv-title-wrap .aj-toggle { margin-right: 0; }
+.atv-title-wrap .aj-toggle {
+    margin-right: 0;
+}
 
-.atv-title-wrap:hover .aj-toggle { color: var(--accent); }
+.atv-title-wrap:hover .aj-toggle {
+    color: var(--accent);
+}
 
 .atv-title {
     color: var(--accent);
@@ -235,8 +239,10 @@
 /* Collapsed disclosure: hide the table below the toolbar, and within the
    toolbar hide everything after the title — leaving only the disclosure
    handle (toggle arrow + title). */
-.atv-table-container.atv-collapsed > :not(.atv-toolbar),
-.atv-table-container.atv-collapsed .atv-toolbar-rest { display: none; }
+.atv-table-container.atv-collapsed> :not(.atv-toolbar),
+.atv-table-container.atv-collapsed .atv-toolbar-rest {
+    display: none;
+}
 
 .atv-count-badge {
     font-size: 11px;
@@ -308,8 +314,10 @@
 
 /* Direct-child paths so a parent table's class can't hide a nested child
    table's row numbers — each table in tree view toggles only its own */
-:where(.atv-table-container) table.atv-hide-rownums > thead > tr > th.atv-row-num,
-:where(.atv-table-container) table.atv-hide-rownums > tbody > tr > td.atv-row-num { display: none; }
+:where(.atv-table-container) table.atv-hide-rownums>thead>tr>th.atv-row-num,
+:where(.atv-table-container) table.atv-hide-rownums>tbody>tr>td.atv-row-num {
+    display: none;
+}
 
 /* Ellipsis overflow button + its menu. The button sits outside .atv-more-wrap,
    so the wrap (the reserved space where the hidden File/Settings sit) is the
@@ -332,7 +340,9 @@
     border-radius: var(--radius);
 }
 
-.atv-more-btn::before { content: "⋯" / ""; }
+.atv-more-btn::before {
+    content: "⋯" / "";
+}
 
 .atv-more-btn:hover {
     color: var(--accent);
@@ -358,7 +368,7 @@
     transition: opacity 0.25s ease, transform 0.25s ease, visibility 0s 0.25s;
 }
 
-.atv-more-btn[aria-expanded="true"] + .atv-more-wrap .atv-toolbar-more,
+.atv-more-btn[aria-expanded="true"]+.atv-more-wrap .atv-toolbar-more,
 .atv-toolbar-more:has(:popover-open) {
     visibility: visible;
     opacity: 1;
@@ -383,8 +393,13 @@
 
 /* Descendant, not child: a nested table under a showing container hides its own ⋯
    too. The hide rule comes second, so an explicit dissent lower down wins on order. */
-.atv-show-more .atv-more-btn { display: none; }
-.atv-hide-more .atv-more-btn { display: revert; }
+.atv-show-more .atv-more-btn {
+    display: none;
+}
+
+.atv-hide-more .atv-more-btn {
+    display: revert;
+}
 
 /* Hover-reveal, mouse only: hovering the wrap (the reserved menu space) brings
    the buttons in. Gated to hover devices so a sticky tap-hover can't pin it. */
@@ -421,7 +436,9 @@
     cursor: pointer;
 }
 
-.atv-source-btn::before { content: "RAW"; }
+.atv-source-btn::before {
+    content: "RAW";
+}
 
 .atv-source-btn:hover {
     color: var(--accent);
@@ -433,7 +450,9 @@
     background: var(--accent-subtle);
 }
 
-.atv-source-btn[aria-pressed="true"]::before { content: "TABLE"; }
+.atv-source-btn[aria-pressed="true"]::before {
+    content: "TABLE";
+}
 
 /* The raw view: a text dump shown in place of the table. Built once and kept, so
    switching back and forth costs nothing. */
@@ -448,9 +467,14 @@
     tab-size: 2;
 }
 
-.atv-table-container.atv-source .aj-source { display: block; }
+.atv-table-container.atv-source .aj-source {
+    display: block;
+}
+
 .atv-table-container.atv-source table,
-.atv-table-container.atv-source .atv-no-results { display: none; }
+.atv-table-container.atv-source .atv-no-results {
+    display: none;
+}
 
 /* No results message */
 .atv-no-results {
@@ -483,6 +507,7 @@
    scoping — and & standing in for it — adds nothing to these rules, and their
    relative order still decides who wins. */
 :where(.atv-table-container) {
+
     /* Table wrapper */
     & .table-wrap {
         border: 1px solid var(--border);
@@ -521,7 +546,7 @@
        row highlights only that row, not the whole expanded region. It has to outrank
        the stripe rule below, which :where() keeps a class lighter than this one — so
        the hover wins on specificity rather than on !important. */
-    & tbody tr:not(.aj-children-row):hover > td {
+    & tbody tr:not(.aj-children-row):hover>td {
         background: var(--row-hover);
     }
 
@@ -531,21 +556,21 @@
 
     /* Direct-child paths so a parent table's separators don't leak into nested
        child tables — each table in tree view toggles only its own */
-    & table.atv-bordered > thead > tr > th:not(:last-child),
-    & table.atv-bordered > tbody > tr > td:not(:last-child) {
+    & table.atv-bordered>thead>tr>th:not(:last-child),
+    & table.atv-bordered>tbody>tr>td:not(:last-child) {
         border-right: 1px solid var(--border);
     }
 
-    & :where(table.atv-striped) > tbody > tr:nth-child(even of :not(.hidden)) > td {
+    & :where(table.atv-striped)>tbody>tr:nth-child(even of :not(.hidden))>td {
         background: var(--stripe-bg);
     }
 
     /* Row number column — CSS counters recount visible rows automatically */
-    & tbody > tr:not(.hidden):not(.aj-children-row) {
+    & tbody>tr:not(.hidden):not(.aj-children-row) {
         counter-increment: row-num;
     }
 
-    & tbody > tr:not(.hidden) > td.atv-row-num::before {
+    & tbody>tr:not(.hidden)>td.atv-row-num::before {
         content: counter(row-num);
     }
 }
@@ -560,6 +585,7 @@
 }
 
 :where(.atv-table-container) {
+
     /* Hovered and filter-applied headers share the accent tint; the transition on
        th fades it in and out. No [aria-expanded] tint: the dropdown is a DOM child
        of the th, so :hover already holds while the pointer is inside it — and
@@ -585,15 +611,23 @@
         /* Only the column the table is sorted by is lit; the others keep the
            direction they were last sorted in as a muted chevron, so switching
            columns leaves every other header exactly as it was. */
-        &.sorted::after { color: var(--accent); }
+        &.sorted::after {
+            color: var(--accent);
+        }
 
         /* The ↑↓ pair is wider than the single arrow it becomes, so it is tracked in
            tighter and the column keeps the wider of the two widths either way. */
-        &:not(.asc):not(.desc)::after { letter-spacing: -.15em; }
+        &:not(.asc):not(.desc)::after {
+            letter-spacing: -.15em;
+        }
 
-        &.asc::after { content: var(--sort-icon-asc); }
+        &.asc::after {
+            content: var(--sort-icon-asc);
+        }
 
-        &.desc::after { content: var(--sort-icon-desc); }
+        &.desc::after {
+            content: var(--sort-icon-desc);
+        }
     }
 }
 
@@ -632,20 +666,22 @@
 /* Shown when this column is filtering, on every device: the funnel alone says which
    columns are filtering — no tint behind the label, which reads as hover and can't
    name a column anyway. Accent-coloured on an accent chip so it carries on its own. */
-:where(.atv-table-container) thead th.active > .atv-filter-btn {
+:where(.atv-table-container) thead th.active>.atv-filter-btn {
     visibility: visible;
     background: var(--accent-subtle);
     border-radius: var(--radius);
     color: var(--accent);
 }
 
-:where(.atv-table-container) thead th.active > .atv-filter-btn::before {
+:where(.atv-table-container) thead th.active>.atv-filter-btn::before {
     content: var(--filter-icon) / "";
 }
 
 /* Touch: always there, and sized as a tap chip rather than the compact marker a
    pointer gets, spaced clear of the sort ::after arrow ("Label  [⏷]  ↕"). */
-@media (hover: none), (pointer: coarse) {
+@media (hover: none),
+(pointer: coarse) {
+
     /* Thumb-sized rather than pointer-sized: the sort chevron and the filter funnel
        both grow to roughly half the header text's line, and the button becomes a chip. */
     :where(.atv-table-container) thead th {
@@ -663,7 +699,7 @@
 /* Open (the .aj-rotate utility flips the caret) or a filter applied: accent the
    icon so it reads clearly without any button chrome. */
 .atv-filter-btn[aria-expanded="true"],
-:where(.atv-table-container) thead th.active > .atv-filter-btn {
+:where(.atv-table-container) thead th.active>.atv-filter-btn {
     color: var(--accent);
 }
 
@@ -724,7 +760,9 @@
 }
 
 /* Numeric range dropdown — Min/Max inputs on one row, sized to content */
-.filter-range-dd { min-width: 0; }
+.filter-range-dd {
+    min-width: 0;
+}
 
 .filter-range {
     display: flex;
@@ -756,7 +794,9 @@
     box-shadow: 0 0 0 3px var(--accent-shadow);
 }
 
-.filter-range-sep { color: var(--text-muted); }
+.filter-range-sep {
+    color: var(--text-muted);
+}
 
 /* Filter option rows */
 .filter-options {
@@ -880,7 +920,9 @@
 
 /* Collapsed by a tree toggle. Deliberately separate from tr.hidden (filtered out
    by the parent table): the same row can carry both states independently. */
-.aj-hidden { display: none; }
+.aj-hidden {
+    display: none;
+}
 
 /* Nested child table container */
 .aj-children-cell {
@@ -895,12 +937,18 @@
 }
 
 /* Nested toolbars: minimal symmetric spacing above and below */
-.aj-children-cell .atv-toolbar { padding: 2px 0; }
+.aj-children-cell .atv-toolbar {
+    padding: 2px 0;
+}
 
-.aj-children-cell .atv-title { font-size: 11px; }
+.aj-children-cell .atv-title {
+    font-size: 11px;
+}
 
 /* Expanded nested tables get breathing room below their disclosure line */
-.aj-children-cell .atv-table-container:not(.atv-collapsed) { margin-bottom: 12px; }
+.aj-children-cell .atv-table-container:not(.atv-collapsed) {
+    margin-bottom: 12px;
+}
 
 .aj-toggle {
     --aj-rotate-angle: 90deg;
@@ -915,7 +963,9 @@
     line-height: 1;
 }
 
-.aj-toggle:hover { color: var(--accent); }
+.aj-toggle:hover {
+    color: var(--accent);
+}
 
 /* Whole first cell acts as the toggle's click target */
 .aj-toggle-wrap {
@@ -929,7 +979,9 @@
 
 /* Arrow rendered from aria-expanded (the toggle's single source of truth),
    rotated to ▼ by the .aj-rotate utility when expanded */
-.aj-toggle::before { content: "▶" / ""; }
+.aj-toggle::before {
+    content: "▶" / "";
+}
 
 .aj-leaf {
     display: inline-block;
@@ -977,7 +1029,9 @@
     font-size: 13px;
 }
 
-.aj-array-item:hover { background: var(--row-hover); }
+.aj-array-item:hover {
+    background: var(--row-hover);
+}
 
 /* Rule dividing a menu's own items from the host's added ones */
 .aj-menu-sep {
@@ -987,25 +1041,40 @@
 }
 
 /* In the File menu the items are actions, not values — show a pointer */
-.atv-export-dd .aj-array-item { cursor: pointer; }
+.atv-export-dd .aj-array-item {
+    cursor: pointer;
+}
 
 /* Flash that marks the column the Columns picker just added, once it is scrolled
    into view. Sits on the accent so it reads as "here", then fades back. */
 @keyframes aj-flash {
-    from { background: var(--accent); color: var(--bg); }
-    to   { background: var(--header-bg); color: var(--text); }
+    from {
+        background: var(--accent);
+        color: var(--bg);
+    }
+
+    to {
+        background: var(--header-bg);
+        color: var(--text);
+    }
 }
 
-.aj-flash { animation: aj-flash 1.4s ease-out; }
+.aj-flash {
+    animation: aj-flash 1.4s ease-out;
+}
 
 @media (prefers-reduced-motion: reduce) {
-    .aj-flash { animation-duration: 0.01s; }
+    .aj-flash {
+        animation-duration: 0.01s;
+    }
 }
 
 /* Object cells: key/value pairs from a nested record. The pair list is a
    two-column grid so keys align while values stay next to them; objectAlign
    flips the value column between left (default) and right. */
-.aj-obj-dd { min-width: 0; }
+.aj-obj-dd {
+    min-width: 0;
+}
 
 .aj-obj-pairs {
     display: grid;
@@ -1016,16 +1085,26 @@
     font-size: 13px;
 }
 
-.aj-obj-pairs > span { padding: 2px 0; }
+.aj-obj-pairs>span {
+    padding: 2px 0;
+}
 
-.aj-obj-key { color: var(--text-muted); }
+.aj-obj-key {
+    color: var(--text-muted);
+}
 
-.aj-obj-left .aj-obj-val { text-align: left; }
+.aj-obj-left .aj-obj-val {
+    text-align: left;
+}
 
-.aj-obj-right .aj-obj-val { text-align: right; }
+.aj-obj-right .aj-obj-val {
+    text-align: right;
+}
 
 /* objectCell: 'lines' — one pair per line, straight in the cell */
-.aj-obj-lines { white-space: pre-line; }
+.aj-obj-lines {
+    white-space: pre-line;
+}
 
 /* objectCell: 'table' — a bare striped key/value table inside the cell */
 .aj-obj-table {
@@ -1038,8 +1117,14 @@
     border: none;
 }
 
-.aj-obj-table td:first-child { color: var(--text-muted); }
+.aj-obj-table td:first-child {
+    color: var(--text-muted);
+}
 
-.aj-obj-right td:last-child { text-align: right; }
+.aj-obj-right td:last-child {
+    text-align: right;
+}
 
-.aj-obj-table tr:nth-child(even) { background: var(--bg-subtle); }
+.aj-obj-table tr:nth-child(even) {
+    background: var(--bg-subtle);
+}
