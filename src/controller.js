@@ -22,19 +22,12 @@ function sidewaysScroller(el) {
     return null;
 }
 
-// The two custom properties a frozen table publishes on its container, and the only
-// channel between the measuring the controller does and the layout the stylesheet
-// owns: how far the page insets the container (which becomes the trailing space a
-// too-wide table would otherwise run out of), and the toolbar's measured height,
-// which the header row pins under. Everything else about the frozen layout is CSS —
-// keep it that way; a new number goes in here, not into an element's style.
+// The only channel between what the controller measures and what the stylesheet lays
+// out. A new number goes in here as a property, never as an inline style.
 const TOOLBAR_VARS = ['--aj-port-inset', '--aj-toolbar-h'];
 
-// How far the page insets the container: the gap on its left, which a table wide
-// enough to scroll past the host's content box needs repeating on its right. Read
-// against whatever scrolls the table sideways, and scroll-invariant — the same number
-// wherever the page happens to be scrolled to when this runs. A nested table scrolls
-// inside its parent's cell rather than the page and sits flush in it, so it has none.
+// The gap on the container's left, which a too-wide table needs repeating on its right.
+// Scroll-invariant. A nested table sits flush in its parent's cell, so it has none.
 function pageInset(container, nested) {
     if (nested) return 0;
     const scroller = sidewaysScroller(container);
@@ -48,46 +41,40 @@ function pageInset(container, nested) {
 /** @typedef {import('./tree.js').Level} Level */
 
 /**
- * Every option initTable accepts. The prose behind each one — what the data can
- * overrule, how the frozen layout is measured, why a date format decides a filter —
- * is in CLAUDE.md; this is the shape, so an editor can offer it.
+ * Every option initTable accepts. The shape only — each one is written up in CLAUDE.md.
  *
  * @typedef {object} TableConfig
- * @property {any[] | object | string[]} data       Rows, a root wrapper object, or [url, fallbackUrl?] to fetch.
- * @property {string} [tableId]                     Id of the <table>; auto-generated when absent.
- * @property {HTMLTableElement} [table]             The element itself, instead of tableId.
- * @property {Column[]} [columns]                   Inferred from the data when absent.
- * @property {string[]} [searchKeys]                Fields the global search covers.
- * @property {string | false} [exportFilename]      false hides the File menu.
+ * @property {any[] | object | string[]} data  Rows, a root object, or [url, fallbackUrl?].
+ * @property {string} [tableId]
+ * @property {HTMLTableElement} [table]
+ * @property {Column[]} [columns]
+ * @property {string[]} [searchKeys]
+ * @property {string | false} [exportFilename]
  * @property {{ label: string, onClick: (visibleItems: any[], el: HTMLElement) => void, menu?: 'file' | 'settings' }[]} [buttons]
- * @property {boolean} [nested]                     Child tables: no toolbar or wrapper of their own.
- * @property {string} [title]                       Derived from the root key or the URL filename when absent.
- * @property {string} [dataKey]                     Which array on a root wrapper object to table.
- * @property {Level[] | false} [levels]             Tree overrides per depth; false forces a flat table.
- * @property {boolean} [collapsed]                  Start as a disclosure line; the table builds on first expand.
+ * @property {boolean} [nested]
+ * @property {string} [title]
+ * @property {string} [dataKey]
+ * @property {Level[] | false} [levels]
+ * @property {boolean} [collapsed]
  * @property {boolean} [showToolbar]
- * @property {HTMLInputElement} [searchInputEl]     External search box, for nested tables.
+ * @property {HTMLInputElement} [searchInputEl]
  * @property {boolean} [striped]
  * @property {boolean} [bordered]
  * @property {boolean} [rowNumbers]
  * @property {boolean} [stickyHeaders]
- * @property {boolean} [showToolbarControls] false leaves only the disclosure handle and title.
- * @property {boolean} [showButtons]                false leaves the toolbar menus permanently out.
- * @property {Record<string, Format>} [formats]     Display formats by column key (a path).
- * @property {'upper'} [labelStyle]                 The table's one labelling rule.
- * @property {boolean} [lockWidths]                 Freeze widths measured over the full data set.
+ * @property {boolean} [showToolbarControls]
+ * @property {boolean} [showButtons]
+ * @property {Record<string, Format>} [formats]
+ * @property {'upper'} [labelStyle]
+ * @property {boolean} [lockWidths]
  * @property {'summary' | 'lines' | 'table'} [objectCell]
  * @property {'left' | 'right'} [objectAlign]
  * @property {boolean} [badgeAlwaysShow]
  * @property {'left' | 'right' | 'none'} [badgePosition]
- * @property {boolean | number} [searchDebounce]    true is 150ms; false is none.
- * @property {'auto' | boolean} [headerRow]         Whether a CSV/TSV's first row names the columns; 'auto' weighs it against the rest.
- *
- * Threaded through a rebuild rather than passed by a host: the column order the table
- * first stood in, and the definitions of every column it has shown, so a column ticked
- * off and back on returns to its slot as the column it was.
- * @property {string[]} [columnOrder]
- * @property {Map<string, Column>} [columnDefs]
+ * @property {boolean | number} [searchDebounce]
+ * @property {'auto' | boolean} [headerRow]
+ * @property {string[]} [columnOrder]   internal: threaded through a rebuild
+ * @property {Map<string, Column>} [columnDefs]  internal: threaded through a rebuild
  */
 
 /**
@@ -300,13 +287,9 @@ export async function initTable(config) {
         const sortState = { key: null, dir: 1 };
 
         filterDefs.forEach(def => {
-            // Blank values are a real option: missing/empty cells get their own row so
-            // they stay selectable instead of being silently filtered out. A numeric
-            // column promoted to checkboxes orders by the raw value it kept beside each
-            // display text — text order would put 10 before 2, and the separators the
-            // display carries make its own text unparseable. A date-formatted column
-            // orders chronologically for the same reason: 'relative' and a function
-            // format have no order in their text at all.
+            // Blanks get a row of their own, so an empty cell stays selectable. Numeric
+            // and dated options rank by the raw value kept beside each display text:
+            // text order puts 10 before 2, and 'relative' has no order in its text.
             const col = columns[def.col];
             const raw = new Map();
             data.forEach(d => {
@@ -432,11 +415,9 @@ export async function initTable(config) {
         async function rebuild(newData, newTitle, extra = {}) {
             const fresh = document.createElement('table');
             fresh.id = tableId;
-            // A root object holding several arrays became one container per group inside a
-            // tree host, each with a File menu of its own. Opening a file from any of them
-            // replaces the whole tree — otherwise the groups whose menu was not used stay
-            // on screen beside the newly opened data. (rebuildColumns below stays with its
-            // own container: re-picking columns is that one group's business.)
+            // Each group of a multi-group tree carries a File menu, so opening a file
+            // from one replaces the whole host — else the others stay on screen beside
+            // the new data. rebuildColumns keeps to its own container.
             const outgoing = tableContainer.parentElement?.classList.contains('aj-tree-host')
                 ? tableContainer.parentElement
                 : tableContainer;
@@ -462,14 +443,9 @@ export async function initTable(config) {
             return initTable({ ...config, data, columns: newColumns, columnOrder, columnDefs, title, collapsed: false, table: fresh });
         }
 
-        // --- Columns picker: every leaf path found in the data, ticked for the columns
-        // on screen. Ticking one adds it as an ordinary column — deep fields work
-        // because a column key may be a path — and rebuilds the table. Paths with few
-        // distinct values get a checkbox filter, so a boolean lands as true/false
-        // checkboxes rather than a text box. ---
-        // Every table with a toolbar gets one, nested child tables included: a group's
-        // table has its own data to pick columns from, and rebuildColumns replaces the
-        // container in place wherever it sits, a children cell as readily as the page.
+        // --- Columns picker: every path in the data, ticked for the columns on screen.
+        // Ticking one adds it as an ordinary column keyed by its path, and rebuilds.
+        // Every table with a toolbar gets one, a tree's nested groups included. ---
         if (btnHost) {
             const found = discoverPaths(data);
             const distinct = new Map(found.map(d => [d.path, d.distinct]));
@@ -499,11 +475,9 @@ export async function initTable(config) {
                 return next;
             };
 
-            // Every column object the table has held, by key, carried across rebuilds: a
-            // column ticked off and back on comes back as the column it was — its label,
-            // its render (brewbar's linkCell), its format — not a bare key. Only a key the
-            // table has never shown gets a fresh definition, and that one carries no label:
-            // inferColumns derives it on the rebuild, in the table's own style.
+            // Every column the table has held, by key, so one ticked off and back on
+            // returns as the column it was rather than a bare key. A key never shown
+            // gets a fresh definition, unlabelled — inferColumns names it on the rebuild.
             const columnDefs = config.columnDefs ?? new Map();
             columns.forEach(c => columnDefs.set(c.key, c));
             const colFor = path => columnDefs.get(path)
@@ -656,11 +630,9 @@ export async function initTable(config) {
             });
             settingsBtns.sticky.addEventListener('change', () => applySticky(settingsBtns.sticky.checked));
 
-            // First Row is Header: only a delimited import can be read both ways, so the
-            // row shows just for those. Flipping it re-parses the text the import was
-            // kept as — not the rows on screen, which have already lost or gained one —
-            // and rebuilds, so the recovered row gets its say in which columns are
-            // numeric and which filters they earn.
+            // Only a delimited import can be read both ways. Flipping re-parses the kept
+            // text rather than the rows on screen, which have already lost or gained one,
+            // and rebuilds so the recovered row votes on the column types and filters.
             const source = sourceText.get(data);
             if (source && source.format !== 'json') {
                 showSettingsRow(settingsBtns.header, true);

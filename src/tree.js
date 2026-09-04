@@ -18,12 +18,9 @@ const isRecord = v => !!v && typeof v === 'object' && !Array.isArray(v);
 // A record's own key set, order-insensitive — its shape.
 const signature = obj => Object.keys(obj).sort().join(' ');
 
-// True when an item nests by name: two or more of its record properties have the
-// same shape, of more than one field. One object property is a value (an AST node's
-// data, a formula's versions); a set of matching ones is a list of children written
-// as named properties, which is how Saturn holds its moons. The size floor keeps a
-// coincidence like a formula's urls and bottle — each a lone { stable } — from
-// reading as a pair.
+// True when an item nests by name: two or more record properties of the same shape,
+// which is how Saturn holds its moons. The size floor keeps a coincidence like a
+// formula's urls and bottle — each a lone { stable } — from reading as a pair.
 function nestsByName(item) {
     const seen = new Set();
     for (const v of Object.values(item)) {
@@ -35,12 +32,9 @@ function nestsByName(item) {
     return false;
 }
 
-// The keys a table's rows nest under, decided once for the whole table rather than
-// per item — the moons of Saturn are children whether or not Earth's lone Moon looks
-// like them. A table nests by name when any of its rows does; in one that does, a
-// record found under a key no other row carries is a child (its key is a name), while
-// a key every row repeats (versions, data) is a column. A table of one row — the
-// wrapper the Sun arrives in — has no repeats to weigh, so nestsByName decides alone.
+// The keys a table's rows nest under — decided per table, not per item, so Saturn's
+// moons are children whether or not Earth's lone Moon looks like them. In a table that
+// nests, a key no other row carries is a name; one every row repeats is a column.
 function nodeKeysFor(items) {
     const sample = items.slice(0, SAMPLE_SIZE);
     if (!sample.some(nestsByName)) return new Set();
@@ -89,13 +83,9 @@ export async function initTree(config, rawData) {
     };
     ensureToggleListener();
 
-    // A root object holding several arrays of objects (all.json's formulae + casks)
-    // is the same shape as an item with several child groups, so it gets the same
-    // treatment: one table per group, each with its own columns, filters and
-    // toolbar, and — as for multiple child groups — each starts as a collapsed
-    // disclosure line that builds on first expand. Merging them is not on: shared
-    // keys can differ in type between groups (all.json's `installed` is a child
-    // group in formulae and a plain string in casks).
+    // Several root arrays are several child groups one level up: a table each, never
+    // merged, since a shared key can differ in type between them (all.json's
+    // `installed` is a child group in formulae and a string in casks).
     if (rootGroups.length > 1) {
         const anchor = config.table || document.getElementById(config.tableId);
         const host = document.createElement('div');
@@ -144,11 +134,9 @@ function buildRootTable(host, group, config, ctx) {
     });
 }
 
-// Formats are keyed by path from the point of view of the table they were written
-// for, but a group becomes its own table whose columns are keyed by the item's own
-// keys — 'installed[*].time' on the root is 'time' inside the INSTALLED table. So
-// on every descent the group's prefix ('k.', 'k[*].', 'k[3].') is stripped and the
-// remainder added; the original keys stay, letting the next level strip again.
+// 'installed[*].time' on the root is 'time' inside the INSTALLED table, so each
+// descent strips the group's prefix and adds the remainder. The originals stay, so the
+// next level can strip again.
 function formatsForGroup(formats, groupKey) {
     if (!formats || !groupKey) return formats;
     const esc = groupKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -169,13 +157,9 @@ function descend(ctx, groupKey) {
     return { ...ctx, childOpts: { ...ctx.childOpts, formats } };
 }
 
-// One delegated click listener for every tree on the page — catches row toggles
-// from all nested levels. The whole first-cell wrapper is a click target too; it
-// resolves to the toggle button it contains. Toolbar disclosure toggles also match
-// .aj-toggle but have no btnMeta entry — handleToggle ignores them and the
-// controller's own titleWrap listener handles the collapse. Bound to the document
-// rather than the container so it survives a rebuild that replaces the container
-// (the Columns picker, File > Open).
+// One delegated listener for every tree on the page, on the document rather than a
+// container so it survives a rebuild that replaces one. Toolbar toggles match
+// .aj-toggle too but carry no btnMeta, and handleToggle leaves them to the controller.
 let _toggleListenerBound = false;
 function ensureToggleListener() {
     if (_toggleListenerBound) return;
@@ -228,13 +212,9 @@ function groupAt(rawData, key) {
     return Object.keys(value).length ? { key, items: [{ name: key, ...value }] } : null;
 }
 
-// Returns every child group of an item — properties holding arrays of objects, and
-// the child nodes named by property — optionally restricted to allowedKeys (from a
-// levels override) and to the table's nodeKeys (from nodeKeysFor). The named nodes
-// merge into ONE group: the Sun's planets are a table of eight rows, not eight tables
-// of one. Each carries its property name as `name` (its own wins if it has one),
-// which is the column getColumns pulls first, so the row that expands is the one
-// bearing the name it was found under.
+// An item's child groups: its arrays of objects, plus the nodes named by property.
+// Named nodes merge into ONE group — the Sun's planets are a table of eight rows, not
+// eight tables of one — each carrying its property name as `name`.
 function getChildGroups(item, allowedKeys, nodeKeys) {
     const keys = Object.keys(item).filter(k => !allowedKeys || allowedKeys.includes(k));
     /** @type {{ key: string, items: any[], named?: boolean }[]} */
@@ -265,11 +245,8 @@ function getColumns(items, ctx, depth) {
     const nameKey = ctx.levels?.[depth]?.nameKey || 'name';
     const allowed = allowedChildKeys(ctx.levels, depth);
 
-    // Keys come from a sample, not just the first item, since records vary. A key is a
-    // child group if nodeKeysFor named it, or if it holds an array of objects in ANY
-    // sampled item — an empty array in the first one must not demote it to a column.
-    // Everything else is an ordinary column, arrays of scalars (oldnames, aliases)
-    // included: they render as a value list.
+    // A key is a child group if nodeKeysFor named it, or if it holds an array of
+    // objects in ANY sampled item — an empty array in the first must not demote it.
     const nodeKeys = nodeKeysFor(items);
     const groupKeys = new Set(nodeKeys);
     items.slice(0, SAMPLE_SIZE).forEach(item => {
@@ -345,13 +322,9 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
     groups.forEach(group => buildGroupTable(childTd, group, ctx, depth, groups.length > 1));
 }
 
-// Each group is a full nested table whose disclosure toolbar is its header line.
-// collapsed: true defers the table build to first expand (see controller.js).
-//
-// A named-node group is the exception: its key is the library's word, not the data's,
-// so a header line reading CHILDREN would only repeat the row already above it —
-// expanding the Sun shows the planets themselves. It keeps its toolbar only when it
-// is one of several groups, since a collapsed group has nothing else to open it.
+// Each group is a nested table whose disclosure toolbar is its header line.
+// A named-node group drops that toolbar: its key is the library's word, so CHILDREN
+// would only repeat the row above — unless collapsed, with nothing else to open it.
 function buildGroupTable(container, group, ctx, depth, collapsed) {
     const table = document.createElement('table');
     container.appendChild(table);

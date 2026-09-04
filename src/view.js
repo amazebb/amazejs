@@ -32,12 +32,9 @@ const HOVER_CLOSE_DELAY = 300;
 // order, so they only have to be unique across the document.
 let anchorSeq = 0;
 
-// Wires button(s) to toggle dd via the native popovertarget invoker relationship,
-// so the browser handles toggling, light dismiss, and aria-expanded, and names the
-// anchor the stylesheet positions dd against — placement, flipping and the height
-// cap are all CSS (see .filter-dropdown), so nothing here measures or repositions.
-// With hover: true the dropdown also opens on pointer-over and closes after a
-// grace delay once the pointer has left both the button and the dropdown.
+// Wires button(s) to toggle dd through the native invoker relationship, and names the
+// anchor the stylesheet positions dd against — placement and flipping are all CSS (see
+// .filter-dropdown), so nothing here measures. hover: true also opens on pointer-over.
 export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
     const invokers = [btns].flat();
     invokers.forEach(btn => {
@@ -215,16 +212,9 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
     };
 }
 
-// Builds and inserts a toolbar (disclosure toggle + title + count badge + optional
-// File menu + extra buttons + settings) before the anchor, returning every element the
-// controller wires up. The toolbar doubles as the table's disclosure header: the
-// controller toggles the table container via toggleBtn/titleWrap.
-// The toolbar is just two parts: the disclosure handle (toggle + title) and a
-// single `rest` wrapper holding everything after the title (count badge, File/
-// Settings menus, extra buttons). Collapsing the table — and
-// showToolbarControls:false — hide `rest` as one unit, leaving only the handle. The rest's buttons always
-// sit behind a `⋯` overflow (moreBtn), revealed on hover/click via CSS — same
-// for flat and nested tables.
+// The toolbar, inserted before the anchor, returning every element the controller wires
+// up. Two parts: the disclosure handle (toggle + title), and a `rest` wrapper holding
+// everything after it, which collapsing the table hides as one unit.
 export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     const toolbar = document.createElement('div');
     toolbar.className = 'atv-toolbar';
@@ -353,12 +343,9 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
 
     attachPopover(settingsBtn, settingsDd, settingsBtn, { hover: true });
 
-    // A configured button either joins a menu — appended below that menu's own items,
-    // so it reads as the last entry — or becomes a toolbar button of its own. The
-    // standalone ones are left for the controller to add once the Columns menu exists,
-    // so extra buttons always follow every menu.
-    // One rule per menu, before the first host action lands in it, so the additions
-    // read as a group of their own rather than as more of the menu's own items.
+    // A configured button joins a menu or, left null here, becomes a toolbar button the
+    // controller adds after the Columns menu. One rule per menu, before its first host
+    // action, so the additions read as a group of their own.
     const ruled = new Set();
     const rule = (host, key) => {
         if (ruled.has(key)) return;

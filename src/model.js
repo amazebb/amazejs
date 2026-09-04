@@ -15,12 +15,12 @@ export { isDateFormat, toTimestamp, toDateInput, fromDateInput } from './dates.j
 
 /**
  * @typedef {object} Column
- * @property {string} key           Field name, or a path ('versions.stable', 'installed[*].time').
- * @property {string} [label]       Header text; derived from the key when absent.
- * @property {'category' | 'text' | 'range' | false} [filter] false is sortable-only; the data can still overrule this (filterFor).
+ * @property {string} key  a field name or a path ('installed[*].time')
+ * @property {string} [label]
+ * @property {'category' | 'text' | 'range' | false} [filter]
  * @property {(item: any) => Node | string} [render]
  * @property {boolean} [numeric]
- * @property {boolean} [separator]  false drops the locale thousands separator (years, IDs, zips).
+ * @property {boolean} [separator]
  * @property {Format} [format]
  * @property {'summary' | 'lines' | 'table'} [objectCell]
  * @property {'left' | 'right'} [objectAlign]
@@ -36,15 +36,11 @@ export function titleFromUrl(url) {
     return url.split('/').pop().replace(/\.[^.]+$/, '').toUpperCase();
 }
 
-// What each parsed data set was imported from — the text as it arrived, and the format
-// it was read as — so the raw-source view shows the file rather than a re-serialization
-// of the parse, and the header toggle can read the same text a second time. Keyed by
-// the parsed value, so it is dropped with the data and no copy of a large file is
-// held alive.
+// What each data set was imported from, for the raw-source view and the header toggle.
+// Weak, so a large file is dropped with the data it was parsed into.
 /** @type {WeakMap<object, { text: string, format: string }>} */
 export const sourceText = new WeakMap();
 
-// Remembers the text and format against the data parsed out of them, and returns the data.
 export function rememberSource(data, text, format) {
     if (data && typeof data === 'object') sourceText.set(data, { text, format });
     return data;
@@ -92,12 +88,8 @@ function sniffFormat(text) {
     return commas > tabs ? 'csv' : 'tsv';
 }
 
-// The parser a data file gets: its extension when that names a format, else the served
-// media type, else the content. Extension first because it is the author's own label
-// and the one thing a redirect or a proxy can't restate; but a name is often no help —
-// an API path ('/v1/datasets/42'), a query-string export ('?format=csv'), or an
-// extension describing the server rather than the body ('report.php') all used to fall
-// through to TSV and build a one-column table of whole CSV lines, with no error.
+// The parser a file gets: a known extension, else the media type, else the content.
+// Names often say nothing — '/v1/datasets/42', '?format=csv', 'report.php'.
 export function formatFor(name, mimeType, text) {
     const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
     if (ext === 'json' || ext === 'csv' || ext === 'tsv') return ext;
@@ -162,16 +154,9 @@ export async function fetchData(url, fallbackUrl, headerRow = 'auto') {
 // A value a delimited file can only be carrying as data, not as a column's name.
 const looksLikeData = v => v !== '' && (!isNaN(Number(v)) || toTimestamp(v) != null);
 
-// Whether the first row names the columns or is one more row of data. Delimited files
-// say nothing about this, and reading a data row as the header costs a row and labels
-// the columns with values — so the first row is weighed against the rest, per column:
-// a column whose body is uniformly numbers or dates has a header if its first cell
-// isn't one, and is all data if it is. A first row that repeats a value is data too;
-// names have to be distinct to key a record by.
-//
-// Undecided means header, which is what nearly every delimited file has and what this
-// has always assumed. A file of nothing but strings gives the test no signal at all —
-// that is the case the Settings toggle exists for.
+// Whether the first row names the columns, weighed against the rest per column: a
+// numeric or dated column has a header if its first cell isn't one of those, and is all
+// data if it is. A repeated value can't be a name. Undecided means header, as before.
 export function hasHeaderRow(rows) {
     if (rows.length < 2) return true;
     const [first, ...body] = rows;
@@ -189,17 +174,14 @@ export function hasHeaderRow(rows) {
 // The name given to the nth column of a headerless file.
 const generatedKey = i => `col${i + 1}`;
 
-// True when these records were keyed by generated names rather than by a header row —
-// what the Settings toggle reads to know which way it currently sits. The convention
-// lives here, beside the code that applies it.
+// Which way the header decision went, for the Settings toggle to read back.
 export function hasGeneratedHeaders(data) {
     const keys = Object.keys(data?.[0] ?? {});
     return keys.length > 0 && keys.every((k, i) => k === generatedKey(i));
 }
 
-// Rows of cells to records. Without a header the columns are named col1..colN, and
-// only the keys are made up: inferColumns derives every label through the one rule
-// labelFor gives it, so they read as the table's own ('Col1', or 'COL1' in a tree).
+// Rows of cells to records. Generated keys carry no label, so labelFor names them the
+// way it names every other column.
 function toRecords(rows, headerRow) {
     if (!rows.length) return [];
     const header = headerRow === 'auto' ? hasHeaderRow(rows) : headerRow !== false;
@@ -347,14 +329,9 @@ export function cellText(value) {
 // rather than a text box — booleans, enums, taps.
 export const CATEGORY_MAX = 25;
 
-// Walks a sample of the items and returns every path worth offering as a column,
-// as { path, distinct }, in discovery order so top-level fields come first. That is
-// every leaf — ending at a scalar or an array of scalars — plus the containers
-// themselves, since an object or array of objects is a column too (it renders as an
-// object cell or a child table); containers report Infinity distinct values so they
-// never get a checkbox filter. Nested objects extend the path with '.', arrays of
-// objects with '[*]'. The caps keep deep data (all.json's bottle.files.*) from
-// producing an unusable list; the picker's search box covers the rest.
+// Every path the Columns menu can offer, as { path, distinct }, in discovery order.
+// Leaves and their containers alike; a container reports Infinity, so it never earns a
+// checkbox filter. The caps keep deep data (all.json's bottle.files.*) listable.
 export function discoverPaths(items, { sample = SAMPLE_SIZE, depth = 4, limit = 400 } = {}) {
     // path -> the values sampled for it, or null for a container
     const found = new Map();
@@ -395,11 +372,8 @@ export function cellValue(item, key) {
     return cellText(getValue(item, key));
 }
 
-// Applies a column's format — a DATE_FORMATTERS name or a function(value, item). An
-// array maps through it, so a [*] path formats every match. Returns null when there is
-// no format, no value, or the value can't be formatted, letting callers fall back to
-// the plain text. Formatting is display-only: sorting and the range filter stay on the
-// raw values, so a date column keeps chronological order.
+// Applies a column's format, mapping over an array so a [*] path formats every match.
+// Null when there is nothing to format, letting callers fall back to the plain text.
 export function applyFormat(value, format, item) {
     if (!format || value == null || value === '') return null;
     const fn = typeof format === 'function' ? format : DATE_FORMATTERS[format];
@@ -422,14 +396,9 @@ export function cellDisplay(item, col) {
 // the degenerate case: many constant columns over a very large set.
 export const VARIANCE_SCAN = 1000;
 
-// The filter a column earns from its data, walking the rows once: none when the
-// values never differ (nothing to narrow), checkboxes when the whole set is small
-// enough to list, else the configured filter. The walk stops as soon as the answer
-// is settled — a column with many values costs CATEGORY_MAX + 1 rows.
-//
-// Past the cap the scan is inconclusive: the unseen rows could hold any number of
-// values, so neither "constant" nor "small enough to list" can be concluded, and
-// the column keeps the filter it was configured with.
+// The filter a column earns from its data: none when its values never differ,
+// checkboxes when they are few enough to list, else the configured one. Past the cap
+// the scan proves nothing about the unseen rows, so the configured filter stands.
 export function filterFor(items, col, cap = VARIANCE_SCAN) {
     if (!col.filter) return col.filter;
     if (items.length < 2) return false;

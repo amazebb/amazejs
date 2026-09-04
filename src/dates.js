@@ -2,9 +2,8 @@
 // Pure functions, no DOM: model.js formats through them, controller.js sizes its
 // date pickers with them.
 
-// Epoch numbers are read as seconds below 1e11 and milliseconds above, which covers
-// both conventions without a second name per format; anything else is left to Date,
-// so ISO strings ('2026-07-10', '2026-07-10T17:46:53Z') parse as themselves.
+// Epoch numbers are seconds below 1e11 and milliseconds above; anything else goes to
+// Date, so ISO strings parse as themselves.
 export function toDate(value) {
     if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
     if (value == null || value === '') return null;
@@ -29,11 +28,8 @@ const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800]
 // one runs per cell.
 const RELATIVE_FORMAT = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
-// The date formats are ISO 8601 in local time, 24-hour, with a numeric offset
-// (2026-07-07T13:48:31+1000) rather than locale strings: unambiguous about which
-// clock produced them, and text that sorts and prefix-searches ('2026-07') the way
-// the values themselves order. Locale rendering stays available as a function
-// format — `v => new Date(v * 1000).toLocaleString()`.
+// ISO 8601 in local time, not locale strings: unambiguous about which clock produced
+// them, and text that sorts and prefix-searches as the values order.
 const pad = n => String(n).padStart(2, '0');
 export const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const isoTime = d => `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
