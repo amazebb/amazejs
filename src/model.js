@@ -60,13 +60,21 @@ export function parseByUrl(url, text, mimeType) {
     return rememberSource(data, text);
 }
 
+// A response carrying a body. Status 0 is not a failure: custom schemes — an Electrobun
+// views:// bundle, a Tauri or Capacitor asset — answer with a bare response that has no
+// HTTP status, so res.ok is false while the body is intact. A request that truly failed
+// rejects instead of arriving here.
+function delivered(res) {
+    return res.ok || res.status === 0;
+}
+
 // Fetches data from url, falling back to fallbackUrl if the first request fails.
 export async function fetchData(url, fallbackUrl) {
     const res = await fetch(url);
-    if (res.ok) return parseByUrl(url, await res.text(), res.headers.get('content-type'));
+    if (delivered(res)) return parseByUrl(url, await res.text(), res.headers.get('content-type'));
     if (!fallbackUrl) throw new Error(`Failed to load data from ${url}`);
     const fallbackRes = await fetch(fallbackUrl);
-    if (!fallbackRes.ok) throw new Error(`Failed to load data from ${url} and ${fallbackUrl}`);
+    if (!delivered(fallbackRes)) throw new Error(`Failed to load data from ${url} and ${fallbackUrl}`);
     return parseByUrl(fallbackUrl, await fallbackRes.text(), fallbackRes.headers.get('content-type'));
 }
 
