@@ -27,7 +27,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 - **Tree tables** — nested JSON (e.g. countries → states / timezones) is auto-detected and rendered as expandable rows with lazily built child tables, each with its own toolbar, filters, and settings.
 - **File menu** — open a local CSV/TSV/JSON file into the table, export the visible rows as CSV or JSON.
 - **Columns menu** — every field found in the data, however deeply nested, one tick away from becoming a sortable, filterable column.
-- **Settings** — per-table toggles for row numbers, column separators, and a frozen (sticky) toolbar.
+- **Settings** — per-table toggles for row numbers, column separators, a frozen (sticky) toolbar, where the count badge sits, and whether the toolbar buttons stay out.
 - **Theming** — a default light/dark theme ships built in; override CSS custom properties to restyle.
 
 ## Quick start
@@ -36,7 +36,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 <table id="myTable"></table>
 
 <script type="module">
-    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
+    import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.37.1/dist/amazejs.js';
 
     initTable({
         data: ['data/items.json'],   // or pass an array of objects directly
@@ -47,10 +47,12 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
 
 Columns, title, and filters are inferred from the data. The component CSS — including a default light/dark theme — is injected automatically, so this works on a completely bare page.
 
+Pin an exact tag, as above. `@latest` is cached by browsers for seven days and no purge clears it, so a release can take a week to reach anyone who has loaded the page.
+
 ### Explicit columns
 
 ```js
-import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
+import { initTable, linkCell } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.37.1/dist/amazejs.js';
 
 initTable({
     data: items,
@@ -104,7 +106,7 @@ Three ways to deal with it, in order of effort:
    deep field is one line whether it is top-level or buried:
 
    ```js
-   import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@latest/dist/amazejs.js';
+   import { initTable } from 'https://cdn.jsdelivr.net/gh/amazebb/amazejs@v0.37.1/dist/amazejs.js';
 
    initTable({
        data: ['all.json'],
@@ -123,11 +125,10 @@ Three ways to deal with it, in order of effort:
    });
    ```
 
-   Every key is a path: `.` steps into an object, `[0]` picks an element, and `[*]`
-   maps over the array so the filter means "any element matches". Listing a path
-   explicitly bypasses discovery entirely, so it works no matter where in the file
-   the field first appears. Note that passing `columns` also turns off automatic tree
-   mode — you get a flat table with exactly these columns, not expandable child rows.
+   Every key here is a path (see [Deep fields](#deep-fields)). Listing one explicitly
+   bypasses discovery, so it works no matter where in the file the field first
+   appears. Note that passing `columns` also turns off automatic tree mode — you get
+   a flat table with exactly these columns, not expandable child rows.
 2. **Put a representative item first.** The scan is order-sensitive, so a data
    generator that emits the richest record early solves it for free.
 3. **Raise the sample.** `SAMPLE_SIZE` in `src/model.js` is the single constant
@@ -148,21 +149,13 @@ values arrive with checkbox filters, so a boolean like
 
 ### Deep fields
 
-A column key can be a path, so a nested field becomes a normal column — sortable,
-filterable, searchable, exportable:
+A path key — `versions.stable`, `installed[0].time`, `installed[*].name` — makes a
+nested field a normal column: sortable, filterable, searchable, exportable, as in the
+`columns` list above. `.` steps into an object, `[0]` picks an element, and `[*]` maps
+over an array and yields every match, so filtering on it means "any element matches".
 
-```js
-columns: [
-    { key: 'name' },
-    { key: 'versions.stable', label: 'Stable' },
-    { key: 'installed[0].time', numeric: true },
-    { key: 'installed[*].installed_on_request', label: 'Requested', filter: 'category' },
-]
-```
-
-`[*]` maps over an array and yields every match, so filtering on it means "any
-element matches". Paths work anywhere a field is named, including `searchKeys` and
-`linkCell`.
+Paths work anywhere a field is named — `searchKeys` and `linkCell`'s two keys as well
+as `col.key`.
 
 ### Formatting values
 
@@ -257,11 +250,12 @@ Available variables: `--bg`, `--bg-subtle`, `--bg-hover`, `--text`, `--text-mute
 |---|---|---|
 | `data` | required | Array of objects, a root wrapper object, or `[url, fallbackUrl?]` to fetch (`.json`, `.csv` or `.tsv`) |
 | `tableId` / `table` | auto | Target `<table>` by id or element reference |
-| `columns` | inferred | `{ key, label?, filter?, render?, numeric? }`; `filter: 'category'` or `'text'` |
+| `columns` | inferred | `{ key, label?, filter?, render?, numeric?, format? }`; `filter: 'category'`, `'text'` or `'range'` |
 | `title` | derived | Toolbar title (from data key or URL filename) |
 | `searchKeys` | `[]` | Fields included in the global search |
 | `exportFilename` | derived | Export name; `false` hides the File menu |
-| `buttons` | `[]` | Extra toolbar buttons: `{ label, onClick(visibleItems, btn) }` |
+| `buttons` | `[]` | Extra actions: `{ label, onClick(visibleItems, el), menu? }`; `menu: 'file'` or `'settings'` puts one in that dropdown |
+| `formats` | — | Display formats by column key: `'date'`, `'datetime'`, `'time'`, `'relative'`, or a function |
 | `striped`, `bordered`, `rowNumbers` | `false` | Appearance toggles |
 | `lockWidths` | `true` | Freeze column widths from the full data set so filtering doesn't reflow them |
 | `objectCell` | `'summary'` | How nested-object values render: `'summary'`, `'lines'` or `'table'` |
