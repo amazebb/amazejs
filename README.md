@@ -216,8 +216,8 @@ Plain ESM and `fetch`, so it runs unchanged inside Tauri, Electron, Electrobun a
 Capacitor — data files included, loaded off the webview's own scheme (`views://`,
 `tauri://`, `asset://`). Nothing to configure: those schemes reply without an HTTP
 status, which counts as a successful load, and usually without a `content-type`, so the
-file extension picks the parser. Name the file `.json`, `.csv` or `.tsv`; anything else
-is read as TSV.
+file extension picks the parser — and when the name says nothing either, the content
+does, so a URL with no extension still lands as the right format.
 
 Bundle `dist/amazejs.js` with the app rather than importing it from the CDN, so the
 table works offline:

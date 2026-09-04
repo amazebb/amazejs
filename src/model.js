@@ -68,18 +68,57 @@ export function unreadableReason(name, mimeType, text) {
     return null;
 }
 
-// Parses fetched text by the URL's extension: .json → JSON, .csv → CSV, else TSV.
-// A response that isn't text at all is refused here rather than parsed into nonsense:
-// a JSON file throws on its own, but every byte is a valid CSV field.
+// Media types that name a table format. text/plain is deliberately absent: servers
+// hand it out for CSV and TSV alike, so it settles nothing and the content decides.
+/** @type {[RegExp, string][]} */
+const TEXT_MIME = [
+    [/^application\/(json|.*\+json)$/, 'json'],
+    [/^(text|application)\/csv$/, 'csv'],
+    [/^text\/tab-separated-values$/, 'tsv'],
+];
+
+// Which parser the text asks for, read from the text itself. JSON announces itself in
+// its first character; between the delimited formats, the one the header row holds more
+// of wins. Ties and neither go to TSV, the long-standing default.
+function sniffFormat(text) {
+    const head = text.trimStart();
+    if (head[0] === '{' || head[0] === '[') return 'json';
+    const line = head.split('\n', 1)[0];
+    const tabs = (line.match(/\t/g) || []).length;
+    const commas = (line.match(/,/g) || []).length;
+    return commas > tabs ? 'csv' : 'tsv';
+}
+
+// The parser a data file gets: its extension when that names a format, else the served
+// media type, else the content. Extension first because it is the author's own label
+// and the one thing a redirect or a proxy can't restate; but a name is often no help —
+// an API path ('/v1/datasets/42'), a query-string export ('?format=csv'), or an
+// extension describing the server rather than the body ('report.php') all used to fall
+// through to TSV and build a one-column table of whole CSV lines, with no error.
+export function formatFor(name, mimeType, text) {
+    const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+    if (ext === 'json' || ext === 'csv' || ext === 'tsv') return ext;
+    const type = (mimeType || '').split(';')[0].trim().toLowerCase();
+    const declared = TEXT_MIME.find(([re]) => re.test(type));
+    return declared ? declared[1] : sniffFormat(text);
+}
+
+// Parses fetched text into rows. A response that isn't text at all is refused here
+// rather than parsed into nonsense: a JSON file throws on its own, but every byte is a
+// valid CSV field.
 export function parseByUrl(url, text, mimeType) {
     const path = url.split(/[?#]/)[0];
-    const reason = unreadableReason(path.split('/').pop() || path, mimeType, text);
+    const name = path.split('/').pop() || path;
+    const reason = unreadableReason(name, mimeType, text);
     if (reason) throw new Error(reason);
-    const ext = path.split('.').pop().toLowerCase();
-    const data = ext === 'json' ? JSON.parse(text)
-        : ext === 'csv' ? parseCsv(text)
+    return rememberSource(parseAs(formatFor(name, mimeType, text), text), text);
+}
+
+// One format name to one parser, so both readers turn text into rows the same way.
+export function parseAs(format, text) {
+    return format === 'json' ? JSON.parse(text)
+        : format === 'csv' ? parseCsv(text)
             : parseTsv(text);
-    return rememberSource(data, text);
 }
 
 // A response carrying a body. Status 0 is not a failure: custom schemes — an Electrobun

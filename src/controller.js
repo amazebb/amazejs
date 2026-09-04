@@ -1,4 +1,4 @@
-import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, parseCsv, parseTsv, cellDisplay, getValue, discoverPaths, filterFor, unreadableReason, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
+import { fetchData, inferColumns, getVisible, computeCounts, sortItems, isUrlData, titleFromUrl, formatFor, parseAs, cellDisplay, getValue, discoverPaths, filterFor, unreadableReason, CATEGORY_MAX, sourceText, rememberSource, isDateFormat, toTimestamp, toDateInput, fromDateInput } from './model.js';
 import {
     buildToolbar, buildNoResults, buildLoadError,
     buildHeader, buildRows, buildFilterOptions,
@@ -569,10 +569,7 @@ export async function initTable(config) {
                     // so a PNG would otherwise become a table of mojibake.
                     const reason = unreadableReason(file.name, file.type, text);
                     if (reason) throw new Error(reason);
-                    const name = file.name.toLowerCase();
-                    const data = name.endsWith('.json') ? JSON.parse(text)
-                        : name.endsWith('.tsv') ? parseTsv(text)
-                            : parseCsv(text);
+                    const data = parseAs(formatFor(file.name, file.type, text), text);
                     await rebuild(rememberSource(data, text), titleFromUrl(file.name));
                 } catch (err) {
                     alert(`Could not open ${file.name}: ${err.message}`);
