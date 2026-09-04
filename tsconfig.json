@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "checkJs": true,
+        "noEmit": true,
+        "target": "es2022",
+        "module": "preserve",
+        "moduleResolution": "bundler",
+        "lib": ["es2022", "dom", "dom.iterable"],
+        "strict": true,
+        // The two strict rules that pay nothing here. Data items are arbitrary JSON, so
+        // annotating every internal helper's `item`/`items`/`col` buys `any` written out
+        // 400 times; and the library throws Errors, so a catch that reads err.message
+        // needs no instanceof guard in front of it.
+        "noImplicitAny": false,
+        "useUnknownInCatchVariables": false
+    },
+    "include": ["src"]
+}

@@ -1,6 +1,15 @@
 import { initTable } from './controller.js';
 import { isUrlData, titleFromUrl, sampleKeys, SAMPLE_SIZE } from './model.js';
 
+/**
+ * One entry of `levels`: what counts as a child at that depth, and which field names
+ * the row. The array's length caps how deep expansion goes.
+ * @typedef {object} Level
+ * @property {string[]} [childrenKeys] Only these arrays are children at this depth.
+ * @property {string} [childrenKey]    The single-key form of childrenKeys.
+ * @property {string} [nameKey]        The column pulled first; 'name' by default.
+ */
+
 const btnMeta = new WeakMap();
 
 const isObjectArray = v => Array.isArray(v) && v.length > 0 && typeof v[0] === 'object';
@@ -172,7 +181,7 @@ function ensureToggleListener() {
     if (_toggleListenerBound) return;
     _toggleListenerBound = true;
     document.addEventListener('click', e => {
-        const hit = e.target.closest?.('.aj-toggle, .aj-toggle-wrap');
+        const hit = e.target instanceof Element && e.target.closest('.aj-toggle, .aj-toggle-wrap');
         if (!hit) return;
         const btn = hit.classList.contains('aj-toggle') ? hit : hit.querySelector('.aj-toggle');
         if (btn) handleToggle(btn);
@@ -202,7 +211,7 @@ function getRootGroups(rawData, dataKey) {
     // opens from that row like any other. Empty objects hold nothing to show.
     const records = Object.keys(rawData)
         .map(k => groupAt(rawData, k))
-        .filter(Boolean);
+        .filter(g => g !== null);
     // Nothing but scalars: the root is itself the one record, so it becomes a
     // one-row table rather than a blank page.
     return records.length ? records : [{ key: null, items: [rawData] }];
@@ -228,6 +237,7 @@ function groupAt(rawData, key) {
 // bearing the name it was found under.
 function getChildGroups(item, allowedKeys, nodeKeys) {
     const keys = Object.keys(item).filter(k => !allowedKeys || allowedKeys.includes(k));
+    /** @type {{ key: string, items: any[], named?: boolean }[]} */
     const groups = keys.filter(k => isObjectArray(item[k])).map(k => ({ key: k, items: item[k] }));
     const named = keys.filter(k => nodeKeys?.has(k) && isRecord(item[k]));
     if (named.length) {

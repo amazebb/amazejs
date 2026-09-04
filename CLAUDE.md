@@ -22,6 +22,8 @@ amazejs is a zero-dependency vanilla JS ES module library for interactive data t
 
 For CDN consumers there is **one** build: `bun run build` bundles `build/entry.js` into `dist/amazejs.js` — a single self-contained, minified ESM file with `amazejs.css` inlined as a `<style>`. Consumers pin an exact tag — `cdn.jsdelivr.net/gh/amazebb/amazejs@v0.16.0/dist/amazejs.js` — never `@latest`, which browsers cache for 7 days and no purge can clear. A release is: `bun run build`, commit `dist/`, tag `vX.Y.Z` (feat bumps the minor, fix the patch), push the branch and the tag (lightweight tags need `git push origin <tag>`; `--follow-tags` skips them), then bump the pin in `docs/app.js` and in `../brewbar/docs/app.js`. Each tag is a fresh immutable URL, so no purge is needed. There is no lint or test command.
 
+**Type checking.** `tsc` (no arguments, from the repo root) type-checks `src/` against `tsconfig.json` and must exit 0. The source stays plain `.js` — a browser loads it raw, which a `.ts` port would end — so types are written as JSDoc: `Column` and `Format` in `model.js`, `Level` in `tree.js`, `TableConfig` above `initTable` in `controller.js`, imported across files with `/** @typedef {import('./model.js').Column} Column */`. `TableConfig` is the option table above, in a shape an editor can offer; a new option goes in both. `strict` is on with two rules off, for the reasons stated in the config: data items are arbitrary JSON, so `noImplicitAny` would buy `any` written out 400 times, and the library throws `Error`s, so `useUnknownInCatchVariables` would only add `instanceof` guards in front of `err.message`.
+
 ## Architecture
 
 The library lives in `src/` and follows a strict MVC split across four files:

@@ -4,6 +4,28 @@ import { DATE_FORMATTERS, isDateFormat, toTimestamp } from './dates.js';
 
 export { isDateFormat, toTimestamp, toDateInput, fromDateInput } from './dates.js';
 
+// The shapes the whole library passes around. They live here because model.js is what
+// every other file imports; the option-by-option prose is in CLAUDE.md.
+
+/**
+ * A display format: one of the four built-in date renderings, or a function that
+ * turns the raw value into text. Display-only — sorting keeps the raw value.
+ * @typedef {'date' | 'datetime' | 'time' | 'relative' | ((value: any, item: any) => string)} Format
+ */
+
+/**
+ * @typedef {object} Column
+ * @property {string} key           Field name, or a path ('versions.stable', 'installed[*].time').
+ * @property {string} [label]       Header text; derived from the key when absent.
+ * @property {'category' | 'text' | 'range' | false} [filter] false is sortable-only; the data can still overrule this (filterFor).
+ * @property {(item: any) => Node | string} [render]
+ * @property {boolean} [numeric]
+ * @property {boolean} [separator]  false drops the locale thousands separator (years, IDs, zips).
+ * @property {Format} [format]
+ * @property {'summary' | 'lines' | 'table'} [objectCell]
+ * @property {'left' | 'right'} [objectAlign]
+ */
+
 // True when data is the [url, fallbackUrl?] form accepted by initTable.
 export function isUrlData(data) {
     return Array.isArray(data) && typeof data[0] === 'string';
@@ -69,6 +91,10 @@ function delivered(res) {
 }
 
 // Fetches data from url, falling back to fallbackUrl if the first request fails.
+/**
+ * @param {string} url
+ * @param {string} [fallbackUrl]
+ */
 export async function fetchData(url, fallbackUrl) {
     const res = await fetch(url);
     if (delivered(res)) return parseByUrl(url, await res.text(), res.headers.get('content-type'));
@@ -79,12 +105,14 @@ export async function fetchData(url, fallbackUrl) {
 }
 
 // Parses a TSV string into an array of objects keyed by the first-row headers.
+/** @param {string} text */
 export function parseTsv(text) {
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length < 2) return [];
     const headers = lines[0].split('\t').map(h => h.trim());
     return lines.slice(1).map(line => {
         const parts = line.split('\t');
+        /** @type {Record<string, string>} */
         const obj = {};
         headers.forEach((h, i) => { obj[h] = (parts[i] || '').trim(); });
         return obj;

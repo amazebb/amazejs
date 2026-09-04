@@ -289,6 +289,8 @@ python3 -m http.server 8000
 
 The library source is in [`src/`](src/), split MVC-style: `model.js` (pure data logic), `view.js` (DOM construction), `controller.js` (state + wiring), `tree.js` (nested tables), `index.js` (exports).
 
+It stays plain JavaScript deliberately — a browser loads `src/` raw — but it is type-checked: types are written as JSDoc, and `tsc` from the repo root checks them against [`tsconfig.json`](tsconfig.json). Editors pick the same config up, so `initTable({` completes every option.
+
 ## License
 
 [MIT](LICENSE)

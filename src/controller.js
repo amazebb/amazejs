@@ -42,17 +42,69 @@ function pageInset(container, nested) {
     return container.getBoundingClientRect().left - left + scrolled;
 }
 
+/** @typedef {import('./model.js').Column} Column */
+/** @typedef {import('./model.js').Format} Format */
+/** @typedef {import('./tree.js').Level} Level */
+
+/**
+ * Every option initTable accepts. The prose behind each one — what the data can
+ * overrule, how the frozen layout is measured, why a date format decides a filter —
+ * is in CLAUDE.md; this is the shape, so an editor can offer it.
+ *
+ * @typedef {object} TableConfig
+ * @property {any[] | object | string[]} data       Rows, a root wrapper object, or [url, fallbackUrl?] to fetch.
+ * @property {string} [tableId]                     Id of the <table>; auto-generated when absent.
+ * @property {HTMLTableElement} [table]             The element itself, instead of tableId.
+ * @property {Column[]} [columns]                   Inferred from the data when absent.
+ * @property {string[]} [searchKeys]                Fields the global search covers.
+ * @property {string | false} [exportFilename]      false hides the File menu.
+ * @property {{ label: string, onClick: (visibleItems: any[], el: HTMLElement) => void, menu?: 'file' | 'settings' }[]} [buttons]
+ * @property {boolean} [nested]                     Child tables: no toolbar or wrapper of their own.
+ * @property {string} [title]                       Derived from the root key or the URL filename when absent.
+ * @property {string} [dataKey]                     Which array on a root wrapper object to table.
+ * @property {Level[] | false} [levels]             Tree overrides per depth; false forces a flat table.
+ * @property {boolean} [collapsed]                  Start as a disclosure line; the table builds on first expand.
+ * @property {boolean} [showToolbar]
+ * @property {HTMLInputElement} [searchInputEl]     External search box, for nested tables.
+ * @property {boolean} [striped]
+ * @property {boolean} [bordered]
+ * @property {boolean} [rowNumbers]
+ * @property {boolean} [stickyHeaders]
+ * @property {boolean} [showFilterRow]
+ * @property {boolean} [showButtons]                false leaves the toolbar menus permanently out.
+ * @property {Record<string, Format>} [formats]     Display formats by column key (a path).
+ * @property {'upper'} [labelStyle]                 The table's one labelling rule.
+ * @property {boolean} [lockWidths]                 Freeze widths measured over the full data set.
+ * @property {'summary' | 'lines' | 'table'} [objectCell]
+ * @property {'left' | 'right'} [objectAlign]
+ * @property {boolean} [badgeAlwaysShow]
+ * @property {'left' | 'right' | 'none'} [badgePosition]
+ * @property {boolean | number} [searchDebounce]    true is 150ms; false is none.
+ *
+ * Threaded through a rebuild rather than passed by a host: the column order the table
+ * first stood in, and the definitions of every column it has shown, so a column ticked
+ * off and back on returns to its slot as the column it was.
+ * @property {string[]} [columnOrder]
+ * @property {Map<string, Column>} [columnDefs]
+ */
+
+/**
+ * Builds a table — flat or tree — into the configured <table> element.
+ * @param {TableConfig} config
+ */
 export async function initTable(config) {
     ensureStyles();
+    // Whatever arrived; rows by the time anything below the fetch reads it.
+    /** @type {any} */
     let data = config.data;
     if (isUrlData(data)) {
         // A failed load is the page's problem, not an unhandled rejection: the reason
         // (a 404, a PDF where a CSV was meant) takes the table's place and is logged.
         try {
-            data = await fetchData(...data);
+            data = await fetchData(data[0], data[1]);
         } catch (err) {
             console.warn(`amazejs: ${err.message}`);
-            const anchor = config.table || document.getElementById(config.tableId);
+            const anchor = config.table || document.getElementById(config.tableId ?? '');
             return anchor ? buildLoadError(anchor, err.message) : null;
         }
     }
@@ -95,7 +147,8 @@ export async function initTable(config) {
         : title ? `${title.toLowerCase().replace(/\s+/g, '-')}.csv` : 'data.csv');
 
     const tableId = config.tableId || `atv_t${++_tableCount}`;
-    const table   = config.table  || document.getElementById(tableId);
+    const table   = config.table
+        || /** @type {HTMLTableElement} */ (document.getElementById(tableId));
 
     if (striped)  table.classList.add('atv-striped');
     if (bordered) table.classList.add('atv-bordered');
@@ -115,15 +168,15 @@ export async function initTable(config) {
     if (!nested) {
         tableWrap = document.createElement('div');
         tableWrap.className = 'table-wrap';
-        table.parentNode.insertBefore(tableWrap, table);
+        table.before(tableWrap);
         tableWrap.appendChild(table);
 
-        tableWrap.parentNode.insertBefore(tableContainer, tableWrap);
+        tableWrap.before(tableContainer);
         tableContainer.appendChild(tableWrap);
 
         noResults = buildNoResults(tableWrap);
     } else {
-        table.parentNode.insertBefore(tableContainer, table);
+        table.before(tableContainer);
         tableContainer.appendChild(table);
     }
 
@@ -231,6 +284,7 @@ export async function initTable(config) {
 
     // --- State ---
     // The source panel, built on the first press of the raw toggle, refilled by refresh().
+    /** @type {?HTMLPreElement} */
     let sourcePre = null;
     let renderSource = () => {};
     const filterState     = {};
@@ -256,10 +310,13 @@ export async function initTable(config) {
             const text = cellDisplay(d, col);
             if (!raw.has(text)) raw.set(text, getValue(d, col.key));
         });
-        const rank = isDateFormat(col.format) ? v => toTimestamp(raw.get(v))
-            : col.numeric ? v => Number(raw.get(v))
-            : null;
-        const values = [...raw.keys()].sort(rank ? (a, b) => rank(a) - rank(b) : undefined);
+        const byValue = isDateFormat(col.format)
+                // A value that isn't a date has no instant to rank by, and sorts first.
+                ? (a, b) => (toTimestamp(raw.get(a)) ?? 0) - (toTimestamp(raw.get(b)) ?? 0)
+            : col.numeric
+                ? (a, b) => Number(raw.get(a)) - Number(raw.get(b))
+            : undefined;
+        const values = [...raw.keys()].sort(byValue);
         filterState[def.key] = new Set(values);
         optionQuery[def.key] = '';
 
@@ -327,7 +384,8 @@ export async function initTable(config) {
         effectiveSearchInput.addEventListener('input', onSearch);
     }
 
-    if (fileBtns) {
+    // The two go together — the menu is built only when there is a filename to export to.
+    if (fileBtns && effectiveExportFilename) {
         const jsonFilename = effectiveExportFilename.replace(/\.[^.]+$/, '.json');
         fileBtns.open.addEventListener('click', () => {
             fileBtns.dd.hidePopover();
@@ -429,7 +487,7 @@ export async function initTable(config) {
         // A newly ticked column lands before the first column that ranks after it, and
         // only that one column moves — the rest keep the order they are in.
         const order = new Map(baseOrder.map((p, i) => [p, i]));
-        const rankOf = key => order.has(key) ? order.get(key) : Infinity;
+        const rankOf = key => order.get(key) ?? Infinity;
         const insert = (cols, col) => {
             const at = cols.findIndex(c => rankOf(c.key) > rankOf(col.key));
             const next = [...cols];
@@ -474,7 +532,7 @@ export async function initTable(config) {
         }
         syncColumnsBadge();
 
-        menu.search.addEventListener('input', function() {
+        menu.search.addEventListener('input', /** @this {HTMLInputElement} */ function() {
             filterOptionRows(rows, listOrder, this.value);
             syncColumnsBadge();
         });
@@ -501,7 +559,7 @@ export async function initTable(config) {
         input.type   = 'file';
         input.accept = '.csv,.tsv,.json,text/csv,text/tab-separated-values,application/json';
         input.addEventListener('change', async () => {
-            const file = input.files[0];
+            const file = input.files?.[0];
             if (!file) return;
             try {
                 const text = await file.text();
@@ -621,7 +679,7 @@ export async function initTable(config) {
 
         // refresh() first: it rewrites option counts (and their row display), so the
         // option-row filtering has to run after it to survive.
-        search.addEventListener('input', function() {
+        search.addEventListener('input', /** @this {HTMLInputElement} */ function() {
             optionQuery[def.key] = this.value;
             refresh();
             filterOptionRows(filterUI[def.key].rows, filterUI[def.key].values, this.value);
@@ -751,8 +809,8 @@ export async function initTable(config) {
         refresh();
     }
 
-    table.querySelectorAll('th.sortable').forEach(th => {
-        th.addEventListener('click', () => sortByCol(+th.dataset.col));
+    /** @type {NodeListOf<HTMLElement>} */ (table.querySelectorAll('th.sortable')).forEach(th => {
+        th.addEventListener('click', () => sortByCol(Number(th.dataset.col)));
     });
 
     [...filterDefs, ...textDefs, ...rangeDefs].forEach(({ th, col }) => {

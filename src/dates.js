@@ -21,6 +21,7 @@ export function toTimestamp(value) {
 
 const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null; };
 
+/** @type {[Intl.RelativeTimeFormatUnit, number][]} */
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
                         ['day', 86400], ['hour', 3600], ['minute', 60]];
 
@@ -51,7 +52,8 @@ export const DATE_FORMATTERS = {
     time:     asDate(isoTime),
     relative: asDate(d => {
         const secs = (d.getTime() - Date.now()) / 1000;
-        const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s) || ['second', 1];
+        const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s)
+            || /** @type {[Intl.RelativeTimeFormatUnit, number]} */ (['second', 1]);
         return RELATIVE_FORMAT.format(Math.round(secs / size), unit);
     }),
 };

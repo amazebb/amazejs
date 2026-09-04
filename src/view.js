@@ -59,13 +59,13 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
     // before the tap falls through to sort — there the explicit invoker button
     // (and native click toggling) is the only filter path.
     if (hover && window.matchMedia('(hover: hover)').matches) {
-        let closeTimer = null;
+        let closeTimer = 0;
         const cancelClose = () => clearTimeout(closeTimer);
         const close = () => {
             // Don't close mid-typing: the pointer may drift off while the
             // user is in a filter search field — light dismiss handles it.
             const typing = dd.contains(document.activeElement)
-                && document.activeElement.matches('input[type="text"], input[type="number"]');
+                && document.activeElement?.matches('input[type="text"], input[type="number"]');
             if (dd.matches(':popover-open') && !typing) dd.hidePopover();
         };
         const scheduleClose = () => {
@@ -90,7 +90,8 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
                 // already over the rows below.
                 if (el === dd || t?.closest('thead th')) {
                     cancelClose();
-                    if (dd.contains(document.activeElement)) document.activeElement.blur();
+                    const active = document.activeElement;
+                    if (active instanceof HTMLElement && dd.contains(active)) active.blur();
                     close();
                 } else scheduleClose();
             });
@@ -195,6 +196,11 @@ export function renderObjectCell(td, obj, mode, label, align = 'left') {
 
 // Returns a render function that builds <a> (optionally wrapped in another element).
 // textKey: data field for link text; hrefKey: data field for href; wrap: tag name e.g. 'code'
+/**
+ * @param {string} textKey
+ * @param {string} hrefKey
+ * @param {{ wrap?: string }} [opts]
+ */
 export function linkCell(textKey, hrefKey, { wrap } = {}) {
     return item => {
         const a = document.createElement('a');
@@ -289,6 +295,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     btnHost.className = 'atv-toolbar-more';
     moreWrap.appendChild(btnHost);
 
+    /** @type {?{ open: HTMLElement, csv: HTMLElement, json: HTMLElement, dd: HTMLElement }} */
     let fileBtns = null;
     if (hasFileMenu) {
         const fileBtn = document.createElement('button');
@@ -407,12 +414,14 @@ export function buildColumnsMenu(btnHost, id) {
     btnHost.appendChild(dd);
 
     attachPopover(btn, dd, btn, { hover: true });
+    // buildDropdown builds every one of these, so the lookups can't miss.
+    const q = sel => /** @type {HTMLElement} */ (dd.querySelector(sel));
     return {
         btn, dd,
-        search: dd.querySelector('.filter-search'),
-        selAll: dd.querySelector('.sel-all'),
-        clrAll: dd.querySelector('.clr-all'),
-        badge:  dd.querySelector('.filter-actions-badge'),
+        search: /** @type {HTMLInputElement} */ (dd.querySelector('.filter-search')),
+        selAll: q('.sel-all'),
+        clrAll: q('.clr-all'),
+        badge:  q('.filter-actions-badge'),
     };
 }
 
@@ -816,7 +825,7 @@ export function updateFilterCounts(filterDef, values, counts, selected, rows, ba
 async function saveFile(blob, suggestedName, types) {
     if ('showSaveFilePicker' in window) {
         try {
-            const handle = await window.showSaveFilePicker({ suggestedName, types });
+            const handle = await /** @type {any} */ (window).showSaveFilePicker({ suggestedName, types });
             const writable = await handle.createWritable();
             await writable.write(blob);
             await writable.close();
