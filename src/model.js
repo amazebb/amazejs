@@ -78,7 +78,7 @@ export function parseByUrl(url, text, mimeType) {
     const ext = path.split('.').pop().toLowerCase();
     const data = ext === 'json' ? JSON.parse(text)
         : ext === 'csv' ? parseCsv(text)
-        : parseTsv(text);
+            : parseTsv(text);
     return rememberSource(data, text);
 }
 

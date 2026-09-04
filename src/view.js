@@ -381,7 +381,7 @@ export function buildToolbar(anchor, hasFileMenu, buttons = [], title = '') {
     });
 
     anchor.insertAdjacentElement('beforebegin', toolbar);
-    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn,settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
+    return { countBadge, fileBtns, extraBtns, toolbar, rest, moreBtn, toggleBtn, titleWrap, btnHost, sourceBtn, settingsDd, settingsBtns: { rowNums: rowNumsCb, borders: bordersCb, sticky: stickyCb, badgeRight: badgeRightToggle, showMore: showMoreCb } };
 }
 
 // A plain toolbar button, appended wherever the host is up to — the controller adds
@@ -413,13 +413,13 @@ export function buildColumnsMenu(btnHost, id) {
 
     attachPopover(btn, dd, btn, { hover: true });
     // buildDropdown builds every one of these, so the lookups can't miss.
-    const q = sel => /** @type {HTMLElement} */ (dd.querySelector(sel));
+    const q = sel => /** @type {HTMLElement} */(dd.querySelector(sel));
     return {
         btn, dd,
         search: /** @type {HTMLInputElement} */ (dd.querySelector('.filter-search')),
         selAll: q('.sel-all'),
         clrAll: q('.clr-all'),
-        badge:  q('.filter-actions-badge'),
+        badge: q('.filter-actions-badge'),
     };
 }
 

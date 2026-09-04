@@ -23,7 +23,7 @@ const asDate = fn => value => { const d = toDate(value); return d ? fn(d) : null
 
 /** @type {[Intl.RelativeTimeFormatUnit, number][]} */
 const RELATIVE_UNITS = [['year', 31536000], ['month', 2592000], ['week', 604800],
-                        ['day', 86400], ['hour', 3600], ['minute', 60]];
+['day', 86400], ['hour', 3600], ['minute', 60]];
 
 // Built once: an Intl formatter costs far more to construct than to call, and this
 // one runs per cell.
@@ -47,9 +47,9 @@ const isoOffset = d => {
 };
 
 export const DATE_FORMATTERS = {
-    date:     asDate(isoDate),
+    date: asDate(isoDate),
     datetime: asDate(d => `${isoDate(d)}T${isoTime(d)}${isoOffset(d)}`),
-    time:     asDate(isoTime),
+    time: asDate(isoTime),
     relative: asDate(d => {
         const secs = (d.getTime() - Date.now()) / 1000;
         const [unit, size] = RELATIVE_UNITS.find(([, s]) => Math.abs(secs) >= s)

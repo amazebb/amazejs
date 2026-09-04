@@ -72,19 +72,19 @@ export async function initTree(config, rawData) {
     const ctx = {
         levels: Array.isArray(config.levels) ? config.levels : null,
         childOpts: {
-            striped:             config.striped,
-            bordered:            config.bordered,
-            rowNumbers:          config.rowNumbers,
-            stickyHeaders:       config.stickyHeaders,
+            striped: config.striped,
+            bordered: config.bordered,
+            rowNumbers: config.rowNumbers,
+            stickyHeaders: config.stickyHeaders,
             showToolbarControls: config.showToolbarControls,
-            showButtons:         config.showButtons,
-            badgeAlwaysShow:     config.badgeAlwaysShow,
-            badgePosition:       config.badgePosition,
-            lockWidths:          config.lockWidths,
-            formats:             config.formats,
-            objectCell:          config.objectCell,
-            objectAlign:         config.objectAlign,
-            searchDebounce:      config.searchDebounce,
+            showButtons: config.showButtons,
+            badgeAlwaysShow: config.badgeAlwaysShow,
+            badgePosition: config.badgePosition,
+            lockWidths: config.lockWidths,
+            formats: config.formats,
+            objectCell: config.objectCell,
+            objectAlign: config.objectAlign,
+            searchDebounce: config.searchDebounce,
         },
     };
     ensureToggleListener();
@@ -117,10 +117,10 @@ export async function initTree(config, rawData) {
     // columns added later from the Columns picker match (TAP, not Tap).
     return initTable({
         ...config,
-        data:       rootItems,
-        columns:    getColumns(rootItems, rootCtx, 0),
-        formats:    rootCtx.childOpts.formats,
-        title:      rootTitle,
+        data: rootItems,
+        columns: getColumns(rootItems, rootCtx, 0),
+        formats: rootCtx.childOpts.formats,
+        title: rootTitle,
         labelStyle: 'upper',
     });
 }
@@ -134,13 +134,13 @@ function buildRootTable(host, group, config, ctx) {
     return initTable({
         ...config,
         table,
-        tableId:    undefined,
-        data:       group.items,
-        columns:    getColumns(group.items, groupCtx, 0),
-        formats:    groupCtx.childOpts.formats,
-        title:      group.key.toUpperCase(),
+        tableId: undefined,
+        data: group.items,
+        columns: getColumns(group.items, groupCtx, 0),
+        formats: groupCtx.childOpts.formats,
+        title: group.key.toUpperCase(),
         labelStyle: 'upper',
-        collapsed:  true,
+        collapsed: true,
     });
 }
 
@@ -253,7 +253,7 @@ function allowedChildKeys(levels, depth) {
     if (depth >= levels.length) return [];
     const def = levels[depth];
     if (def.childrenKeys) return def.childrenKeys;
-    if (def.childrenKey)  return [def.childrenKey];
+    if (def.childrenKey) return [def.childrenKey];
     return null;
 }
 
@@ -335,7 +335,7 @@ function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
     const childTr = document.createElement('tr');
     childTr.className = 'aj-children-row';
     const childTd = document.createElement('td');
-    childTd.colSpan   = colCount;
+    childTd.colSpan = colCount;
     childTd.className = 'aj-children-cell';
     childTr.appendChild(childTd);
 
@@ -359,12 +359,12 @@ function buildGroupTable(container, group, ctx, depth, collapsed) {
     initTable({
         ...groupCtx.childOpts,
         table,
-        data:      group.items,
-        columns:   getColumns(group.items, groupCtx, depth),
-        nested:    true,
+        data: group.items,
+        columns: getColumns(group.items, groupCtx, depth),
+        nested: true,
         collapsed,
         showToolbar: !group.named || collapsed,
         labelStyle: 'upper',
-        title:     group.key.toUpperCase(),
+        title: group.key.toUpperCase(),
     });
 }
