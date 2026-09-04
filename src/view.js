@@ -194,12 +194,12 @@ export function renderObjectCell(td, obj, mode, label, align = 'left') {
     attachPopover(badge, dd, badge);
 }
 
-// Returns a render function that builds <a> (optionally wrapped in another element).
-// textKey: data field for link text; hrefKey: data field for href; wrap: tag name e.g. 'code'
 /**
- * @param {string} textKey
- * @param {string} hrefKey
- * @param {{ wrap?: string }} [opts]
+ * Returns a column render function that builds <a> elements, optionally wrapped in
+ * another element.
+ * @param {string} textKey  data field for the link text
+ * @param {string} hrefKey  data field for the href
+ * @param {{ wrap?: string }} [opts]  wrap: tag name to wrap the link in, e.g. 'code'
  */
 export function linkCell(textKey, hrefKey, { wrap } = {}) {
     return item => {
@@ -216,11 +216,9 @@ export function linkCell(textKey, hrefKey, { wrap } = {}) {
 }
 
 // Builds and inserts a toolbar (disclosure toggle + title + count badge + optional
-// File menu + extra buttons + settings) before the anchor.
-// Returns { countBadge, fileBtns, extraBtns, toolbar, rest, settingsBtns, moreBtn,
-// toggleBtn, titleWrap } for controller wiring. The toolbar doubles as the table's
-// disclosure header: the controller toggles the table container via toggleBtn/titleWrap.
-// fileBtns: { open, csv, json, dd } — the three menu items and the dropdown element.
+// File menu + extra buttons + settings) before the anchor, returning every element the
+// controller wires up. The toolbar doubles as the table's disclosure header: the
+// controller toggles the table container via toggleBtn/titleWrap.
 // The toolbar is just two parts: the disclosure handle (toggle + title) and a
 // single `rest` wrapper holding everything after the title (count badge, File/
 // Settings menus, extra buttons). Collapsing the table — and showFilterRow:false
@@ -501,8 +499,6 @@ export function focusColumn(table, index) {
     th.addEventListener('animationend', () => th.classList.remove('aj-flash'), { once: true });
 }
 
-// Builds and inserts a no-results message after the table wrapper.
-// Returns the element for show/hide toggling.
 // Replaces a table that never got its data with the reason why. The element is the
 // anchor the page already laid out, so the message lands where the table would have.
 export function buildLoadError(anchor, message) {
@@ -514,6 +510,8 @@ export function buildLoadError(anchor, message) {
     return el;
 }
 
+// Builds and inserts a no-results message after the table wrapper, returning it for
+// show/hide toggling.
 export function buildNoResults(tableWrap, message) {
     const el = document.createElement('div');
     el.className = 'atv-no-results';
@@ -525,7 +523,8 @@ export function buildNoResults(tableWrap, message) {
 // Builds the thead row from column definitions.
 // 'category' columns get a button + dropdown with checkboxes.
 // 'text' columns get a button + dropdown with just a search input.
-// 'range' columns (numeric) get a button + dropdown with Min/Max number inputs.
+// 'range' columns get a button + dropdown with Min/Max inputs — number boxes, or two
+// date pickers when the column has a date format.
 // Others are plain sortable ths.
 export function buildHeader(thead, columns, tableId) {
     const tr = document.createElement('tr');
@@ -636,12 +635,9 @@ function buildTextDropdown(id) {
     return dd;
 }
 
-// Numeric range dropdown: a Min and Max number input. The controller wires both
-// to the column's [min, max] range state. Future numeric controls (comparator
-// presets, a slider) can be appended here — they write the same range state, so
-// no surrounding code changes.
-// Two bounds on one row. A dated column gets the browser's own date pickers instead
-// of number boxes — the controller fills their min/max with the column's span.
+// Two bounds on one row, wired by the controller to the column's [min, max] range
+// state. A dated column gets the browser's own date pickers instead of number boxes —
+// the controller fills their min/max with the column's span.
 function buildRangeDropdown(id, dated) {
     const dd = document.createElement('div');
     dd.className = 'filter-dropdown filter-range-dd';
@@ -842,7 +838,8 @@ async function saveFile(blob, suggestedName, types) {
     URL.revokeObjectURL(a.href);
 }
 
-// Generates a CSV from visible items and saves it.
+// The items as CSV text, each cell quoted and read through the column's format, so the
+// export matches the screen. Used by downloadCsv and by the raw-source view.
 export function toCsv(columns, items) {
     const header = columns.map(c => c.label);
     const rows = items.map(item =>

@@ -90,8 +90,8 @@ function delivered(res) {
     return res.ok || res.status === 0;
 }
 
-// Fetches data from url, falling back to fallbackUrl if the first request fails.
 /**
+ * Fetches data from url, falling back to fallbackUrl if the first request fails.
  * @param {string} url
  * @param {string} [fallbackUrl]
  */
@@ -104,8 +104,10 @@ export async function fetchData(url, fallbackUrl) {
     return parseByUrl(fallbackUrl, await fallbackRes.text(), fallbackRes.headers.get('content-type'));
 }
 
-// Parses a TSV string into an array of objects keyed by the first-row headers.
-/** @param {string} text */
+/**
+ * Parses a TSV string into an array of objects keyed by the first-row headers.
+ * @param {string} text
+ */
 export function parseTsv(text) {
     const lines = text.split('\n').filter(l => l.trim());
     if (lines.length < 2) return [];
@@ -292,21 +294,14 @@ export function cellValue(item, key) {
     return cellText(getValue(item, key));
 }
 
-// --- Column formats -------------------------------------------------------
-// A format turns a raw value into the text the reader sees. It applies to the
-// cell, CSV export, and the text/category filters and search — so what is on
-// screen is what you can search for — while sorting keeps using the raw value,
-// leaving a date column in chronological order. The Min/Max range does too: on a
-// date column it compares timestamps behind two date pickers (see dates.js).
-const FORMATTERS = DATE_FORMATTERS;
-
-// Applies a column's format — a FORMATTERS name or a function(value, item). An
-// array maps through it, so a [*] path formats every match. Returns null when
-// there is no format, no value, or the value can't be formatted, letting callers
-// fall back to the plain text.
+// Applies a column's format — a DATE_FORMATTERS name or a function(value, item). An
+// array maps through it, so a [*] path formats every match. Returns null when there is
+// no format, no value, or the value can't be formatted, letting callers fall back to
+// the plain text. Formatting is display-only: sorting and the range filter stay on the
+// raw values, so a date column keeps chronological order.
 export function applyFormat(value, format, item) {
     if (!format || value == null || value === '') return null;
-    const fn = typeof format === 'function' ? format : FORMATTERS[format];
+    const fn = typeof format === 'function' ? format : DATE_FORMATTERS[format];
     if (!fn) return null;
     if (Array.isArray(value)) {
         const parts = value.map(v => fn(v, item)).filter(v => v != null);
@@ -351,7 +346,8 @@ export function filterFor(items, col, cap = VARIANCE_SCAN) {
     return seen.size <= CATEGORY_MAX ? 'category' : col.filter;
 }
 
-// The same, for the filter/search layers, which know keys rather than columns.
+// cellDisplay by key rather than by column, for the filter and search layers, which
+// hold a formats map instead of column objects.
 function displayText(item, key, formats) {
     return applyFormat(getValue(item, key), formats?.[key], item) ?? cellValue(item, key);
 }
@@ -369,12 +365,10 @@ function prepare(textState, rangeState, query, searchKeys, formats) {
     };
 }
 
-// All non-category filters: text + search + numeric range. Shared by getVisible and
+// All non-category filters: text + search + range. Shared by getVisible and
 // computeCounts so category option counts reflect these filters too. Text and search
 // read the displayed text, so a formatted column filters as it reads; a range stays on
-// the raw values, so a formatted date still filters chronologically. Every numeric
-// filter mode (Min/Max now, comparators/presets later) reduces to the same [min, max]
-// predicate, so this never has to change as new range UIs are added.
+// the raw values, so a formatted date still filters chronologically.
 function matchesNonCategory(item, { text, ranges, q, searchKeys, formats }) {
     for (const [key, needle] of text) {
         if (!displayText(item, key, formats).toLowerCase().includes(needle)) return false;

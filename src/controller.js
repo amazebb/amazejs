@@ -338,8 +338,8 @@ export async function initTable(config) {
     });
 
     textDefs.forEach(def => { textFilterState[def.key] = ''; });
-    // `date` travels with the state: matchesRange reads the value as an instant rather
-    // than a number when it is set.
+    // `date` travels with the state: matchesNonCategory reads the value as an instant
+    // rather than a number when it is set.
     rangeDefs.forEach(def => { rangeState[def.key] = { min: null, max: null, date: !!def.date }; });
 
     // Each category selection narrowed by its dropdown's option search, so typing
@@ -401,10 +401,10 @@ export async function initTable(config) {
         });
     }
 
-    // The raw-source toggle, sitting just before the menu wrap: swaps the table for a text dump of what
-    // the table is showing — the rows the filters left, in the shape the data arrived
-    // in (CSV when the import was delimited, JSON otherwise). It tracks the filters
-    // while open, so it reads as the same view the table does, not the untouched file.
+    // The raw-source toggle swaps the table for a text dump of what the table is
+    // showing — the rows the filters left, in the shape the data arrived in (CSV when
+    // the import was delimited, JSON otherwise). It tracks the filters while open, so
+    // it reads as the same view the table does, not the untouched file.
     if (sourceBtn) {
         const raw = sourceText.get(data);
         const importedAsJson = !raw || /^\s*[[{]/.test(raw);
@@ -751,8 +751,6 @@ export async function initTable(config) {
             }
         }
 
-        // Single point where range state is set — every control (the inputs now,
-        // presets/slider later) funnels through here.
         const setRange = patch => { Object.assign(rangeState[def.key], patch); refresh(); };
         // A date box yields the day's first or last millisecond, so From and To on the
         // same day keep that day; a number box yields the number itself.

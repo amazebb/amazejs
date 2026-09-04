@@ -112,9 +112,9 @@ export async function initTree(config, rawData) {
         || (rootKey ? rootKey.toUpperCase() : '')
         || (isUrlData(config.data) ? titleFromUrl(config.data[0]) : '');
 
+    const rootCtx = descend(ctx, rootKey);
     // labelStyle is the table's one labelling rule, applied by inferColumns — so
     // columns added later from the Columns picker match (TAP, not Tap).
-    const rootCtx = descend(ctx, rootKey);
     return initTable({
         ...config,
         data:       rootItems,
@@ -202,7 +202,7 @@ function getRootGroups(rawData, dataKey) {
         .filter(k => isObjectArray(rawData[k]))
         .map(k => ({ key: k, items: rawData[k] }));
     if (groups.length) return groups;
-    // No array of objects: fall back to the first array property, as before.
+    // No array of objects: fall back to the first array property.
     const first = Object.keys(rawData).find(k => rawData[k]?.length && Array.isArray(rawData[k]));
     if (first) return [{ key: first, items: rawData[first] }];
     // No array at all. A root property holding a single record is a one-row group
@@ -265,11 +265,11 @@ function getColumns(items, ctx, depth) {
     const nameKey = ctx.levels?.[depth]?.nameKey || 'name';
     const allowed = allowedChildKeys(ctx.levels, depth);
 
-    // Keys come from a sample, not just the first item, since records vary. A key
-    // is a child group if it holds an array of objects in ANY sampled item — an
-    // empty array in the first one must not demote it to a column. Everything else
-    // is an ordinary column, arrays of scalars (oldnames, aliases) included: they
-    // render as a value list.
+    // Keys come from a sample, not just the first item, since records vary. A key is a
+    // child group if nodeKeysFor named it, or if it holds an array of objects in ANY
+    // sampled item — an empty array in the first one must not demote it to a column.
+    // Everything else is an ordinary column, arrays of scalars (oldnames, aliases)
+    // included: they render as a value list.
     const nodeKeys = nodeKeysFor(items);
     const groupKeys = new Set(nodeKeys);
     items.slice(0, SAMPLE_SIZE).forEach(item => {
@@ -317,8 +317,8 @@ function handleToggle(btn) {
 }
 
 // Toggle on an item row. Every child group becomes a nested table with its own
-// disclosure toolbar: a single group starts expanded (one click to the table,
-// as before), multiple groups start as collapsed toolbar lines.
+// disclosure toolbar: a single group starts expanded (one click to reach the table),
+// multiple groups start as collapsed toolbar lines.
 function toggleItemRow(btn, { groups, ctx, depth, colCount }, isOpen) {
     const parentTr = btn.closest('tr');
 
