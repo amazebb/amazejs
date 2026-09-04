@@ -14,6 +14,7 @@ Zero-dependency interactive data tables in vanilla JavaScript. One ES module, no
   - [Deep fields](#deep-fields)
   - [Formatting values](#formatting-values)
   - [Tree tables](#tree-tables)
+  - [Desktop shells](#desktop-shells)
 - [Theming](#theming)
 - [API](#api)
 - [Development](#development)
@@ -215,6 +216,31 @@ collapsed, each with its own columns and filters — so `brew info`'s `{ formula
 renders both. They are never merged into one table: the same key can hold different
 types in each array (`installed` is a list of objects for formulae, a version string
 for casks). Pass `dataKey` to table just one of them.
+
+### Desktop shells
+
+The library is plain ESM with `fetch`, so it runs unchanged inside Tauri, Electron,
+Electrobun and Capacitor. Two things about loading bundled data files off a webview's
+own scheme (`views://`, `tauri://`, `asset://`, `file://` with a custom protocol
+handler):
+
+- **A status of 0 counts as delivered.** Those schemes answer with a bare response that
+  carries no HTTP status, so `res.ok` is `false` while the body is intact; `fetchData`
+  accepts it and only a request that truly fails (which rejects) falls through to the
+  fallback URL. Nothing to configure.
+- **The extension picks the parser, not the media type.** Custom schemes often send no
+  `content-type`, or `application/octet-stream` — which is never treated as binary for
+  exactly this reason. Name the file `.json`, `.csv` or `.tsv` and it parses correctly;
+  anything else is read as TSV.
+
+Bundle `dist/amazejs.js` with the app rather than importing it from the CDN, so the
+table works offline:
+
+```js
+import { initTable } from './amazejs.js';
+
+initTable({ data: ['views://data/items.json'], tableId: 'myTable' });
+```
 
 ## Theming
 
