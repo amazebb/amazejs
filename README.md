@@ -219,19 +219,12 @@ for casks). Pass `dataKey` to table just one of them.
 
 ### Desktop shells
 
-The library is plain ESM with `fetch`, so it runs unchanged inside Tauri, Electron,
-Electrobun and Capacitor. Two things about loading bundled data files off a webview's
-own scheme (`views://`, `tauri://`, `asset://`, `file://` with a custom protocol
-handler):
-
-- **A status of 0 counts as delivered.** Those schemes answer with a bare response that
-  carries no HTTP status, so `res.ok` is `false` while the body is intact; `fetchData`
-  accepts it and only a request that truly fails (which rejects) falls through to the
-  fallback URL. Nothing to configure.
-- **The extension picks the parser, not the media type.** Custom schemes often send no
-  `content-type`, or `application/octet-stream` — which is never treated as binary for
-  exactly this reason. Name the file `.json`, `.csv` or `.tsv` and it parses correctly;
-  anything else is read as TSV.
+Plain ESM and `fetch`, so it runs unchanged inside Tauri, Electron, Electrobun and
+Capacitor — data files included, loaded off the webview's own scheme (`views://`,
+`tauri://`, `asset://`). Nothing to configure: those schemes reply without an HTTP
+status, which counts as a successful load, and usually without a `content-type`, so the
+file extension picks the parser. Name the file `.json`, `.csv` or `.tsv`; anything else
+is read as TSV.
 
 Bundle `dist/amazejs.js` with the app rather than importing it from the CDN, so the
 table works offline:
@@ -280,7 +273,7 @@ The full option reference lives in [CLAUDE.md](CLAUDE.md).
 
 ## Development
 
-No build, no tests, no tooling — serve the repo over HTTP and open the demo:
+No build step and no test suite — serve the repo over HTTP and open the demo:
 
 ```
 python3 -m http.server 8000
@@ -289,7 +282,7 @@ python3 -m http.server 8000
 
 The library source is in [`src/`](src/), split MVC-style: `model.js` (pure data logic), `view.js` (DOM construction), `controller.js` (state + wiring), `tree.js` (nested tables), `index.js` (exports).
 
-It stays plain JavaScript deliberately — a browser loads `src/` raw — but it is type-checked: types are written as JSDoc, and `tsc` from the repo root checks them against [`tsconfig.json`](tsconfig.json). Editors pick the same config up, so `initTable({` completes every option.
+It stays plain JavaScript — a browser loads `src/` raw — but it is type-checked: the types are JSDoc comments, and `tsc` from the repo root checks them against [`tsconfig.json`](tsconfig.json). Editors read the same config, so `initTable({` completes every option.
 
 ## License
 
