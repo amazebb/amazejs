@@ -175,7 +175,9 @@ export function renderObjectCell(td, obj, mode, label, align = 'left') {
     // One grid, two content-sized columns: keys line up down the popover and the
     // values sit right beside them instead of being pushed to the far edge.
     const list = document.createElement('div');
-    list.className = `aj-obj-pairs aj-obj-${align}`;
+    // filter-options makes the list the scroller, as it is in a column filter — the
+    // header then sits outside it and keeps the full width beside the scrollbar.
+    list.className = `aj-obj-pairs filter-options aj-obj-${align}`;
     pairs.forEach(([k, v]) => {
         const key = document.createElement('span');
         key.className = 'aj-obj-key';

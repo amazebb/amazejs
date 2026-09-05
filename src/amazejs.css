@@ -1009,8 +1009,11 @@
     color: var(--bg);
 }
 
-/* Header row inside the array dropdown */
+/* Header row inside the array dropdown. Sticky against the dropdown, which is the
+   scroll container, so a long list keeps saying which cell it came from. */
 .aj-array-header {
+    position: sticky;
+    top: 0;
     padding: 6px 14px;
     font-size: 10px;
     font-weight: 600;
@@ -1074,6 +1077,19 @@
    flips the value column between left (default) and right. */
 .aj-obj-dd {
     min-width: 0;
+}
+
+/* A scrollbar that stays, rather than the platform's overlay one, which fades out and
+   leaves a capped list looking complete. ::-webkit-scrollbar is what opts out of the
+   overlay; scrollbar-width/-color don't, and setting them here would put it back. */
+.aj-obj-dd .filter-options::-webkit-scrollbar {
+    width: 10px;
+}
+
+.aj-obj-dd .filter-options::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border: 2px solid var(--bg);
+    border-radius: 5px;
 }
 
 .aj-obj-pairs {
