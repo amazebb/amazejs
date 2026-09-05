@@ -408,11 +408,21 @@ export async function initTable(config) {
                 if (showing && !sourceView) {
                     sourceView = buildSourceView(tableWrap || tableContainer);
                     sourceView.pre.addEventListener('scroll', drawSourceWindow);
+                    // The panel runs to the bottom of the window, so its height depends
+                    // on where it starts — the one number the stylesheet can't work out.
+                    window.addEventListener('resize', syncSourceBox);
                 }
-                if (showing) renderSource();
+                if (showing) { syncSourceBox(); renderSource(); }
                 sourceBtn.setAttribute('aria-pressed', String(showing));
                 sourceBtn.setAttribute('aria-label', showing ? 'View table' : 'View source');
             });
+
+            function syncSourceBox() {
+                if (!sourceView) return;
+                const top = sourceView.pre.getBoundingClientRect().top;
+                tableContainer.style.setProperty('--aj-source-top', `${Math.max(0, top)}px`);
+                drawSourceWindow();
+            }
 
             // The dump, and where every line starts in it. Held as offsets rather than
             // split into strings: a 34MB dump is 800k lines, and the offsets are an

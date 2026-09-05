@@ -482,6 +482,10 @@
 
 .atv-table-container.atv-source .aj-source {
     display: block;
+    /* Down to the bottom of the window, keeping the gap the page leaves at the sides.
+       --aj-source-top is how far down the panel starts, measured by the controller.
+       A cap rather than a height, so a short dump stays its own size. */
+    max-height: calc(100dvh - var(--aj-source-top, 0px) - var(--aj-port-inset, 8px));
 }
 
 .atv-table-container.atv-source table,
