@@ -12,6 +12,10 @@ import { initTree, isTreeData } from './tree.js';
 
 let _tableCount = 0;
 
+// Lines drawn either side of the raw view's viewport, so a flick of the wheel lands on
+// text already there rather than on blank space.
+const SOURCE_OVERSCAN = 40;
+
 // The ancestor a too-wide table scrolls sideways within, or null when that is the
 // page itself — which is the normal case, since freezing the header drops
 // .table-wrap's own overflow so the page does the scrolling.
@@ -274,9 +278,10 @@ export async function initTable(config) {
 
         // --- State ---
         // The source panel, built on the first press of the raw toggle, refilled by refresh().
-        /** @type {?HTMLPreElement} */
-        let sourcePre = null;
+        /** @type {?{ pre: HTMLElement, sizer: HTMLElement, win: HTMLElement }} */
+        let sourceView = null;
         let renderSource = () => { };
+        let drawSourceWindow = () => { };
         const filterState = {};
         const optionQuery = {};
         const textFilterState = {};
@@ -396,16 +401,55 @@ export async function initTable(config) {
             const importedAsJson = (sourceText.get(data)?.format ?? 'json') === 'json';
             sourceBtn.addEventListener('click', () => {
                 const showing = tableContainer.classList.toggle('atv-source');
-                if (showing && !sourcePre) sourcePre = buildSourceView(tableWrap || tableContainer);
+                if (showing && !sourceView) {
+                    sourceView = buildSourceView(tableWrap || tableContainer);
+                    sourceView.pre.addEventListener('scroll', drawSourceWindow);
+                }
                 if (showing) renderSource();
                 sourceBtn.setAttribute('aria-pressed', String(showing));
                 sourceBtn.setAttribute('aria-label', showing ? 'View table' : 'View source');
             });
+
+            // The dump, and where every line starts in it. Held as offsets rather than
+            // split into strings: a 34MB dump is 800k lines, and the offsets are an
+            // Int32Array while the strings would be hundreds of megabytes.
+            let sourceDump = '';
+            let lineAt = new Int32Array(1);
+
+            const indexLines = text => {
+                let n = 1;
+                for (let i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) n++;
+                const at = new Int32Array(n + 1);
+                let k = 1;
+                for (let i = text.indexOf('\n'); i >= 0; i = text.indexOf('\n', i + 1)) at[k++] = i + 1;
+                at[n] = text.length;
+                return at;
+            };
+
+            // Only the lines on screen, plus a margin either side, are ever in the DOM.
+            // The window is placed at its own offset inside the sizer, so scrolling is
+            // the browser's own and stays true to the whole dump.
+            drawSourceWindow = () => {
+                if (!sourceView) return;
+                const { pre, win } = sourceView;
+                const lh = parseFloat(getComputedStyle(pre).lineHeight) || 18;
+                const lines = lineAt.length - 1;
+                const first = Math.max(0, Math.floor(pre.scrollTop / lh) - SOURCE_OVERSCAN);
+                const last = Math.min(lines, first + Math.ceil(pre.clientHeight / lh) + SOURCE_OVERSCAN * 2);
+                win.style.paddingTop = `${first * lh}px`;
+                win.textContent = sourceDump.slice(lineAt[first], lineAt[last]);
+            };
+
             renderSource = () => {
-                if (!sourcePre) return;
-                sourcePre.textContent = importedAsJson
+                if (!sourceView) return;
+                sourceDump = importedAsJson
                     ? JSON.stringify([...visibleSet], null, 2)
                     : toCsv(columns, [...visibleSet]);
+                lineAt = indexLines(sourceDump);
+                const lh = parseFloat(getComputedStyle(sourceView.pre).lineHeight) || 18;
+                sourceView.sizer.style.height = `${(lineAt.length - 1) * lh}px`;
+                sourceView.pre.scrollTop = 0;
+                drawSourceWindow();
             };
         }
 

@@ -458,6 +458,7 @@
    switching back and forth costs nothing. */
 .aj-source {
     display: none;
+    position: relative;
     margin: 0;
     padding: 12px 16px;
     max-height: 70vh;
@@ -465,6 +466,18 @@
     font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     color: var(--text);
     tab-size: 2;
+}
+
+/* Carries the height of the whole dump so the scrollbar is true to it, while only the
+   lines on screen are ever in the DOM. */
+.aj-source-sizer {
+    position: relative;
+}
+
+/* In flow, offset by a top pad rather than positioned: an absolute box contributes no
+   width, and a long line would then have nothing to scroll sideways over. */
+.aj-source-window {
+    width: max-content;
 }
 
 .atv-table-container.atv-source .aj-source {

@@ -870,8 +870,18 @@ export async function downloadJson(items, filename) {
 export function buildSourceView(host) {
     const pre = document.createElement('pre');
     pre.className = 'aj-source';
+    // A sizer as tall as every line, and a window holding only the lines on screen —
+    // the dump can be tens of megabytes, which the browser cannot lay out in one go.
+    // The controller fills both; <pre> never wraps, so line count times line height is
+    // the exact height.
+    const sizer = document.createElement('div');
+    sizer.className = 'aj-source-sizer';
+    const win = document.createElement('div');
+    win.className = 'aj-source-window';
+    sizer.appendChild(win);
+    pre.appendChild(sizer);
     host.appendChild(pre);
-    return pre;
+    return { pre, sizer, win };
 }
 
 // Shows/hides option rows inside an open dropdown based on the search query.
