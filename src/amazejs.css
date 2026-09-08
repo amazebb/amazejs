@@ -722,25 +722,11 @@
 
 /* Filter dropdown — nested in its trigger's DOM; the Popover API renders it in
    the top layer when open. Resets undo inherited th styles (bold, nowrap). */
-/* Placement is CSS anchor positioning: attachPopover pairs each dropdown with its
-   trigger by anchor-name, and the area below the trigger becomes this box's
-   containing block — so `inset: auto` puts it under the trigger's inline-start
-   edge, the margins are the gap to the trigger and the breathing room at the far
-   edges, and 100% in max-height below is the room on that side. A popover is fixed
-   and in the top layer, so what the viewport cuts off is gone rather than scrolled
-   to: the fallbacks flip it to whichever side has more room, and the height cap
-   leaves the remainder to scroll inside it. */
+/* A popover is fixed and in the top layer, so it is placed against the viewport
+   and what the viewport cuts off is gone rather than scrolled to. Everything
+   below the look — where it lands, which side it flips to, how tall it may be —
+   is done twice, once per engine, in the two @supports blocks that follow. */
 .filter-dropdown {
-    position: fixed;
-    inset: auto;
-    position-area: block-end span-inline-end;
-    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
-    /* Try the roomier side first rather than only on overflow: capped to its area
-       (see max-height) the dropdown never overflows, so nothing else would ever
-       trigger the flip and a dropdown opened from the last row would sit in the
-       sliver below it. */
-    position-try-order: most-block-size;
-    margin: var(--aj-dd-gap) var(--aj-dd-edge) var(--aj-dd-edge) 0;
     padding: 0;
     font-weight: normal;
     white-space: normal;
@@ -750,13 +736,61 @@
     border-radius: 8px;
     box-shadow: var(--dropdown-shadow);
     min-width: 240px;
-    /* The room the dropdown landed in, less its own margins (percentages resolve
-       against the area, which does not know about them), never taller than the
-       resting height and never squeezed below the floor — a dropdown that can only
-       show a line or two is worse than one that overflows a little. */
-    max-height: clamp(120px, calc(100% - var(--aj-dd-gap) - var(--aj-dd-edge)), 360px);
     overflow-y: auto;
     overscroll-behavior: contain;
+}
+
+/* Placement, where the engine has CSS anchor positioning: attachPopover pairs each
+   dropdown with its trigger by anchor-name, and the area below the trigger becomes
+   this box's containing block — so `inset: auto` puts it under the trigger's
+   inline-start edge, the margins are the gap to the trigger and the breathing room
+   at the far edges, and 100% in max-height is the room on that side. */
+@supports (position-area: block-end) {
+    .filter-dropdown {
+        position: fixed;
+        inset: auto;
+        position-area: block-end span-inline-end;
+        position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+        /* Try the roomier side first rather than only on overflow: capped to its
+           area (see max-height) the dropdown never overflows, so nothing else would
+           ever trigger the flip and a dropdown opened from the last row would sit in
+           the sliver below it. */
+        position-try-order: most-block-size;
+        margin: var(--aj-dd-gap) var(--aj-dd-edge) var(--aj-dd-edge) 0;
+        /* The room the dropdown landed in, less its own margins (percentages resolve
+           against the area, which does not know about them), never taller than the
+           resting height and never squeezed below the floor — a dropdown that can
+           only show a line or two is worse than one that overflows a little. */
+        max-height: clamp(120px, calc(100% - var(--aj-dd-gap) - var(--aj-dd-edge)), 360px);
+    }
+}
+
+/* Placement, where it hasn't — WKWebView (so Electrobun, Tauri, any app that embeds
+   a web view) and Safari before 26. There attachPopover measures the trigger instead
+   and publishes its distance to each of the four viewport edges; the arithmetic stays
+   here. --aj-a-t is the trigger's bottom, --aj-a-b its top measured up from the
+   bottom of the window, and likewise -l and -r, so each one is an inset as it stands.
+   data-dd-y / data-dd-x say which side attachPopover picked; max() keeps a dropdown
+   whose trigger is at the very edge of the window on screen. */
+@supports not (position-area: block-end) {
+    .filter-dropdown {
+        position: fixed;
+        inset: auto;
+        max-width: calc(100vw - 2 * var(--aj-dd-edge));
+    }
+
+    .filter-dropdown[data-dd-x="start"] { left: max(var(--aj-dd-edge), var(--aj-a-l)); }
+    .filter-dropdown[data-dd-x="end"] { right: max(var(--aj-dd-edge), var(--aj-a-r)); }
+
+    .filter-dropdown[data-dd-y="below"] {
+        top: calc(var(--aj-a-t) + var(--aj-dd-gap));
+        max-height: clamp(120px, calc(100vh - var(--aj-a-t) - var(--aj-dd-gap) - var(--aj-dd-edge)), 360px);
+    }
+
+    .filter-dropdown[data-dd-y="above"] {
+        bottom: calc(var(--aj-a-b) + var(--aj-dd-gap));
+        max-height: clamp(120px, calc(100vh - var(--aj-a-b) - var(--aj-dd-gap) - var(--aj-dd-edge)), 360px);
+    }
 }
 
 .filter-search {

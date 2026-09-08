@@ -246,6 +246,13 @@ import { initTable } from './amazejs.js';
 initTable({ data: ['views://data/items.json'], tableId: 'myTable' });
 ```
 
+Dropdowns work in these shells too, which takes a little care. On macOS a shell that
+doesn't bundle its own Chromium renders in the system **WKWebView**, where CSS anchor
+positioning is an experimental feature that is off by default and can't be enabled from
+the page. amazejs therefore ships its placement twice: anchor positioning where the
+engine has it, and a measured fallback where it doesn't. The fallback is automatic —
+there is nothing to configure, and no flag to ask the shell for.
+
 ## Theming
 
 A complete light/dark default theme is built in — no CSS required. The defaults have zero specificity, so anything you define on `:root` wins automatically. Override only what you want to change:

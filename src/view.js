@@ -32,9 +32,31 @@ const HOVER_CLOSE_DELAY = 300;
 // order, so they only have to be unique across the document.
 let anchorSeq = 0;
 
-// Wires button(s) to toggle dd through the native invoker relationship, and names the
-// anchor the stylesheet positions dd against — placement and flipping are all CSS (see
-// .filter-dropdown), so nothing here measures. hover: true also opens on pointer-over.
+// Whether the engine places dropdowns by itself. Where it doesn't, place() below
+// stands in for it. See the two @supports blocks in amazejs.css.
+const ANCHOR_CSS = CSS.supports('position-area', 'block-end');
+
+// The trigger's distance to each of the four viewport edges, published for the
+// stylesheet to use as insets, plus the side to open on — the same measure-here,
+// lay-out-there split as syncToolbarBox in controller.js. Read innerWidth/innerHeight,
+// not documentElement.client*, which in a web view reports the content box.
+function place(dd, anchor) {
+    const r = anchor.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // The roomier side, as position-try-order: most-block-size picks.
+    dd.dataset.ddY = (vh - r.bottom) >= r.top ? 'below' : 'above';
+    // Right-align once the room to the right can't hold the dropdown. Its width
+    // comes from the element, so a narrower dropdown keeps its own rule.
+    dd.dataset.ddX = (vw - r.left) >= parseFloat(getComputedStyle(dd).minWidth) ? 'start' : 'end';
+    dd.style.setProperty('--aj-a-t', `${r.bottom}px`);
+    dd.style.setProperty('--aj-a-b', `${vh - r.top}px`);
+    dd.style.setProperty('--aj-a-l', `${r.left}px`);
+    dd.style.setProperty('--aj-a-r', `${vw - r.right}px`);
+}
+
+// Wires button(s) to toggle dd through the native invoker relationship, and pairs it
+// with the anchor the stylesheet positions it against. hover: true also opens on
+// pointer-over.
 export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
     const invokers = [btns].flat();
     invokers.forEach(btn => {
@@ -42,13 +64,27 @@ export function attachPopover(btns, dd, anchor, { hover = false } = {}) {
         btn.setAttribute('aria-expanded', 'false');
     });
 
-    const name = `--aj-anchor-${++anchorSeq}`;
-    anchor.style.setProperty('anchor-name', name);
-    dd.style.setProperty('position-anchor', name);
+    if (ANCHOR_CSS) {
+        const name = `--aj-anchor-${++anchorSeq}`;
+        anchor.style.setProperty('anchor-name', name);
+        dd.style.setProperty('position-anchor', name);
+    }
 
+    const track = () => place(dd, anchor);
     dd.addEventListener('beforetoggle', e => {
         const open = e.newState === 'open';
         invokers.forEach(btn => btn.setAttribute('aria-expanded', String(open)));
+        if (ANCHOR_CSS) return;
+        // A fixed box doesn't follow its trigger, and the trigger moves: the page
+        // scrolls, a wide table scrolls in its own scroller, the window resizes.
+        if (open) {
+            place(dd, anchor);
+            addEventListener('scroll', track, { capture: true, passive: true });
+            addEventListener('resize', track);
+        } else {
+            removeEventListener('scroll', track, { capture: true });
+            removeEventListener('resize', track);
+        }
     });
 
     // Only wire hover-open on devices that actually hover. On touch the first
