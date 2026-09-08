@@ -253,6 +253,12 @@ the page. amazejs therefore ships its placement twice: anchor positioning where 
 engine has it, and a measured fallback where it doesn't. The fallback is automatic —
 there is nothing to configure, and no flag to ask the shell for.
 
+To see what your own shell supports, open
+[webview-anchor-probe](https://amazebb.github.io/webview-anchor-probe/)
+([source](https://github.com/amazebb/webview-anchor-probe)) inside it: it reports the
+engine and its CSS features, and places the same popup three ways against a wide
+scrolling table so you can see which mechanism lands correctly.
+
 ## Theming
 
 A complete light/dark default theme is built in — no CSS required. The defaults have zero specificity, so anything you define on `:root` wins automatically. Override only what you want to change:
